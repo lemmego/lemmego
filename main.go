@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	authPlugin := auth.New(auth.WithResolveUser(func(username string, password string) (*auth.AuthUser, error) {
+	authPlugin := auth.New(auth.WithUserResolver(func(username string, password string) (*auth.AuthUser, error) {
 		// var db fluent.DBSession
 		authUser := &auth.AuthUser{}
 		// q := db.SQL().Select("id", "email", "password").From("users").Where("email = ?", username).Limit(1)
@@ -22,10 +22,14 @@ func main() {
 		return authUser, nil
 	}))
 	app := fluent.NewApp(fluent.WithPlugins([]fluent.Plugin{authPlugin}))
-	app.Router.Use(middleware.Logger, middleware.Recoverer)
+	app.Use(middleware.Logger, middleware.Recoverer)
 
 	welcomeHandler := func(ctx *fluent.Context) error {
-		return ctx.Render(200, "welcome.page.tmpl", &fluent.TemplateData{})
+		return ctx.Render(200, "welcome.page.tmpl", &fluent.TemplateData{
+			StringMap: map[string]string{
+				"user": authPlugin.AuthUser.Username,
+			},
+		})
 	}
 
 	app.Get("/", authPlugin.Web(welcomeHandler))

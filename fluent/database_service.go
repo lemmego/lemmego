@@ -5,7 +5,7 @@ type DatabaseServiceProvider struct {
 }
 
 func (provider *DatabaseServiceProvider) Register(app *App) {
-	app.Container.Singleton(func() DBSession {
+	app.container.Singleton(func() DBSession {
 		sess, err := ConnectDB("postgres", getDefaultConfig().DbConfig)
 		if err != nil {
 			panic(err)

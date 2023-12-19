@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fluent-blog/fluent"
 	"fmt"
@@ -11,8 +12,6 @@ import (
 	"strings"
 
 	"dario.cat/mergo"
-
-	_ "embed"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golobby/container/v3"
@@ -27,9 +26,6 @@ var (
 	ErrNoSecret    = errors.New("no secret provided: the JWT_SECRET env variable must be provided")
 	ErrNoSession   = errors.New("no session provided: the session manager must be provided")
 )
-
-//go:embed templates/login.page.tmpl
-var loginTmpl []byte
 
 type Actor interface {
 	Id() string
@@ -79,7 +75,7 @@ func DefaultOptions() *Options {
 	}
 }
 
-func WithResolveUser(resolveUser func(username string, password string) (*AuthUser, error)) OptFunc {
+func WithUserResolver(resolveUser func(username string, password string) (*AuthUser, error)) OptFunc {
 	return func(opts *Options) {
 		opts.ResolveUser = resolveUser
 	}
@@ -121,8 +117,11 @@ func New(opts ...OptFunc) *Auth {
 }
 
 func (authn *Auth) Login(ctx context.Context, a *AuthUser, username string, password string) (token string, err error) {
+	log.Println(a)
 	if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(password)); a.Username != "" && a.Password != "" && err == nil {
 		if authn.Opts.Session != nil {
+			userJson, _ := json.Marshal(a)
+			authn.Opts.Session.Put(ctx, "user", string(userJson))
 			authn.Opts.Session.Put(ctx, "userId", a.ID)
 		} else {
 			return "", ErrNoSession
@@ -163,8 +162,11 @@ func (authn *Auth) ForceLogin(ctx context.Context, a Actor) (token string, err e
 }
 
 func (authn *Auth) Check(r *http.Request) error {
+	user := &AuthUser{}
 	if authn.Opts.Session != nil {
 		if exists := authn.Opts.Session.Exists(r.Context(), "userId"); exists {
+			json.Unmarshal([]byte(authn.Opts.Session.Get(r.Context(), "user").(string)), user)
+			authn.AuthUser = user
 			return nil
 		} else {
 			return errors.New("user session doesn't exists")
@@ -195,7 +197,7 @@ func (authn *Auth) Check(r *http.Request) error {
 		if err != nil {
 			return err
 		}
-		user := &AuthUser{}
+
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			user.ID = claims["sub"].(string)
 			user.Username = claims["username"].(string)
@@ -237,11 +239,8 @@ func (p *Auth) Namespace() string {
 	return "fluentcms.auth"
 }
 
-func (p *Auth) Init(c container.Container) error {
-	p.container = c
-	var session *fluent.Session
-	c.NamedResolve(session, "session")
-	p.Opts.Session = session
+func (p *Auth) Boot(app *fluent.App) error {
+	p.Opts.Session = app.Session()
 	return nil
 }
 

@@ -35,7 +35,7 @@ type Config struct {
 
 type Plugin interface {
 	Namespace() string
-	Init(c container.Container) error
+	Boot(a *App) error
 	EventListeners() map[string]func()
 	Migrations() []string
 	Templates() map[string][]byte
@@ -51,16 +51,16 @@ type AppHooks struct {
 }
 
 type App struct {
-	isContextReady bool
-	mu             sync.Mutex
-	container.Container
+	isContextReady   bool
+	mu               sync.Mutex
+	container        container.Container
 	session          *Session
-	Config           *Config
+	config           *Config
 	plugins          []Plugin
 	services         []ServiceProvider
 	routeMiddlewares map[string]Middleware
-	Hooks            *AppHooks
-	Router           chi.Router
+	hooks            *AppHooks
+	router           chi.Router
 }
 
 type Options struct {
@@ -76,11 +76,17 @@ type Options struct {
 
 type OptFunc func(opts *Options)
 
+func (a *App) Use(middlewares ...func(http.Handler) http.Handler) {
+	for _, m := range middlewares {
+		a.router.Use(m)
+	}
+}
+
 func (a *App) Get(pattern string, handler Handler, middlewares ...Middleware) (*Route, error) {
 	if a.isContextReady {
 		return nil, fmt.Errorf("cannot add route after context is ready")
 	}
-	a.Router.MethodFunc(http.MethodGet, pattern, makeHandlerFunc(a, handler, middlewares...))
+	a.router.MethodFunc(http.MethodGet, pattern, makeHandlerFunc(a, handler, middlewares...))
 	return NewRoute(http.MethodGet, pattern, handler, middlewares...), nil
 }
 
@@ -88,7 +94,7 @@ func (a *App) Post(pattern string, handler Handler, middlewares ...Middleware) (
 	if a.isContextReady {
 		return nil, fmt.Errorf("cannot add route after context is ready")
 	}
-	a.Router.MethodFunc(http.MethodPost, pattern, makeHandlerFunc(a, handler, middlewares...))
+	a.router.MethodFunc(http.MethodPost, pattern, makeHandlerFunc(a, handler, middlewares...))
 	return NewRoute(http.MethodPost, pattern, handler, middlewares...), nil
 }
 
@@ -96,7 +102,7 @@ func (a *App) Put(pattern string, handler Handler, middlewares ...Middleware) (*
 	if a.isContextReady {
 		return nil, fmt.Errorf("cannot add route after context is ready")
 	}
-	a.Router.MethodFunc(http.MethodPut, pattern, makeHandlerFunc(a, handler, middlewares...))
+	a.router.MethodFunc(http.MethodPut, pattern, makeHandlerFunc(a, handler, middlewares...))
 	return NewRoute(http.MethodPut, pattern, handler, middlewares...), nil
 }
 
@@ -104,7 +110,7 @@ func (a *App) Patch(pattern string, handler Handler, middlewares ...Middleware) 
 	if a.isContextReady {
 		return nil, fmt.Errorf("cannot add route after context is ready")
 	}
-	a.Router.MethodFunc(http.MethodPatch, pattern, makeHandlerFunc(a, handler, middlewares...))
+	a.router.MethodFunc(http.MethodPatch, pattern, makeHandlerFunc(a, handler, middlewares...))
 	return NewRoute(http.MethodPatch, pattern, handler, middlewares...), nil
 }
 
@@ -112,7 +118,7 @@ func (a *App) Delete(pattern string, handler Handler, middlewares ...Middleware)
 	if a.isContextReady {
 		return nil, fmt.Errorf("cannot add route after context is ready")
 	}
-	a.Router.MethodFunc(http.MethodDelete, pattern, makeHandlerFunc(a, handler, middlewares...))
+	a.router.MethodFunc(http.MethodDelete, pattern, makeHandlerFunc(a, handler, middlewares...))
 	return NewRoute(http.MethodDelete, pattern, handler, middlewares...), nil
 }
 
@@ -260,10 +266,6 @@ func NewApp(options ...OptFunc) *App {
 	var routeMiddlewares map[string]Middleware
 
 	for _, plugin := range opts.Plugins {
-		if err := plugin.Init(opts.Container); err != nil {
-			panic(err)
-		}
-
 		// Copy template files listed in the Views() method to the app's template directory
 		for name, content := range plugin.Templates() {
 			filePath := filepath.Join(opts.Config.TemplateDir, name)
@@ -282,9 +284,14 @@ func NewApp(options ...OptFunc) *App {
 			}
 			routeMiddlewares[key] = middleware
 		}
+
+		// if err := plugin.Boot(opts.Container); err != nil {
+		// 	panic(err)
+		// }
+
 	}
 
-	return &App{
+	app := &App{
 		false,
 		sync.Mutex{},
 		opts.Container,
@@ -296,9 +303,14 @@ func NewApp(options ...OptFunc) *App {
 		opts.Hooks,
 		opts.Router,
 	}
+	return app
 }
 
-func (app *App) RegisterServices(services []ServiceProvider) {
+func (app *App) Session() *Session {
+	return app.session
+}
+
+func (app *App) registerServices(services []ServiceProvider) {
 	for _, svc := range services {
 		if reflect.TypeOf(svc).Kind() != reflect.Ptr {
 			panic("Service must be a pointer")
@@ -330,25 +342,25 @@ func (app *App) RegisterServices(services []ServiceProvider) {
 	}
 }
 
-func (app *App) RegisterMiddlewares(middlewares []func(http.Handler) http.Handler) {
+func (app *App) registerMiddlewares(middlewares []func(http.Handler) http.Handler) {
 	for _, middleware := range middlewares {
-		app.Router.Use(middleware)
+		app.router.Use(middleware)
 	}
 	for _, plugin := range app.plugins {
 		for _, middleware := range plugin.Middlewares() {
-			app.Router.Use(middleware)
+			app.router.Use(middleware)
 		}
 	}
 }
 
-func (app *App) RegisterRoutes() {
+func (app *App) registerRoutes() {
 	// for _, route := range routes {
 	// 	app.Router.MethodFunc(route.Method, route.Path, makeHandlerFunc(app, route.Handler, route.Middlewares...))
 	// }
 
 	for _, plugin := range app.plugins {
 		for _, route := range plugin.Routes() {
-			app.Router.MethodFunc(route.Method, route.Path, makeHandlerFunc(app, route.Handler))
+			app.router.MethodFunc(route.Method, route.Path, makeHandlerFunc(app, route.Handler))
 		}
 	}
 }
@@ -377,18 +389,24 @@ func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.
 }
 
 func (a *App) Run() {
-	a.RegisterServices([]ServiceProvider{
+	a.registerServices([]ServiceProvider{
 		&DatabaseServiceProvider{},
 		&SessionServiceProvider{},
 		&AuthServiceProvider{},
 	})
 
-	a.RegisterRoutes()
+	a.registerRoutes()
 
-	a.Router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	a.router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	fmt.Println(fmt.Sprintf("%s is running on port %d...", a.Config.AppName, a.Config.AppPort))
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", a.Config.AppPort), a.session.LoadAndSave(a.Router)); err != nil {
+	for _, plugin := range a.plugins {
+		if err := plugin.Boot(a); err != nil {
+			panic(err)
+		}
+	}
+
+	fmt.Println(fmt.Sprintf("%s is running on port %d...", a.config.AppName, a.config.AppPort))
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", a.config.AppPort), a.session.LoadAndSave(a.router)); err != nil {
 		panic(err)
 	}
 }

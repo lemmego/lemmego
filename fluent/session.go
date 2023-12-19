@@ -7,5 +7,7 @@ type Session struct {
 }
 
 func NewSessionManager() *Session {
-	return &Session{scs.New()}
+	s := scs.New()
+	s.Cookie.Persist = true
+	return &Session{s}
 }
