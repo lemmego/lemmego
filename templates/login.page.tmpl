@@ -1,40 +1,57 @@
 {{template "base" .}}
 
 {{define "content"}}
-  <div class="hero min-h-screen bg-base-200">
-  <div class="hero-content flex-col lg:flex-row-reverse">
-    <div class="text-center lg:text-left">
-      <h1 class="text-5xl font-bold">Login now!</h1>
-      <p class="py-6">Log in to the system</p>
-    </div>
-    <div class="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
-      <form class="card-body" action="/login" method="POST">
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Email</span>
-          </label>
-          <input type="email" name="username" placeholder="email" class="input input-bordered" required />
-          {{if .ValidationErrors}}
-            <p class="text-xs text-error">{{index .ValidationErrors "username"}}</p>
+<div class="flex items-center justify-center h-screen">
+  <div class="w-full max-w-md">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <h1 class="text-3xl font-bold text-center mb-6">Sign in to your account</h1>
+      <form action="/login" method="POST">
+        <div class="mb-4">
+          <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+          <input type="email" name="username" id="email" placeholder="email" class="w-full p-2 border rounded" required />
+          {{if and .ValidationErrors (gt (len .ValidationErrors) 0)}}
+            {{range .ValidationErrors}}
+              {{if eq .Key "username"}}
+                <p class="text-xs text-red-500">{{.Value}}</p>
+              {{end}}
+            {{end}}
           {{end}}
         </div>
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Password</span>
-          </label>
-          <input type="password" name="password" placeholder="password" class="input input-bordered" required />
-          {{if .ValidationErrors}}
-            <p class="text-xs text-error">{{index .ValidationErrors "password"}}</p>
+
+        <div class="mb-4">
+          <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+          <input type="password" name="password" id="password" placeholder="password" class="w-full p-2 border rounded" required />
+          {{if and .ValidationErrors (gt (len .ValidationErrors) 0)}}
+            {{range .ValidationErrors}}
+              {{if eq .Key "password"}}
+                <p class="text-xs text-red-500">{{.Value}}</p>
+              {{end}}
+            {{end}}
           {{end}}
-          <label class="label">
-            <a href="#" class="label-text-alt link link-hover">Forgot password?</a>
+          <label class="block text-gray-700 text-sm mt-2">
+            <a href="#" class="text-blue-500 hover:underline">Forgot password?</a>
           </label>
-          {{if .Error}}
-            <p class="text-xs text-error">{{.Error}}</p>
+          {{with .Messages}}
+            {{range .}}
+              {{if eq .Type "error"}}
+                <p class="text-xs text-red-500">{{.Body}}</p>
+              {{else if eq .Type "success"}}
+                <p class="text-xs text-green-500">{{.Body}}</p>
+              {{else if eq .Type "warning"}}
+                <p class="text-xs text-yellow-500">{{.Body}}</p>
+              {{else if eq .Type "info"}}
+                <p class="text-xs text-blue-500">{{.Body}}</p>
+              {{else if eq .Type "debug"}}
+                <p class="text-xs text-gray-500">{{.Body}}</p>
+              {{end}}
+            {{end}}
           {{end}}
         </div>
-        <div class="form-control mt-6">
-          <button class="btn btn-primary">Login</button>
+
+        <div class="mb-6">
+          <button class="w-full bg-blue-500 text-white p-2 rounded">Login</button>
+          <!-- Login with github -->
+          <a href="/auth/github" class="w-full bg-gray-500 text-white p-2 rounded mt-2 block text-center">Login with Github</a>
         </div>
       </form>
     </div>

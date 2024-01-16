@@ -1,4 +1,4 @@
-package fluent
+package framework
 
 type ServiceProvider interface {
 	Register(app *App)

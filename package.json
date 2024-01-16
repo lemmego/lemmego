@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "build:css": "tailwindcss -i static/css/style.css -o static/css/dist.css",
+    "dev": "tailwindcss -i static/css/style.css -o static/css/dist.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "autoprefixer": "^10.4.16",
+    "daisyui": "^4.4.23",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0"
+  }
+}

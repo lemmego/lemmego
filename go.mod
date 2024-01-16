@@ -1,14 +1,15 @@
-module fluent-blog
+module pressebo
 
-go 1.21.3
+go 1.21
 
 require (
+	github.com/a-h/templ v0.2.513
 	github.com/go-chi/chi/v5 v5.0.10
+	github.com/gomodule/redigo v1.8.0
 	github.com/lemmego/migration v0.0.0-00010101000000-000000000000
 )
 
 require (
-	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/spf13/cobra v1.5.0 // indirect
@@ -20,6 +21,7 @@ require (
 
 require (
 	dario.cat/mergo v1.0.0
+	github.com/alexedwards/scs/redisstore v0.0.0-20231113091146-cef4b05350c8
 	github.com/alexedwards/scs/v2 v2.7.0
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0

@@ -4,27 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fluent-blog/fluent"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"pressebo/framework"
 	"strings"
 
 	"dario.cat/mergo"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/golobby/container/v3"
 	"github.com/invopop/validation"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
 
+const Namespace = "fluent.auth"
+
 var (
-	ErrLoginFailed = errors.New("login failed")
-	ErrNoStrategy  = errors.New("no strategy provided: either the session manager or the token config must be provided")
-	ErrNoSecret    = errors.New("no secret provided: the JWT_SECRET env variable must be provided")
-	ErrNoSession   = errors.New("no session provided: the session manager must be provided")
+	ErrLoginFailed   = errors.New("login failed")
+	ErrNoStrategy    = errors.New("no strategy provided: either the session manager or the token config must be provided")
+	ErrNoSecret      = errors.New("no secret provided: the JWT_SECRET env variable must be provided")
+	ErrNoSession     = errors.New("no session provided: the session manager must be provided")
+	ErrNoUserSession = errors.New("user session doesn't exists")
 )
 
 type Actor interface {
@@ -39,26 +41,22 @@ type AuthUser struct {
 	Password string `json:"password"`
 }
 
+type ResolveUserFunc func(username string) (*AuthUser, error)
+type CreateUserFunc func(firstName string, lastName string, username string, password string) bool
+
 type Options struct {
-	DB                fluent.DBSession
-	Session           *fluent.Session
+	DB                framework.DBSession
+	DBFunc            func() framework.DBSession
+	Session           *framework.Session
 	TokenConfig       *TokenConfig
-	ResolveUser       func(username string, password string) (*AuthUser, error)
+	ResolveUser       ResolveUserFunc
+	CreateUser        CreateUserFunc
 	GoogleOAuthConfig *oauth2.Config
 	CustomViewMap     map[string]string
 	HomeRoute         string
 }
 
 type AuthPlugin struct {
-	container container.Container
-}
-
-func (p *AuthPlugin) SetContainer(c container.Container) {
-	p.container = c
-}
-
-type Auth struct {
-	*AuthPlugin
 	Opts     *Options
 	AuthUser *AuthUser
 }
@@ -75,13 +73,54 @@ func DefaultOptions() *Options {
 	}
 }
 
-func WithUserResolver(resolveUser func(username string, password string) (*AuthUser, error)) OptFunc {
+func WithDefaultUserResolver(opts *Options) {
+	opts.ResolveUser = func(username string) (*AuthUser, error) {
+		db := opts.DB
+		authUser := AuthUser{}
+		q, err := db.SQL().QueryRow("select id, email, password from users where email = $1 limit 1", username)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := q.Scan(&authUser.ID, &authUser.Username, &authUser.Password); err != nil {
+			return nil, err
+		}
+		return &authUser, nil
+	}
+}
+
+func WithDefaultUserCreator(opts *Options) {
+	opts.CreateUser = func(firstName string, lastName string, username string, password string) bool {
+		db := opts.DB
+
+		encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+
+		q := db.
+			SQL().
+			InsertInto("users").
+			Columns("first_name", "last_name", "email", "password").
+			Values(firstName, lastName, username, encryptedPassword)
+
+		if _, err := q.Exec(); err != nil {
+			return false
+		}
+		return true
+	}
+}
+
+func WithUserResolver(resolveUser ResolveUserFunc) OptFunc {
 	return func(opts *Options) {
 		opts.ResolveUser = resolveUser
 	}
 }
 
-func WithSessionManager(session *fluent.Session) OptFunc {
+func WithUserCreator(createUser CreateUserFunc) OptFunc {
+	return func(opts *Options) {
+		opts.CreateUser = createUser
+	}
+}
+
+func WithSessionManager(session *framework.Session) OptFunc {
 	return func(opts *Options) {
 		opts.Session = session
 	}
@@ -93,16 +132,13 @@ func WithTokenConfig(tokenConfig *TokenConfig) OptFunc {
 	}
 }
 
-func New(opts ...OptFunc) *Auth {
+func New(opts ...OptFunc) *AuthPlugin {
 	o := DefaultOptions()
+	WithDefaultUserResolver(o)
+	WithDefaultUserCreator(o)
 
 	for _, opt := range opts {
 		opt(o)
-	}
-
-	// If no ResolveUser function is provided, panic
-	if o.ResolveUser == nil {
-		panic(errors.New("the ResolveUser function must be provided"))
 	}
 
 	// if o.TokenConfig == nil && o.Session == nil {
@@ -113,11 +149,10 @@ func New(opts ...OptFunc) *Auth {
 		panic(ErrNoSecret)
 	}
 
-	return &Auth{&AuthPlugin{}, o, nil}
+	return &AuthPlugin{o, nil}
 }
 
-func (authn *Auth) Login(ctx context.Context, a *AuthUser, username string, password string) (token string, err error) {
-	log.Println(a)
+func (authn *AuthPlugin) Login(ctx context.Context, a *AuthUser, username string, password string) (token string, err error) {
 	if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(password)); a.Username != "" && a.Password != "" && err == nil {
 		if authn.Opts.Session != nil {
 			userJson, _ := json.Marshal(a)
@@ -141,7 +176,7 @@ func (authn *Auth) Login(ctx context.Context, a *AuthUser, username string, pass
 	return token, err
 }
 
-func (authn *Auth) ForceLogin(ctx context.Context, a Actor) (token string, err error) {
+func (authn *AuthPlugin) ForceLogin(ctx context.Context, a Actor) (token string, err error) {
 	if a.GetUsername() != "" && a.GetPassword() != "" {
 		if authn.Opts.Session != nil {
 			authn.Opts.Session.Put(ctx, "userId", a.Id())
@@ -161,7 +196,7 @@ func (authn *Auth) ForceLogin(ctx context.Context, a Actor) (token string, err e
 	return token, err
 }
 
-func (authn *Auth) Check(r *http.Request) error {
+func (authn *AuthPlugin) Check(r *http.Request) error {
 	user := &AuthUser{}
 	if authn.Opts.Session != nil {
 		if exists := authn.Opts.Session.Exists(r.Context(), "userId"); exists {
@@ -169,7 +204,7 @@ func (authn *Auth) Check(r *http.Request) error {
 			authn.AuthUser = user
 			return nil
 		} else {
-			return errors.New("user session doesn't exists")
+			return ErrNoUserSession
 		}
 	}
 
@@ -208,16 +243,15 @@ func (authn *Auth) Check(r *http.Request) error {
 	return errors.New("could not parse jwt")
 }
 
-func (authn *Auth) Web(next fluent.Handler) fluent.Handler {
-	return func(c *fluent.Context) error {
+// Guard the route with the auth middleware
+func (authn *AuthPlugin) Guard(next framework.Handler) framework.Handler {
+	return func(c *framework.Context) error {
 		if err := authn.Check(c.Request()); err != nil {
-			if c.WantsJSON() {
-				return c.JSON(http.StatusUnauthorized, fluent.M{
-					"message": "Unauthenticated.",
-				})
-			} else {
-				return c.Redirect("/login", http.StatusFound)
-			}
+			return c.Respond(&framework.R{
+				Status:     http.StatusUnauthorized,
+				Payload:    framework.M{"message": "Unauthorized"},
+				RedirectTo: "/login",
+			})
 		} else {
 			c.Set("user", authn.AuthUser)
 			return next(c)
@@ -225,113 +259,167 @@ func (authn *Auth) Web(next fluent.Handler) fluent.Handler {
 	}
 }
 
-func (authn *Auth) Guest(next fluent.Handler) fluent.Handler {
-	return func(c *fluent.Context) error {
-		if err := authn.Check(c.Request()); err != nil {
-			return next(c)
+// Disallow authenticated users from accessing a route
+func (authn *AuthPlugin) Guest(next framework.Handler) framework.Handler {
+	return func(c *framework.Context) error {
+		if err := authn.Check(c.Request()); err == nil {
+			return c.Respond(&framework.R{
+				Status:     http.StatusUnauthorized,
+				Payload:    framework.M{"message": "Unauthorized"},
+				RedirectTo: "/",
+			})
 		} else {
-			return c.Back()
+			return next(c)
 		}
 	}
 }
 
-func (p *Auth) Namespace() string {
-	return "fluentcms.auth"
+func (p *AuthPlugin) Namespace() string {
+	return Namespace
 }
 
-func (p *Auth) Boot(app *fluent.App) error {
+func (p *AuthPlugin) Boot(app *framework.App) error {
 	p.Opts.Session = app.Session()
+	p.Opts.DB = app.Db()
 	return nil
 }
 
-func (p *Auth) EventListeners() map[string]func() {
+func (p *AuthPlugin) EventListeners() map[string]func() {
 	return nil
 }
 
-func (p *Auth) Migrations() []string {
+func (p *AuthPlugin) Migrations() []string {
 	return nil
 }
 
-func (p *Auth) Templates() map[string][]byte {
+func (p *AuthPlugin) Templates() map[string][]byte {
 	return map[string][]byte{
-		"login.page.tmpl": loginTmpl,
+		"login.page.tmpl":    loginTmpl,
+		"register.page.tmpl": registerTmpl,
 	}
 }
 
-func (p *Auth) Middlewares() []func(http.Handler) http.Handler {
+func (p *AuthPlugin) Middlewares() []func(http.Handler) http.Handler {
 	return nil
 }
 
-func (p *Auth) RouteMiddlewares() map[string]fluent.Middleware {
-	return map[string]fluent.Middleware{
-		"auth": p.Web,
+func (p *AuthPlugin) RouteMiddlewares() map[string]framework.Middleware {
+	return map[string]framework.Middleware{
+		"auth": p.Guard,
 	}
 }
 
-func (p *Auth) showLoginWebHandler() fluent.Handler {
-	return func(c *fluent.Context) error {
-		vErrs := make(fluent.M)
-		if val, ok := c.PopMap("validationErrors").(fluent.M); ok {
-			vErrs = val
+func (p *AuthPlugin) indexLoginPageHandler() framework.Handler {
+	return func(c *framework.Context) error {
+		return c.Render(200, "login.page.tmpl", nil)
+	}
+}
+
+func (p *AuthPlugin) indexRegisterPageHandler() framework.Handler {
+	return func(c *framework.Context) error {
+		return c.Render(200, "register.page.tmpl", nil)
+	}
+}
+func (p *AuthPlugin) storeRegisterHandler() framework.Handler {
+	return func(c *framework.Context) error {
+		body := c.GetBody()
+		registrationRequest := &RegistrationStoreRequest{
+			FirstName:            body["first_name"][0],
+			LastName:             body["last_name"][0],
+			Username:             body["username"][0],
+			Password:             body["password"][0],
+			PasswordConfirmation: body["password_confirmation"][0],
 		}
-		err := c.PopString("error")
-		return c.Render(200, "login.page.tmpl", &fluent.TemplateData{
-			ValidationErrors: vErrs,
-			Error:            err,
-		})
+
+		if err := c.Validate(registrationRequest); err != nil {
+			return c.WithErrors(err.(validation.Errors)).Back()
+		}
+
+		ok := p.Opts.CreateUser(
+			registrationRequest.FirstName,
+			registrationRequest.LastName,
+			registrationRequest.Username,
+			registrationRequest.Password,
+		)
+
+		if ok {
+			return c.Respond(&framework.R{
+				Message:    &framework.AlertMessage{"success", "Registration successful."},
+				RedirectTo: "/login",
+			})
+		} else {
+			return c.WithError("Registration Failed").Back()
+		}
 	}
 }
 
-func (p *Auth) loginWebHandler() fluent.Handler {
-	return func(c *fluent.Context) error {
+func (p *AuthPlugin) storeLoginHandler() framework.Handler {
+	return func(c *framework.Context) error {
+		var err error
 		body := c.GetBody()
 		loginRequest := &LoginStoreRequest{
 			Username: body["username"][0],
 			Password: body["password"][0],
 		}
 
-		if err := c.Validate(loginRequest); err != nil {
+		if err = c.Validate(loginRequest); err != nil {
 			return c.WithErrors(err.(validation.Errors)).Back()
 		}
 
-		aUser, err := p.Opts.ResolveUser(loginRequest.Username, loginRequest.Password)
-		_, err = p.Login(c.Request().Context(), aUser, loginRequest.Username, loginRequest.Password)
-		if err != nil {
-			log.Println(err)
-			if c.WantsJSON() {
-				return c.JSON(http.StatusInternalServerError, fluent.M{
-					"message": "Login failed.",
+		if aUser, err := p.Opts.ResolveUser(loginRequest.Username); aUser != nil {
+			fmt.Println(aUser)
+			_, err = p.Login(c.Request().Context(), aUser, loginRequest.Username, loginRequest.Password)
+			if err != nil {
+				log.Println(err)
+				return c.Respond(&framework.R{
+					Message:    &framework.AlertMessage{"error", "Login failed."},
+					RedirectTo: "/login",
+					Payload:    framework.M{"message": "Login failed."},
 				})
-			} else {
-				return c.WithError("Login Failed").Back()
 			}
+		} else {
+			log.Println(err)
+			return c.Respond(&framework.R{
+				Message:    &framework.AlertMessage{"error", "Login failed."},
+				RedirectTo: "/login",
+				Payload:    framework.M{"message": "Login failed."},
+			})
 		}
 
-		if c.WantsJSON() {
-			return c.JSON(http.StatusOK, fluent.M{
-				"message": "login successful",
-			})
-		} else {
-			return c.Redirect(p.Opts.HomeRoute, http.StatusFound)
-		}
+		return c.Respond(&framework.R{
+			Message:    &framework.AlertMessage{"success", "Login successful."},
+			Payload:    framework.M{"message": "Login successful."},
+			RedirectTo: p.Opts.HomeRoute,
+			Status:     http.StatusOK,
+		})
 	}
 }
 
-func (p *Auth) Routes() []*fluent.Route {
-	return []*fluent.Route{
+func (p *AuthPlugin) Routes() []*framework.Route {
+	return []*framework.Route{
 		{
 			Path:    "/login",
 			Method:  "POST",
-			Handler: p.loginWebHandler(),
+			Handler: p.Guest(p.storeLoginHandler()),
 		},
 		{
 			Path:    "/login",
 			Method:  "GET",
-			Handler: p.showLoginWebHandler(),
+			Handler: p.Guest(p.indexLoginPageHandler()),
+		},
+		{
+			Path:    "/register",
+			Method:  "GET",
+			Handler: p.Guest(p.indexRegisterPageHandler()),
+		},
+		{
+			Path:    "/register",
+			Method:  "POST",
+			Handler: p.Guest(p.storeRegisterHandler()),
 		},
 	}
 }
 
-func (p *Auth) Webhooks() []string {
+func (p *AuthPlugin) Webhooks() []string {
 	return nil
 }

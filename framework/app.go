@@ -1,5 +1,5 @@
 //go:generate go -version
-package fluent
+package framework
 
 import (
 	"fmt"
@@ -9,13 +9,26 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"sync"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golobby/container/v3"
 	"github.com/joho/godotenv"
 )
+
+type PluginID string
+
+type PluginRegistry map[PluginID]Plugin
+
+// Find a plugin
+func (r PluginRegistry) Find(namespace string) Plugin {
+	return r[PluginID(namespace)]
+}
+
+// Add a plugin
+func (r PluginRegistry) Add(plugin Plugin) {
+	r[PluginID(plugin.Namespace())] = plugin
+}
 
 type M map[string]any
 
@@ -51,30 +64,36 @@ type AppHooks struct {
 }
 
 type App struct {
+	container.Container
 	isContextReady   bool
 	mu               sync.Mutex
-	container        container.Container
 	session          *Session
 	config           *Config
-	plugins          []Plugin
+	plugins          PluginRegistry
 	services         []ServiceProvider
 	routeMiddlewares map[string]Middleware
 	hooks            *AppHooks
 	router           chi.Router
+	db               DBSession
+	dbFunc           func(config *DBConfig) (DBSession, error)
 }
 
 type Options struct {
 	container.Container
 	*Session
 	Config           *Config
-	Plugins          []Plugin
-	Services         []ServiceProvider
+	Plugins          map[PluginID]Plugin
+	Providers        []ServiceProvider
 	routeMiddlewares map[string]Middleware
 	Hooks            *AppHooks
 	Router           chi.Router
 }
 
 type OptFunc func(opts *Options)
+
+func (a *App) Plugin(namespace string) Plugin {
+	return a.plugins.Find(namespace)
+}
 
 func (a *App) Use(middlewares ...func(http.Handler) http.Handler) {
 	for _, m := range middlewares {
@@ -122,51 +141,22 @@ func (a *App) Delete(pattern string, handler Handler, middlewares ...Middleware)
 	return NewRoute(http.MethodDelete, pattern, handler, middlewares...), nil
 }
 
+func (a *App) Db() DBSession {
+	return a.db
+}
+
+func (a *App) DbFunc(config *DBConfig) (DBSession, error) {
+	return a.dbFunc(config)
+}
+
 func getDefaultConfig() *Config {
-	var appName, host, database, user, password string
-	var appPort, port int
-
-	if val, ok := os.LookupEnv("DB_HOST"); ok {
-		host = val
-	} else {
-		host = "localhost"
-	}
-
-	if val, ok := os.LookupEnv("DB_PORT"); ok {
-		port, _ = strconv.Atoi(val)
-	} else {
-		port = 5432
-	}
-
-	if val, ok := os.LookupEnv("DB_DATABASE"); ok {
-		database = val
-	} else {
-		database = "fluentapp"
-	}
-
-	if val, ok := os.LookupEnv("DB_USERNAME"); ok {
-		user = val
-	} else {
-		user = "fluentapp"
-	}
-
-	if val, ok := os.LookupEnv("DB_PASSWORD"); ok {
-		password = val
-	} else {
-		password = "fluentapp"
-	}
-
-	if val, ok := os.LookupEnv("APP_NAME"); ok {
-		appName = val
-	} else {
-		appName = "FluentApp"
-	}
-
-	if val, ok := os.LookupEnv("APP_PORT"); ok {
-		appPort, _ = strconv.Atoi(val)
-	} else {
-		appPort = 3000
-	}
+	host := MustEnv("DB_HOST", "localhost")
+	port := MustEnv("DB_PORT", 5432)
+	database := MustEnv("DB_DATABASE", "fluentapp")
+	user := MustEnv("DB_USERNAME", "fluentapp")
+	password := MustEnv("DB_PASSWORD", "fluentapp")
+	appName := MustEnv("APP_NAME", "FluentApp")
+	appPort := MustEnv("APP_PORT", 3000)
 
 	return &Config{
 		AppName: appName,
@@ -201,15 +191,15 @@ func WithConfig(config *Config) OptFunc {
 	}
 }
 
-func WithPlugins(plugins []Plugin) OptFunc {
+func WithPlugins(plugins map[PluginID]Plugin) OptFunc {
 	return func(opts *Options) {
 		opts.Plugins = plugins
 	}
 }
 
-func WithServices(services []ServiceProvider) OptFunc {
+func WithProviders(providers []ServiceProvider) OptFunc {
 	return func(opts *Options) {
-		opts.Services = services
+		opts.Providers = providers
 	}
 }
 
@@ -292,16 +282,18 @@ func NewApp(options ...OptFunc) *App {
 	}
 
 	app := &App{
+		opts.Container,
 		false,
 		sync.Mutex{},
-		opts.Container,
 		nil,
 		opts.Config,
 		opts.Plugins,
-		opts.Services,
+		opts.Providers,
 		routeMiddlewares,
 		opts.Hooks,
 		opts.Router,
+		nil,
+		nil,
 	}
 	return app
 }
@@ -309,6 +301,10 @@ func NewApp(options ...OptFunc) *App {
 func (app *App) Session() *Session {
 	return app.session
 }
+
+// func (app *App) Container() container.Container {
+// 	return app.container
+// }
 
 func (app *App) registerServices(services []ServiceProvider) {
 	for _, svc := range services {
@@ -372,7 +368,7 @@ func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := &Context{app, r, w}
+		ctx := &Context{app, container.New(), r, w}
 		if !app.isContextReady {
 			app.isContextReady = true
 		}

@@ -1,4 +1,4 @@
-package fluent
+package framework
 
 import (
 	"html/template"
@@ -13,10 +13,8 @@ type TemplateData struct {
 	BoolMap          map[string]bool
 	Data             map[string]any
 	CSRFToken        string
-	Flash            string
-	Warning          string
-	Error            string
-	ValidationErrors M
+	ValidationErrors []*ValidationError
+	Messages         []*AlertMessage
 }
 
 func RenderTemplate(w http.ResponseWriter, tmpl string, data *TemplateData) error {
@@ -45,11 +43,19 @@ func createTemplateCache() (map[string]*template.Template, error) {
 	// create a map to act as a cache
 	myCache := map[string]*template.Template{}
 
-	// get all page files in the pages directory
+	// get all page files in the templates directory
 	pages, err := filepath.Glob("./templates/*.page.tmpl")
 	if err != nil {
 		return myCache, err
 	}
+
+	// get all partial files in the templates directory
+	partials, err := filepath.Glob("./templates/*.partial.tmpl")
+	if err != nil {
+		return myCache, err
+	}
+
+	pages = append(pages, partials...)
 
 	// loop through the pages one-by-one
 	for _, page := range pages {

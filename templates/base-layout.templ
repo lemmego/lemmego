@@ -1,0 +1,14 @@
+package templates
+
+templ BaseLayout(contents templ.Component) {
+	<!DOCTYPE html>
+	<html class="h-full bg-white">
+		<head>
+			<link rel="stylesheet" href="/static/css/dist.css"/>
+		</head>
+		<body class="h-full">
+			@contents
+			<script src="/static/js/htmx.min.js" type="text/javascript" charset="utf-8"></script>
+		</body>
+	</html>
+}
