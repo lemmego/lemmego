@@ -1,14 +1,27 @@
 package auth
 
 import (
+	"mime/multipart"
+	"pressebo/framework"
 	"pressebo/framework/validator"
 
 	"github.com/invopop/validation"
 )
 
 type LoginStoreRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string           `json:"username"`
+	Password string           `json:"password"`
+	Logos    []multipart.File `json:"logos"`
+}
+
+type BaseRequest struct{}
+
+func (r *BaseRequest) ParseInputs(c *framework.Context) {
+	if c.WantsJSON() {
+		c.DecodeJSON(r)
+	} else {
+		// body := c.GetBody()
+	}
 }
 
 type RegistrationStoreRequest struct {

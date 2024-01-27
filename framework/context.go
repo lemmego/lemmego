@@ -308,3 +308,7 @@ func (c *Context) Forbidden(err error) error {
 func (c *Context) DecodeJSON(v interface{}) error {
 	return DecodeJSONBody(c.responseWriter, c.request, v)
 }
+
+func (c *Context) Decode(v interface{}) error {
+	return Decode(c.responseWriter, c.request, v)
+}

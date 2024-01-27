@@ -356,18 +356,14 @@ func (p *AuthPlugin) storeRegisterHandler() framework.Handler {
 func (p *AuthPlugin) storeLoginHandler() framework.Handler {
 	return func(c *framework.Context) error {
 		var err error
-		body := c.GetBody()
-		loginRequest := &LoginStoreRequest{
-			Username: body["username"][0],
-			Password: body["password"][0],
-		}
+		loginRequest := &LoginStoreRequest{}
 
 		if err = c.Validate(loginRequest); err != nil {
 			return c.WithErrors(err.(validation.Errors)).Back()
 		}
 
 		if aUser, err := p.Opts.ResolveUser(loginRequest.Username); aUser != nil {
-			fmt.Println(aUser)
+			log.Println(aUser)
 			_, err = p.Login(c.Request().Context(), aUser, loginRequest.Username, loginRequest.Password)
 			if err != nil {
 				log.Println(err)

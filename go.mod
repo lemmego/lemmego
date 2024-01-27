@@ -27,6 +27,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/golobby/container/v3 v3.3.2
+	github.com/gorilla/schema v1.2.1
 	github.com/invopop/validation v0.3.0
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.1 // indirect

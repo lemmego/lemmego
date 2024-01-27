@@ -5,11 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/gddo/httputil/header"
+	"github.com/gorilla/schema"
 )
 
 // type Request[T any] struct {
@@ -61,6 +66,28 @@ func Validate(w http.ResponseWriter, r *http.Request, body Validator) error {
 		return err
 	}
 	return nil
+}
+
+func Decode(w http.ResponseWriter, r *http.Request, body interface{}) error {
+	r.ParseMultipartForm(32 << 20)
+	files := r.MultipartForm.File["logos[]"]
+	for _, file := range files {
+		dst, _ := os.Create(filepath.Join("/Users/tanmay/", file.Filename))
+		f, _ := file.Open()
+		io.Copy(dst, f)
+	}
+	decoder := schema.NewDecoder()
+	return decoder.Decode(body, r.Form)
+}
+
+func structContainsMultipleFiles(s interface{}) bool {
+	t := reflect.TypeOf(s)
+	for i := 0; i < t.NumField(); i++ {
+		if t.Field(i).Type == reflect.TypeOf(multipart.FileHeader{}) {
+			return true
+		}
+	}
+	return false
 }
 
 func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
