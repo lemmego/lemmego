@@ -7,16 +7,38 @@
       <h1 class="text-3xl font-bold text-center mb-6">Create an account</h1>
       <form action="/register" method="POST">
         <div class="mb-4">
-          <label for="first_name" class="block text-gray-700 text-sm font-bold mb-2">First Name</label>
-          <input type="text" name="first_name" id="first_name" placeholder="first name" class="w-full p-2 border rounded" required />
+          <label for="org_name" class="block text-gray-700 text-sm font-bold mb-2">Org Name</label>
+          <input type="text" name="org_name" id="org_name" placeholder="first name" class="w-full p-2 border rounded" required />
           {{if .ValidationErrors}}
             {{range .ValidationErrors}}
-              {{if eq .Key "firstName"}}
+              {{if eq .Key "orgName"}}
                 <p class="text-xs text-red-500">{{.Value}}</p>
               {{end}}
             {{end}}
           {{end}}
         </div>
+        <div class="mb-4">
+          <label for="subdomain" class="block text-gray-700 text-sm font-bold mb-2">Subdomain</label>
+          <input type="text" name="subdomain" id="subdomain" placeholder="first name" class="w-full p-2 border rounded" required />
+          {{if .ValidationErrors}}
+            {{range .ValidationErrors}}
+              {{if eq .Key "subdomain"}}
+                <p class="text-xs text-red-500">{{.Value}}</p>
+              {{end}}
+            {{end}}
+          {{end}}
+        </div>
+      <div class="mb-4">
+        <label for="first_name" class="block text-gray-700 text-sm font-bold mb-2">First Name</label>
+        <input type="text" name="first_name" id="first_name" placeholder="first name" class="w-full p-2 border rounded" required />
+        {{if .ValidationErrors}}
+          {{range .ValidationErrors}}
+            {{if eq .Key "firstName"}}
+              <p class="text-xs text-red-500">{{.Value}}</p>
+            {{end}}
+          {{end}}
+        {{end}}
+      </div>
 
         <div class="mb-4">
           <label for="last_name" class="block text-gray-700 text-sm font-bold mb-2">Last Name</label>

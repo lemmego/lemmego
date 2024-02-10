@@ -4,15 +4,16 @@ go 1.21
 
 require (
 	github.com/a-h/templ v0.2.513
-	github.com/go-chi/chi/v5 v5.0.10
+	github.com/go-chi/chi/v5 v5.0.11
 	github.com/gomodule/redigo v1.8.0
 	github.com/lemmego/migration v0.0.0-00010101000000-000000000000
+	github.com/spf13/cobra v1.5.0
 )
 
 require (
+	github.com/ggicci/owl v0.7.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/spf13/cobra v1.5.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -23,11 +24,11 @@ require (
 	dario.cat/mergo v1.0.0
 	github.com/alexedwards/scs/redisstore v0.0.0-20231113091146-cef4b05350c8
 	github.com/alexedwards/scs/v2 v2.7.0
+	github.com/ggicci/httpin v0.15.3
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
 	github.com/golobby/container/v3 v3.3.2
-	github.com/gorilla/schema v1.2.1
 	github.com/invopop/validation v0.3.0
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.1 // indirect
