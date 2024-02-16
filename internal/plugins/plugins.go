@@ -9,7 +9,7 @@ import (
 	"pressebo/api"
 	"pressebo/api/validator"
 	"pressebo/internal/plugins/auth"
-	repositories2 "pressebo/internal/repositories"
+	"pressebo/internal/repositories"
 )
 
 type RegistrationInput struct {
@@ -72,7 +72,7 @@ func Load() api.PluginRegistry {
 
 		encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 
-		org, err := repositories2.CreateOrg(db, repositories2.OrgAttrs{
+		org, err := repositories.CreateOrg(db, repositories.OrgAttrs{
 			Name:      input.OrgName,
 			Subdomain: input.Subdomain,
 			Email:     input.Username,
@@ -85,7 +85,7 @@ func Load() api.PluginRegistry {
 			}
 		}
 
-		user, err := repositories2.CreateUser(db, repositories2.UserAttrs{
+		user, err := repositories.CreateUser(db, repositories.UserAttrs{
 			FirstName: input.FirstName,
 			LastName:  input.LastName,
 			Email:     input.Username,

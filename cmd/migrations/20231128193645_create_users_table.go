@@ -15,17 +15,19 @@ func init() {
 }
 
 func mig_20231128193645_create_users_table_up(tx *sql.Tx) error {
-	if _, err := tx.Exec(`create table "users" (
-		"id" bigserial primary key,
-		"github_id" int8 unique,
-		"org_id" int8 not null,
-		"first_name" varchar(255) not null,
-		"last_name" varchar(255),
-		"email" varchar(255) unique not null,
-		"password" varchar(255) not null,
-		"created_at" timestamptz(0) default current_timestamp not null,
-		"updated_at" timestamptz(0) default current_timestamp not null
-	);`); err != nil {
+	schema := migration.NewSchema().Create("users", func(t *migration.Table) error {
+		t.BigIncrements("id").Primary()
+		t.Int("github_id").Unique()
+		t.Int("org_id")
+		t.String("first_name", 255)
+		t.String("last_name", 255)
+		t.String("email", 255).Unique()
+		t.String("password", 255)
+		t.DateTime("created_at").Default("now()")
+		t.DateTime("updated_at").Default("now()")
+		return nil
+	}).Build()
+	if _, err := tx.Exec(schema); err != nil {
 		return err
 	}
 
@@ -33,7 +35,8 @@ func mig_20231128193645_create_users_table_up(tx *sql.Tx) error {
 }
 
 func mig_20231128193645_create_users_table_down(tx *sql.Tx) error {
-	if _, err := tx.Exec(`drop table "users";`); err != nil {
+	schema := migration.NewSchema().Drop("users").Build()
+	if _, err := tx.Exec(schema); err != nil {
 		return err
 	}
 	return nil

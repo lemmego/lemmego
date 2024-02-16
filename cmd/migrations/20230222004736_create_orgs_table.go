@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	// "fmt"
 
 	"github.com/lemmego/migration"
 )
@@ -16,22 +15,18 @@ func init() {
 }
 
 func mig_20230222004736_create_orgs_table_up(tx *sql.Tx) error {
-	q1 := migration.NewSchema().Create("orgs", func(t *migration.Table) error {
-		t.AddColumn("id").Type("bigserial").Primary()
-		t.AddColumn("name").Type("varchar(255)")
-		t.AddColumn("subdomain").Type("varchar(255)")
-		t.AddColumn("email").Type("varchar(255)")
-		t.AddColumn("created_at").Type("timestamptz(0)").DefaultValue("now()")
-		t.AddColumn("updated_at").Type("timestamptz(0)").DefaultValue("now()")
+	schema := migration.NewSchema().Create("orgs", func(t *migration.Table) error {
+		t.BigIncrements("id").Primary()
+		t.String("name", 255)
+		t.String("subdomain", 255)
+		t.String("email", 255)
+		t.DateTime("created_at").Default("now()")
+		t.DateTime("updated_at").Default("now()")
 		t.Unique("subdomain", "email")
 		return nil
 	}).Build()
 
-	// q := schema.Build()
-	// fmt.Println("==========start===========")
-	// fmt.Println(q)
-	// fmt.Println("==========end===========")
-	_, err := tx.Exec(q1)
+	_, err := tx.Exec(schema)
 	if err != nil {
 		return err
 	}
@@ -39,7 +34,8 @@ func mig_20230222004736_create_orgs_table_up(tx *sql.Tx) error {
 }
 
 func mig_20230222004736_create_orgs_table_down(tx *sql.Tx) error {
-	_, err := tx.Exec(`drop table if exists "orgs" cascade;`)
+	schema := migration.NewSchema().Drop("orgs").Build()
+	_, err := tx.Exec(schema)
 	if err != nil {
 		return err
 	}
