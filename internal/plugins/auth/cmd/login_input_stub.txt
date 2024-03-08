@@ -1,0 +1,6 @@
+package inputs
+
+type LoginStoreInput struct {
+  {{.UsernameTitle}} string `json:"{{.Username}}" in:"form={{.Username}}"`
+  {{.PasswordTitle}} string `json:"{{.Password}}" in:"form={{.Password}}"`
+}

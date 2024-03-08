@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"pressebo/internal/plugins/auth/cmd"
 )
 
 // Create a new command
@@ -17,5 +18,7 @@ var RootCmd = &cobra.Command{
 // Execute the command
 func Execute() error {
 	RootCmd.AddCommand(genCmd)
+
+	genCmd.AddCommand(cmd.AuthCmd)
 	return RootCmd.Execute()
 }

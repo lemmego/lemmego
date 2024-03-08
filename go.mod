@@ -6,16 +6,20 @@ require (
 	github.com/a-h/templ v0.2.513
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/gomodule/redigo v1.8.0
-	github.com/lemmego/migration v0.0.0-00010101000000-000000000000
+	github.com/lemmego/migration v0.1.0
 	github.com/spf13/cobra v1.5.0
 )
 
 require (
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/ggicci/owl v0.7.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/net v0.18.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
@@ -40,11 +44,10 @@ require (
 	github.com/jackc/pgx/v4 v4.18.1 // indirect
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/manifoldco/promptui v0.9.0
 	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/upper/db/v4 v4.7.0
 	golang.org/x/crypto v0.15.0
 	golang.org/x/oauth2 v0.14.0
 	golang.org/x/text v0.14.0 // indirect
 )
-
-replace github.com/lemmego/migration => ../migration

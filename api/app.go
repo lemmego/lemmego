@@ -36,7 +36,7 @@ type M map[string]any
 type Handler func(c *Context) error
 type Middleware func(next Handler) Handler
 
-type Config struct {
+type AppConfig struct {
 	DbConfig    *DBConfig
 	AppName     string
 	AppPort     int
@@ -61,10 +61,11 @@ type AppHooks struct {
 }
 
 type App struct {
-	isContextReady   bool
-	mu               sync.Mutex
-	session          *Session
-	config           *Config
+	isContextReady bool
+	mu             sync.Mutex
+	session        *Session
+	// config           *AppConfig
+	config           ConfigMap
 	plugins          PluginRegistry
 	services         []ServiceProvider
 	routeMiddlewares map[string]Middleware
@@ -77,7 +78,7 @@ type App struct {
 type Options struct {
 	container.Container
 	*Session
-	Config           *Config
+	Config           ConfigMap
 	Plugins          map[PluginID]Plugin
 	Providers        []ServiceProvider
 	routeMiddlewares map[string]Middleware
@@ -133,27 +134,28 @@ func (a *App) DbFunc(config *DBConfig) (DBSession, error) {
 	return a.dbFunc(config)
 }
 
-func getDefaultConfig() *Config {
-	host := MustEnv("DB_HOST", "localhost")
-	port := MustEnv("DB_PORT", 5432)
-	database := MustEnv("DB_DATABASE", "fluentapp")
-	user := MustEnv("DB_USERNAME", "fluentapp")
-	password := MustEnv("DB_PASSWORD", "fluentapp")
-	appName := MustEnv("APP_NAME", "FluentApp")
-	appPort := MustEnv("APP_PORT", 3000)
+func getDefaultConfig() ConfigMap {
+	return Conf
+	// host := MustEnv("DB_HOST", "localhost")
+	// port := MustEnv("DB_PORT", 5432)
+	// database := MustEnv("DB_DATABASE", "fluentapp")
+	// user := MustEnv("DB_USERNAME", "fluentapp")
+	// password := MustEnv("DB_PASSWORD", "fluentapp")
+	// appName := MustEnv("APP_NAME", "FluentApp")
+	// appPort := MustEnv("APP_PORT", 3000)
 
-	return &Config{
-		AppName: appName,
-		AppPort: appPort,
-		DbConfig: &DBConfig{
-			Host:     host,
-			Port:     port,
-			Database: database,
-			User:     user,
-			Password: password,
-		},
-		TemplateDir: "templates",
-	}
+	// return &AppConfig{
+	// 	AppName: appName,
+	// 	AppPort: appPort,
+	// 	DbConfig: &DBConfig{
+	// 		Host:     host,
+	// 		Port:     port,
+	// 		Database: database,
+	// 		User:     user,
+	// 		Password: password,
+	// 	},
+	// 	TemplateDir: "templates",
+	// }
 }
 
 func defaultOptions() *Options {
@@ -166,12 +168,6 @@ func defaultOptions() *Options {
 		nil,
 		nil,
 		NewRouter(),
-	}
-}
-
-func WithConfig(config *Config) OptFunc {
-	return func(opts *Options) {
-		opts.Config = config
 	}
 }
 
@@ -242,7 +238,7 @@ func NewApp(options ...OptFunc) *App {
 	for _, plugin := range opts.Plugins {
 		// Copy template files listed in the Views() method to the app's template directory
 		for name, content := range plugin.Templates() {
-			filePath := filepath.Join(opts.Config.TemplateDir, name)
+			filePath := filepath.Join(opts.Config.get("app.templateDir").(string), name)
 			if _, err := os.Stat(filePath); err != nil {
 				ioutil.WriteFile(filePath, []byte(content), 0644)
 			}
@@ -381,8 +377,8 @@ func (a *App) Run() {
 		}
 	}
 
-	fmt.Println(fmt.Sprintf("%s is running on port %d...", a.config.AppName, a.config.AppPort))
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", a.config.AppPort), a.session.LoadAndSave(a.router)); err != nil {
+	fmt.Println(fmt.Sprintf("%s is running on port %d...", a.config.get("app.name"), a.config.get("app.port")))
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", a.config.get("app.port")), a.session.LoadAndSave(a.router)); err != nil {
 		panic(err)
 	}
 }

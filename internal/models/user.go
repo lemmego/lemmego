@@ -8,3 +8,6 @@ type User struct {
 	Password  string `json:"password" db:"password"`
 	OrgID     int64  `json:"org_id" db:"org_id,omitempty"`
 }
+
+// gen auth -u=email -p=password -f=first_name:text:required -f=last_name:text:required
+// gen model -f=first_name:text:required -f=email:text:required:unique

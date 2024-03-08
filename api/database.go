@@ -22,6 +22,7 @@ type DBSession interface {
 type Cond = db.Cond
 
 type DBConfig struct {
+	Driver   string
 	Host     string
 	Port     int
 	User     string
@@ -69,10 +70,12 @@ func DBExists(dialect string, dbConfig *DBConfig) (bool, error) {
 			Host:     dbConfig.Host,
 			User:     dbConfig.User,
 			Password: dbConfig.Password,
+			Database: "mysql",
 		}
 
 		sess, err = mysql.Open(settings)
 		if err != nil {
+			fmt.Println(settings.Host, settings.User, settings.Password, settings.Database)
 			return false, fmt.Errorf("failed to connect: %w", err)
 		}
 
@@ -122,6 +125,7 @@ func CreateDB(dialect string, dbConfig *DBConfig) error {
 			return err
 		}
 		if res != nil {
+			log.Println("database", dbConfig.Database, "created")
 			return nil
 		}
 	}
@@ -209,7 +213,6 @@ func ConnectDB(dialect string, dbConfig *DBConfig) (DBSession, error) {
 		if err := CreateDB(dialect, dbConfig); err != nil {
 			return nil, err
 		}
-		log.Println("database", dbConfig.Database, "created")
 	}
 
 	if sess, err := ConnectToDatabase(dialect, dbConfig); err != nil {

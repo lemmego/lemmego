@@ -15,15 +15,13 @@ func init() {
 }
 
 func mig_20230222004736_create_orgs_table_up(tx *sql.Tx) error {
-	schema := migration.NewSchema().Create("orgs", func(t *migration.Table) error {
+	schema := migration.Create("orgs", func(t *migration.Table) {
 		t.BigIncrements("id").Primary()
 		t.String("name", 255)
-		t.String("subdomain", 255)
-		t.String("email", 255)
-		t.DateTime("created_at").Default("now()")
-		t.DateTime("updated_at").Default("now()")
-		t.Unique("subdomain", "email")
-		return nil
+		t.String("username", 255).Unique()
+		t.String("email", 255).Unique()
+		t.DateTime("created_at", 0).Default("now()")
+		t.DateTime("updated_at", 0).Default("now()")
 	}).Build()
 
 	_, err := tx.Exec(schema)
@@ -34,7 +32,7 @@ func mig_20230222004736_create_orgs_table_up(tx *sql.Tx) error {
 }
 
 func mig_20230222004736_create_orgs_table_down(tx *sql.Tx) error {
-	schema := migration.NewSchema().Drop("orgs").Build()
+	schema := migration.Drop("orgs").Build()
 	_, err := tx.Exec(schema)
 	if err != nil {
 		return err

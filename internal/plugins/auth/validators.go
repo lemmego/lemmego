@@ -1,3 +1,4 @@
+// gen auth --field=username:string --field=password:string --field=first_name:string --credFields=username,password
 package auth
 
 import (
