@@ -1,11 +1,13 @@
 package api
 
+import "pressebo/api/db"
+
 type DatabaseServiceProvider struct {
 	BaseServiceProvider
 }
 
 func (provider *DatabaseServiceProvider) Register(app *App) {
-	dbConfig := &DBConfig{
+	dbConfig := &db.DBConfig{
 		Driver:   Config("db.driver").(string),
 		Host:     Config("db.host").(string),
 		Port:     Config("db.port").(int),
@@ -13,17 +15,20 @@ func (provider *DatabaseServiceProvider) Register(app *App) {
 		User:     Config("db.username").(string),
 		Password: Config("db.password").(string),
 	}
-	dbSession, err := ConnectDB(dbConfig.Driver, dbConfig)
+
+	dbSession, err := db.NewConnection(dbConfig).WithForceCreateDb().Open()
 	if err != nil {
 		panic(err)
 	}
+
 	app.db = dbSession
-	app.dbFunc = func(config *DBConfig) (DBSession, error) {
+	app.dbFunc = func(config *db.DBConfig) (db.DBSession, error) {
 		if config == nil {
 			config = dbConfig
 		}
-		return ConnectDB(dbConfig.Driver, config)
+		return db.NewConnection(dbConfig).WithForceCreateDb().Open()
 	}
+
 }
 
 func (provider *DatabaseServiceProvider) Boot() {

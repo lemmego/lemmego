@@ -15,6 +15,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/invopop/validation"
+	"github.com/spf13/cobra"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
@@ -344,6 +345,10 @@ func (authn *AuthPlugin) Guest(next api.Handler) api.Handler {
 
 func (p *AuthPlugin) Namespace() string {
 	return Namespace
+}
+
+func (p *AuthPlugin) Commands() []*cobra.Command {
+	return []*cobra.Command{}
 }
 
 func (p *AuthPlugin) Boot(app *api.App) error {

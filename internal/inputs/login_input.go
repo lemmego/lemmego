@@ -1,6 +1,6 @@
 package inputs
 
 type LoginStoreInput struct {
-  Email string `json:"email" in:"form=email"`
+  Username string `json:"username" in:"form=username"`
   Password string `json:"password" in:"form=password"`
 }

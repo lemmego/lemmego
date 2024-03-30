@@ -6,6 +6,7 @@ require (
 	github.com/a-h/templ v0.2.513
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/gomodule/redigo v1.8.0
+	github.com/iancoleman/strcase v0.3.0
 	github.com/lemmego/migration v0.1.0
 	github.com/spf13/cobra v1.5.0
 )
@@ -14,7 +15,6 @@ require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/ggicci/owl v0.7.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

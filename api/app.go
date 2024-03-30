@@ -12,9 +12,13 @@ import (
 	"sync"
 	"syscall"
 
+	"pressebo/api/db"
+	"pressebo/api/logger"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/golobby/container/v3"
 	"github.com/joho/godotenv"
+	"github.com/spf13/cobra"
 )
 
 type PluginID string
@@ -44,8 +48,9 @@ type AppConfig struct {
 }
 
 type Plugin interface {
-	Namespace() string
 	Boot(a *App) error
+	Commands() []*cobra.Command
+	Namespace() string
 	EventListeners() map[string]func()
 	Migrations() []string
 	Templates() map[string][]byte
@@ -71,8 +76,8 @@ type App struct {
 	routeMiddlewares map[string]Middleware
 	hooks            *AppHooks
 	router           Router
-	db               DBSession
-	dbFunc           func(config *DBConfig) (DBSession, error)
+	db               db.DBSession
+	dbFunc           func(config *db.DBConfig) (db.DBSession, error)
 }
 
 type Options struct {
@@ -126,11 +131,11 @@ func (a *App) Session() *Session {
 	return a.session
 }
 
-func (a *App) Db() DBSession {
+func (a *App) Db() db.DBSession {
 	return a.db
 }
 
-func (a *App) DbFunc(config *DBConfig) (DBSession, error) {
+func (a *App) DbFunc(config *db.DBConfig) (db.DBSession, error) {
 	return a.dbFunc(config)
 }
 
@@ -349,7 +354,7 @@ func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.
 			app.isContextReady = true
 		}
 		if err := finalHandler(ctx); err != nil {
-			log.Println(err)
+			logger.Log().Error(err.Error())
 			if !ctx.WantsJSON() {
 				ctx.Redirect("/error", http.StatusFound)
 				return

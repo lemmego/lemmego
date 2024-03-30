@@ -175,13 +175,3 @@ func AskRecurring(question string, validator promptui.ValidateFunc, prompts ...f
 
 	return &PromptResult{Type: PromptResultTypeRecurring, ShouldAskNext: true, Result: inputs, Error: nil}
 }
-
-// API I want to achieve:
-
-// cmder.AskBoolean("Should your users belong to an organization?").
-//		IfTrue().
-//      AskIndefinitely("Enter the field name in snake_case", orgFields).
-//      Each().Select("Select the field type", fieldTypes).
-//      Ask("What should your username field be?", &username)
-//		Ask("What should your password field be?", &password)
-//      AskIndefinitely("Enter the field name in snake_case", userFields)
