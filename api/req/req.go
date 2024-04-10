@@ -1,4 +1,4 @@
-package api
+package req
 
 import (
 	"encoding/json"
@@ -10,28 +10,21 @@ import (
 
 	"github.com/ggicci/httpin"
 	"github.com/ggicci/httpin/core"
-	"github.com/go-chi/chi/v5"
 	"github.com/golang/gddo/httputil/header"
 )
+
+const InKey = "input"
+
+type Ctx interface {
+	Request() *http.Request
+	ResponseWriter() http.ResponseWriter
+	Set(key string, value interface{})
+	Get(key string) interface{}
+}
 
 type Validator interface {
 	Validate() error
 }
-
-// func NewRequest[T Validator](w http.ResponseWriter, r *http.Request, body T) *Request[T] {
-// 	return &Request[T]{w, r, body}
-// }
-
-// func (r *Request[T]) Body() T {
-// 	return r.body
-// }
-
-// func (r *Request[T]) DecodeJSON() error {
-// 	if err := DecodeJSONBody(r.w, r.r, r.body); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
 
 type MalformedRequest struct {
 	Status int
@@ -118,15 +111,6 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 	return nil
 }
 
-func URLParam(r *http.Request, name string) string {
-	return chi.URLParam(r, name)
-}
-
-// func AuthID(r *http.Request) uint64 {
-// 	id, _ := strconv.ParseInt(r.Context().Value("user").(auth.Actor).Id(), 10, 32)
-// 	return uint64(id)
-// }
-
 func ParseInput[T any](r *http.Request, inputStruct T, opts ...core.Option) (T, error) {
 	co, err := httpin.New(inputStruct, opts...)
 
@@ -142,8 +126,8 @@ func ParseInput[T any](r *http.Request, inputStruct T, opts ...core.Option) (T, 
 	return input.(T), nil
 }
 
-func In(ctx *Context, inputStruct any, opts ...core.Option) error {
-	if ctx.WantsJSON() {
+func In(ctx Ctx, inputStruct any, opts ...core.Option) error {
+	if WantsJSON(ctx.Request()) {
 		if err := DecodeJSONBody(ctx.ResponseWriter(), ctx.Request(), inputStruct); err != nil {
 			return err
 		}

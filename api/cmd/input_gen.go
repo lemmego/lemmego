@@ -95,10 +95,10 @@ var inputCmd = &cobra.Command{
 		var inputName string
 		var fields []*InputField
 
-		cmder.Ask("Enter the input name in snake_case", cmder.SnakeCaseValidator(false)).Fill(&inputName).
-			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseValidator(true), func(result any) cmder.Prompter {
+		cmder.Ask("Enter the input name in snake_case", cmder.SnakeCase).Fill(&inputName).
+			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
 				selectedType := ""
-				prompt := cmder.Ask("What should the data type be? (https://go.dev/ref/spec#Types)", cmder.SnakeCaseValidator(false)).Fill(&selectedType)
+				prompt := cmder.Ask("What should the data type be? (https://go.dev/ref/spec#Types)", cmder.SnakeCase).Fill(&selectedType)
 
 				fields = append(fields, &InputField{Name: result.(string), Type: selectedType})
 

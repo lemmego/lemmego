@@ -2,6 +2,7 @@ package cmder
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 
@@ -121,10 +122,20 @@ func Confirm(question string, defaultVal rune) Prompter {
 		panic("defaultVal argument must be either of y, Y, n, N")
 	}
 
+	labelSuffix := " (%s/%s)"
+
+	if defaultVal == 'y' || defaultVal == 'Y' {
+		labelSuffix = fmt.Sprintf(labelSuffix, "Y", "n")
+	}
+
+	if defaultVal == 'n' || defaultVal == 'N' {
+		labelSuffix = fmt.Sprintf(labelSuffix, "y", "N")
+	}
+
 	q := promptui.Prompt{
-		Label: question + " (Y/n)",
+		Label: question + labelSuffix,
 		Validate: func(s string) error {
-			if s != "y" && s != "Y" && s != "n" && s != "N" {
+			if s != "" && s != "y" && s != "Y" && s != "n" && s != "N" {
 				return errors.New("Input must be either of y, Y, n, N")
 			}
 			return nil
@@ -137,6 +148,10 @@ func Confirm(question string, defaultVal rune) Prompter {
 			os.Exit(-1)
 		}
 		return &PromptResult{Type: PromptResultTypeBoolean, ShouldAskNext: false, Result: false, Error: err}
+	}
+
+	if res == "" {
+		res = string(defaultVal)
 	}
 
 	return &PromptResult{Type: PromptResultTypeBoolean, ShouldAskNext: true, Result: res == "y" || res == "Y", Error: nil}

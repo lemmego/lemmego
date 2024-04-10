@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"log"
-	"pressebo/api"
+	"pressebo/api/db"
 	"pressebo/internal/models"
 )
 
@@ -14,7 +14,7 @@ type UserAttrs struct {
 	OrgID     int64  `json:"org_id"`
 }
 
-func CreateUser(db api.DBSession, userAttrs UserAttrs) (*models.User, error) {
+func CreateUser(db db.DBSession, userAttrs UserAttrs) (*models.User, error) {
 	userCollection := db.Collection("users")
 	user := &models.User{
 		FirstName: userAttrs.FirstName,

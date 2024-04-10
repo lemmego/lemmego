@@ -55,9 +55,9 @@ var AuthCmd = &cobra.Command{
 		hasOrg := false
 
 		cmder.Confirm("Should your users belong to an org? (useful for multitenant apps)", 'n').Fill(&hasOrg).
-			Ask("What should your username field be called? (in snake_case)", cmder.SnakeCaseValidator(false)).Fill(&username).
-			Ask("What should your password field be called? (in snake_case)", cmder.SnakeCaseValidator(false)).Fill(&password).
-			AskRecurring("Enter the field name (in snake_case)", cmder.SnakeCaseValidator(true), func(result any) cmder.Prompter {
+			Ask("What should your username field be called? (in snake_case)", cmder.SnakeCase).Fill(&username).
+			Ask("What should your password field be called? (in snake_case)", cmder.SnakeCase).Fill(&password).
+			AskRecurring("Enter the field name (in snake_case)", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
 				var required, unique bool
 				choices := []string{}
 				selectedType := ""
@@ -71,7 +71,7 @@ var AuthCmd = &cobra.Command{
 						}
 						return false
 					}, func(prompt cmder.Prompter) cmder.Prompter {
-						return prompt.AskRecurring("Enter choices", cmder.SnakeCaseValidator(true)).Fill(&choices)
+						return prompt.AskRecurring("Enter choices", cmder.SnakeCaseEmptyAllowed).Fill(&choices)
 					}).
 					Confirm("Is this a required field?", 'n').Fill(&required).
 					Confirm("Is this a unique field?", 'n').Fill(&unique)

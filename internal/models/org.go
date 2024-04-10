@@ -1,6 +1,8 @@
 package models
 
-import "pressebo/api"
+import (
+	"pressebo/api/db"
+)
 
 type Org struct {
 	ID        int64   `json:"id" db:"id,omitempty"`
@@ -10,8 +12,8 @@ type Org struct {
 	Users     []*User `json:"users"`
 }
 
-func (o *Org) PullUsers(sess api.DBSession) error {
+func (o *Org) PullUsers(sess db.DBSession) error {
 	return sess.Collection("users").
-		Find(api.Cond{"org_id": o.ID}).
+		Find(db.Cond{"org_id": o.ID}).
 		All(&o.Users)
 }

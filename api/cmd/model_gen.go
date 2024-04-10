@@ -103,14 +103,14 @@ var modelCmd = &cobra.Command{
 		var modelName string
 		var fields []*ModelField
 
-		cmder.Ask("Enter the model name in snake_case", cmder.SnakeCaseValidator(false)).Fill(&modelName).
-			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseValidator(true), func(result any) cmder.Prompter {
+		cmder.Ask("Enter the model name in snake_case", cmder.SnakeCase).Fill(&modelName).
+			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
 				const required = "Required"
 				const unique = "Unique"
 				const omitEmpty = "Omit Empty (Skip from db when the value is empty)"
 				selectedAttrs := []string{}
 				selectedType := ""
-				prompt := cmder.Ask("What should the data type be? (https://go.dev/ref/spec#Types)", cmder.SnakeCaseValidator(false)).
+				prompt := cmder.Ask("What should the data type be? (https://go.dev/ref/spec#Types)", cmder.SnakeCase).
 					Fill(&selectedType).
 					MultiSelect("Select the attributes for this field:", []*cmder.Item{
 						{Label: required}, {Label: unique}, {Label: omitEmpty},

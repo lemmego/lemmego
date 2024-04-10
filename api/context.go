@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golobby/container/v3"
 	"github.com/invopop/validation"
+	"pressebo/api/req"
 )
 
 func init() {
@@ -97,7 +98,7 @@ func (c *Context) ParseAndValidate(body any) (any, error) {
 		return nil, err
 	}
 
-	if err := Validate(c.responseWriter, c.request, input.(Validator)); err != nil {
+	if err := req.Validate(c.responseWriter, c.request, input.(req.Validator)); err != nil {
 		return nil, err
 	}
 
@@ -105,7 +106,7 @@ func (c *Context) ParseAndValidate(body any) (any, error) {
 }
 
 func (c *Context) ParseInput(inputStruct any) (any, error) {
-	input, err := ParseInput(c.request, inputStruct)
+	input, err := req.ParseInput(c.request, inputStruct)
 	if err != nil {
 		return inputStruct, err
 	}
@@ -113,7 +114,7 @@ func (c *Context) ParseInput(inputStruct any) (any, error) {
 }
 
 func (c *Context) Input(inputStruct any) any {
-	err := In(c, inputStruct)
+	err := req.In(c, inputStruct)
 	if err != nil {
 		return nil
 	}
@@ -121,7 +122,7 @@ func (c *Context) Input(inputStruct any) any {
 }
 
 func (c *Context) SetInput(inputStruct any) error {
-	err := In(c, inputStruct)
+	err := req.In(c, inputStruct)
 	if err != nil {
 		return err
 	}
@@ -208,7 +209,7 @@ func (c *Context) SetHeader(key string, value string) {
 }
 
 func (c *Context) WantsJSON() bool {
-	return WantsJSON(c.request)
+	return req.WantsJSON(c.request)
 }
 
 func (c *Context) JSON(status int, body M) error {
@@ -320,8 +321,8 @@ func (c *Context) GetBody() map[string][]string {
 
 func (c *Context) Set(key string, value interface{}) {
 	c.Lock()
+	defer c.Unlock()
 	c.request = c.request.WithContext(context.WithValue(c.request.Context(), key, value))
-	c.Unlock()
 }
 
 func (c *Context) Get(key string) any {
@@ -376,5 +377,5 @@ func (c *Context) Forbidden(err error) error {
 }
 
 func (c *Context) DecodeJSON(v interface{}) error {
-	return DecodeJSONBody(c.responseWriter, c.request, v)
+	return req.DecodeJSONBody(c.responseWriter, c.request, v)
 }

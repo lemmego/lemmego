@@ -155,8 +155,8 @@ var migrationCmd = &cobra.Command{
 		selectedPrimaryColumns := []string{}
 		selectedUniqueColumns := []string{}
 
-		cmder.Ask("Enter the table name in snake_case", cmder.SnakeCaseValidator(false)).Fill(&tableName).
-			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseValidator(true), func(result any) cmder.Prompter {
+		cmder.Ask("Enter the table name in snake_case", cmder.SnakeCase).Fill(&tableName).
+			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
 				selectedType := ""
 				selectedAttrs := []string{}
 				prompt := cmder.Select("What should the data type be?", migrationFieldTypes).Fill(&selectedType).

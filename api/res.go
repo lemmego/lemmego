@@ -7,38 +7,38 @@ import (
 	"os"
 )
 
-type Response struct {
-	w       http.ResponseWriter
-	r       *http.Request
-	Status  int
-	Headers map[string]string
-	Body    interface{}
-}
+// type Response struct {
+// 	w       http.ResponseWriter
+// 	r       *http.Request
+// 	Status  int
+// 	Headers map[string]string
+// 	Body    interface{}
+// }
 
-type JSONResponse struct {
-	http.ResponseWriter
-	Status  int
-	Headers map[string]string
-	Body    map[string]interface{}
-}
+// type JSONResponse struct {
+// 	http.ResponseWriter
+// 	Status  int
+// 	Headers map[string]string
+// 	Body    map[string]interface{}
+// }
 
-func NewJSONResponse(w http.ResponseWriter, status int, headers map[string]string, body interface{}) *JSONResponse {
-	return &JSONResponse{w, status, headers, body.(map[string]interface{})}
-}
+// func NewJSONResponse(w http.ResponseWriter, status int, headers map[string]string, body interface{}) *JSONResponse {
+// 	return &JSONResponse{w, status, headers, body.(map[string]interface{})}
+// }
 
-func (jr *JSONResponse) Send() {
-	response, error := json.Marshal(jr.Body)
-	if error != nil {
-		log.Println(error)
-		jr.Header().Set("Content-Type", "application/json")
-		jr.WriteHeader(jr.Status)
-		jr.Write([]byte(error.Error()))
-		return
-	}
-	jr.Header().Set("Content-Type", "application/json")
-	jr.WriteHeader(jr.Status)
-	jr.Write(response)
-}
+// func (jr *JSONResponse) Send() {
+// 	response, error := json.Marshal(jr.Body)
+// 	if error != nil {
+// 		log.Println(error)
+// 		jr.Header().Set("Content-Type", "application/json")
+// 		jr.WriteHeader(jr.Status)
+// 		jr.Write([]byte(error.Error()))
+// 		return
+// 	}
+// 	jr.Header().Set("Content-Type", "application/json")
+// 	jr.WriteHeader(jr.Status)
+// 	jr.Write(response)
+// }
 
 func JSON(w http.ResponseWriter, r *http.Request, status int, payload interface{}) {
 	response, _ := json.Marshal(payload)

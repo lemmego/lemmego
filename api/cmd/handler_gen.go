@@ -83,7 +83,7 @@ var handlerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var handlerName string
 
-		cmder.Ask("Enter the resource name in snake_case", cmder.SnakeCaseValidator(false)).Fill(&handlerName)
+		cmder.Ask("Enter the resource name in snake_case", cmder.SnakeCase).Fill(&handlerName)
 
 		mg := NewHandlerGenerator(&HandlerConfig{Name: handlerName})
 		err := mg.Generate()

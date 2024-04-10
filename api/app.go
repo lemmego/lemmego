@@ -41,7 +41,7 @@ type Handler func(c *Context) error
 type Middleware func(next Handler) Handler
 
 type AppConfig struct {
-	DbConfig    *DBConfig
+	DbConfig    *db.DBConfig
 	AppName     string
 	AppPort     int
 	TemplateDir string

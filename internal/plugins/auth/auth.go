@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"pressebo/api"
+	"pressebo/api/db"
 	"strings"
 
 	"dario.cat/mergo"
@@ -75,8 +76,8 @@ type CustomHandlers struct {
 
 type Options struct {
 	Router            api.Router
-	DB                api.DBSession
-	DBFunc            func() api.DBSession
+	DB                db.DBSession
+	DBFunc            func() db.DBSession
 	Session           *api.Session
 	TokenConfig       *TokenConfig
 	ResolveUser       ResolveUserFunc

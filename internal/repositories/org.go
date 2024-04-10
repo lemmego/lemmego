@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"log"
-	"pressebo/api"
+	"pressebo/api/db"
 	"pressebo/internal/models"
 )
 
@@ -12,7 +12,7 @@ type OrgAttrs struct {
 	Email     string `json:"email"`
 }
 
-func CreateOrg(db api.DBSession, orgAttrs OrgAttrs) (*models.Org, error) {
+func CreateOrg(db db.DBSession, orgAttrs OrgAttrs) (*models.Org, error) {
 	orgCollection := db.Collection("orgs")
 
 	org := &models.Org{
