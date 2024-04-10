@@ -1,5 +1,0 @@
-package {{.PackagePath}}
-
-type {{.ModelName}} struct {
-  {{.Fields}}
-}

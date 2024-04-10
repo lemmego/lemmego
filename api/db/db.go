@@ -225,6 +225,7 @@ func (c *Connection) createDb() error {
 			return err
 		}
 		if res != nil {
+			log.Println("database", database, "created")
 			return nil
 		}
 	}

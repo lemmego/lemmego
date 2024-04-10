@@ -1,0 +1,29 @@
+package {{.PackageName}}
+
+func {{.Name}}IndexHandler(ctx *api.Context) error {
+  return nil
+}
+
+func {{.Name}}CreateHandler(ctx *api.Context) error {
+  return nil
+}
+
+func {{.Name}}ShowHandler(ctx *api.Context) error {
+  return nil
+}
+
+func {{.Name}}StoreHandler(ctx *api.Context) error {
+  return nil
+}
+
+func {{.Name}}EditHandler(ctx *api.Context) error {
+  return nil
+}
+
+func {{.Name}}UpdateHandler(ctx *api.Context) error {
+  return nil
+}
+
+func {{.Name}}DeleteHandler(ctx *api.Context) error {
+  return nil
+}

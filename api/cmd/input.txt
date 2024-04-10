@@ -1,0 +1,5 @@
+package {{.PackageName}}
+
+type {{.InputName}} struct {
+  {{.Fields}}
+}

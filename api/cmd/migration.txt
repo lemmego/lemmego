@@ -1,0 +1,36 @@
+package main
+
+import (
+  "database/sql"
+  "github.com/lemmego/migration"
+)
+
+func init() {
+  migration.GetMigrator().AddMigration(&migration.Migration{
+    Version: "{{.Version}}",
+    Up:      mig_{{.Version}}_{{.Name}}_up,
+    Down:    mig_{{.Version}}_{{.Name}}_down,
+  })
+}
+
+func mig_{{.Version}}_{{.Name}}_up(tx *sql.Tx) error {
+  schema := migration.Create("{{.TableName}}", func(t *migration.Table) {
+  {{.Fields}}
+  }).Build()
+
+  if _, err := tx.Exec(schema); err != nil {
+    return err
+  }
+
+  return nil
+}
+
+func mig_{{.Version}}_{{.Name}}_down(tx *sql.Tx) error {
+  schema := migration.Drop("{{.TableName}}").Build()
+
+  if _, err := tx.Exec(schema); err != nil {
+    return err
+  }
+
+  return nil
+}

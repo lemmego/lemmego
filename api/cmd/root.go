@@ -1,12 +1,12 @@
 package cmd
 
-// Import the cobra library
 import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"pressebo/internal/plugins/auth/cmd"
+
+	"github.com/spf13/cobra"
 )
 
 // Create a new command
@@ -17,8 +17,13 @@ var RootCmd = &cobra.Command{
 
 // Execute the command
 func Execute() error {
+	genCmd.AddCommand(handlerCmd)
+	genCmd.AddCommand(migrationCmd)
+	genCmd.AddCommand(modelCmd)
+	genCmd.AddCommand(inputCmd)
+	genCmd.AddCommand(cmd.AuthCmd)
+
 	RootCmd.AddCommand(genCmd)
 
-	genCmd.AddCommand(cmd.AuthCmd)
 	return RootCmd.Execute()
 }

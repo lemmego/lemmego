@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"pressebo/api/cmder"
-	"pressebo/api/fs"
+	"pressebo/api/fsys"
 	"slices"
 	"text/template"
 
@@ -54,30 +54,29 @@ var AuthCmd = &cobra.Command{
 		fields := []Field{}
 		hasOrg := false
 
-		cmder.AskBoolean("Should your users belong to an org? (useful for multitenant apps)").Fill(&hasOrg).
+		cmder.Confirm("Should your users belong to an org? (useful for multitenant apps)", 'n').Fill(&hasOrg).
 			Ask("What should your username field be called? (in snake_case)", cmder.SnakeCaseValidator(false)).Fill(&username).
 			Ask("What should your password field be called? (in snake_case)", cmder.SnakeCaseValidator(false)).Fill(&password).
 			AskRecurring("Enter the field name (in snake_case)", cmder.SnakeCaseValidator(true), func(result any) cmder.Prompter {
+				var required, unique bool
 				choices := []string{}
 				selectedType := ""
-				required := false
-				unique := false
-				prompt := cmder.Select("Select the field type", []string{"text", "textarea", "number", "boolean", "radio", "checkbox", "dropdown", "date", "time", "image"}).
-					Fill(&selectedType).
-					If(func(res any) bool {
+				prompt := cmder.Select(
+					"Select the field type",
+					[]string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "image"},
+				).Fill(&selectedType).
+					When(func(res any) bool {
 						if val, ok := res.(string); ok {
 							return val == "radio" || val == "checkbox" || val == "dropdown"
 						}
 						return false
+					}, func(prompt cmder.Prompter) cmder.Prompter {
+						return prompt.AskRecurring("Enter choices", cmder.SnakeCaseValidator(true)).Fill(&choices)
 					}).
-					AskRecurring("Enter choices", cmder.SnakeCaseValidator(true)).Fill(&choices).
-					Then().
-					AskBoolean("Is this a required field?").Fill(&required).
-					AskBoolean("Is this a unique field?").Fill(&unique)
+					Confirm("Is this a required field?", 'n').Fill(&required).
+					Confirm("Is this a unique field?", 'n').Fill(&unique)
 
 				fields = append(fields, Field{FieldName: result.(string), FieldType: selectedType, Choices: choices, IsRequired: required, IsUnique: unique})
-
-				fmt.Println(fields)
 
 				return prompt
 			})
@@ -107,7 +106,8 @@ func createInputFiles(fields []Field) {
 }
 
 func createInputDir() {
-	err := fs.CreateDirIfNotExists("./internal/inputs")
+	fs := fsys.NewLocalStorage("")
+	err := fs.CreateDirectory("./internal/inputs")
 	if err != nil {
 		fmt.Println("Error creating inputs directory:", err.Error())
 		return
@@ -115,6 +115,7 @@ func createInputDir() {
 }
 
 func createLoginInputFile(fields []Field) {
+	fs := fsys.NewLocalStorage("")
 	fmt.Println("Creating login_input.go file")
 	loginInputFilePath := "./internal/inputs/login_input.go"
 	username := slices.IndexFunc(fields, func(f Field) bool {
@@ -138,7 +139,7 @@ func createLoginInputFile(fields []Field) {
 		return
 	}
 
-	err = fs.WriteFile(loginInputFilePath, []byte(loginTmpl))
+	err = fs.Write(loginInputFilePath, []byte(loginTmpl))
 	if err != nil {
 		fmt.Println("Error creating file:", err.Error())
 		return
@@ -148,6 +149,7 @@ func createLoginInputFile(fields []Field) {
 }
 
 func createRegistrationInputFile(fields []Field) {
+	fs := fsys.NewLocalStorage("")
 	fmt.Println("Creating registration_input.go file")
 	registrationInputFilePath := "./internal/inputs/registration_input.go"
 	// registrationInputFileName := "registration_input.go"
@@ -163,7 +165,7 @@ func createRegistrationInputFile(fields []Field) {
 		return
 	}
 
-	err = fs.WriteFile(registrationInputFilePath, []byte(registrationTmpl))
+	err = fs.Write(registrationInputFilePath, []byte(registrationTmpl))
 	if err != nil {
 		fmt.Println("Error creating file:", err.Error())
 		return
