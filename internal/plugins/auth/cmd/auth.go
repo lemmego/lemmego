@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"pressebo/api/cmd"
 	"pressebo/api/cmder"
 	"pressebo/api/fsys"
 	"slices"
@@ -24,16 +25,6 @@ var loginStoreInput string
 //go:embed registration_input_stub.txt
 var registrationStoreInput string
 
-//go:embed 20230222004736_create_orgs_table.txt
-var orgsMigration string
-
-//go:embed 20231128193645_create_users_table.txt
-var usersMigration string
-
-type Config struct {
-	//
-}
-
 type Field struct {
 	FieldName  string
 	FieldType  string // text, textarea, number, boolean, radio, checkbox, dropdown, date, time, image
@@ -50,59 +41,123 @@ var AuthCmd = &cobra.Command{
 	Long:  `Generate auth related files`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		username, password := "", ""
-		fields := []Field{}
+		username, password := "email", "password"
+		fields := []*Field{}
 		hasOrg := false
 
 		cmder.Confirm("Should your users belong to an org? (useful for multitenant apps)", 'n').Fill(&hasOrg).
-			Ask("What should your username field be called? (in snake_case)", cmder.SnakeCase).Fill(&username).
-			Ask("What should your password field be called? (in snake_case)", cmder.SnakeCase).Fill(&password).
-			AskRecurring("Enter the field name (in snake_case)", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
-				var required, unique bool
-				choices := []string{}
-				selectedType := ""
-				prompt := cmder.Select(
-					"Select the field type",
-					[]string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "image"},
-				).Fill(&selectedType).
-					When(func(res any) bool {
-						if val, ok := res.(string); ok {
-							return val == "radio" || val == "checkbox" || val == "dropdown"
-						}
-						return false
-					}, func(prompt cmder.Prompter) cmder.Prompter {
-						return prompt.AskRecurring("Enter choices", cmder.SnakeCaseEmptyAllowed).Fill(&choices)
-					}).
-					Confirm("Is this a required field?", 'n').Fill(&required).
-					Confirm("Is this a unique field?", 'n').Fill(&unique)
+			AskRecurring(
+				"Enter the field name in snake_case",
+				cmder.NotIn(
+					[]string{"id", "email", "password", "org_username", "created_at", "updated_at", "deleted_at"},
+					"No need to add this field, it will be provided.",
+					cmder.SnakeCaseEmptyAllowed,
+				),
+				func(result any) cmder.Prompter {
+					var required, unique bool
+					choices := []string{}
+					selectedType := ""
+					prompt := cmder.Select(
+						"Select the field type",
+						[]string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "image"},
+					).Fill(&selectedType).
+						When(func(res any) bool {
+							if val, ok := res.(string); ok {
+								return val == "radio" || val == "checkbox" || val == "dropdown"
+							}
+							return false
+						}, func(prompt cmder.Prompter) cmder.Prompter {
+							return prompt.AskRecurring("Enter choices", cmder.SnakeCaseEmptyAllowed).Fill(&choices)
+						}).
+						Confirm("Is this a required field?", 'n').Fill(&required).
+						Confirm("Is this a unique field?", 'n').Fill(&unique)
 
-				fields = append(fields, Field{FieldName: result.(string), FieldType: selectedType, Choices: choices, IsRequired: required, IsUnique: unique})
+					fields = append(fields, &Field{FieldName: result.(string), FieldType: selectedType, Choices: choices, IsRequired: required, IsUnique: unique})
 
-				return prompt
-			})
+					return prompt
+				})
 
-		fields = append(fields, Field{FieldName: username, FieldType: "text", IsUsername: true, IsRequired: true, IsUnique: true})
-		fields = append(fields, Field{FieldName: password, FieldType: "text", IsPassword: true, IsRequired: true})
+		fields = append(fields, &Field{FieldName: username, FieldType: "text", IsUsername: true, IsRequired: true, IsUnique: true})
+		fields = append(fields, &Field{FieldName: password, FieldType: "text", IsPassword: true, IsRequired: true})
+		if hasOrg {
+			fields = append(fields, &Field{FieldName: "org_username", FieldType: "text", IsRequired: true, IsUnique: true})
+		}
 
 		createInputFiles(fields)
+		createMigrationFiles(fields)
 	},
 }
 
-func createMigrationFieldsString(fields []Field) string {
-	var fieldsString string
-	for index, f := range fields {
-		fieldsString += fmt.Sprintf("\t%s %s `json:\"%s\" db:\"%s\"`", strcase.ToCamel(f.FieldName), f.FieldType, f.FieldName, f.FieldName)
-		if index < len(fields)-1 {
-			fieldsString += "\n"
-		}
+func createMigrationFiles(fields []*Field) {
+	hasOrg := slices.ContainsFunc(fields, func(f *Field) bool { return f.FieldName == "org_username" })
+	if hasOrg {
+		om := cmd.NewMigrationGenerator(&cmd.MigrationConfig{
+			TableName: "orgs",
+			Fields: []*cmd.MigrationField{
+				{Name: "id", Type: "unsignedBigInt"},
+				{Name: "org_username", Type: "string"},
+				{Name: "org_name", Type: "string"},
+				{Name: "email", Type: "string", Unique: true},
+			},
+			Timestamps: true,
+		})
+		om.Generate()
 	}
-	return fieldsString
+
+	userFields := []*cmd.MigrationField{
+		{Name: "id", Type: "unsignedBigInt"},
+	}
+
+	if hasOrg {
+		userFields = append(userFields, &cmd.MigrationField{
+			Name: "org_id",
+			Type: "unsignedBigInt",
+		})
+	}
+
+	for _, v := range fields {
+		userFields = append(userFields, &cmd.MigrationField{
+			Name: v.FieldName,
+			Type: cmd.DBTypeMap[v.FieldType],
+		})
+	}
+
+	um := cmd.NewMigrationGenerator(&cmd.MigrationConfig{
+		TableName:  "users",
+		Fields:     userFields,
+		Timestamps: true,
+	})
+	um.Generate()
 }
 
-func createInputFiles(fields []Field) {
-	createInputDir()
-	createLoginInputFile(fields)
-	createRegistrationInputFile(fields)
+func createInputFiles(fields []*Field) {
+	inputFields := []*cmd.InputField{}
+	registrationFields := []*cmd.InputField{}
+	for _, f := range fields {
+		if f.IsUsername || f.IsPassword {
+			inputFields = append(inputFields, &cmd.InputField{
+				Name: f.FieldName,
+				Type: cmd.DataTypeMap[f.FieldType],
+			})
+		} else {
+			registrationFields = append(registrationFields, &cmd.InputField{
+				Name: f.FieldName,
+				Type: cmd.DataTypeMap[f.FieldType],
+			})
+		}
+	}
+
+	loginGen := cmd.NewInputGenerator(&cmd.InputConfig{
+		Name:   "login",
+		Fields: inputFields,
+	})
+	loginGen.Generate()
+
+	registrationGen := cmd.NewInputGenerator(&cmd.InputConfig{
+		Name:   "registration",
+		Fields: registrationFields,
+	})
+	registrationGen.Generate()
 }
 
 func createInputDir() {

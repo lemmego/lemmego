@@ -178,7 +178,7 @@ func Select(label string, items []string) Prompter {
 func MultiSelect(label string, allItems []*Item, selectedPos int) Prompter {
 	// Always prepend a "Done" item to the slice if it doesn't
 	// already exist.
-	const doneID = "Done ✅"
+	var doneID = "Done ✅"
 	if len(allItems) > 0 {
 		lastIndex := len(allItems) - 1
 		if allItems[lastIndex].Label != doneID {

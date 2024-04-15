@@ -161,15 +161,15 @@ func (c *Context) Respond(status int, r *R) error {
 		}
 		switch messageType {
 		case "success":
-			return c.WithSuccess(r.Message.Body).Redirect(r.RedirectTo, http.StatusFound)
+			return c.WithSuccess(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
 		case "info":
-			return c.WithInfo(r.Message.Body).Redirect(r.RedirectTo, http.StatusFound)
+			return c.WithInfo(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
 		case "warning":
-			return c.WithWarning(r.Message.Body).Redirect(r.RedirectTo, http.StatusFound)
+			return c.WithWarning(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
 		case "error":
-			return c.WithError(r.Message.Body).Redirect(r.RedirectTo, http.StatusFound)
+			return c.WithError(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
 		default:
-			return c.Redirect(r.RedirectTo, http.StatusFound)
+			return c.Redirect(http.StatusFound, r.RedirectTo)
 		}
 	}
 
@@ -263,7 +263,7 @@ func (c *Context) Render(status int, tmplPath string, data *TemplateData) error 
 	return RenderTemplate(c.responseWriter, tmplPath, data)
 }
 
-func (c *Context) Redirect(url string, status int) error {
+func (c *Context) Redirect(status int, url string) error {
 	c.responseWriter.Header().Set("Location", url)
 	c.responseWriter.WriteHeader(status)
 	return nil
@@ -303,7 +303,7 @@ func (c *Context) WithData(data map[string]error) *Context {
 }
 
 func (c *Context) Back() error {
-	return c.Redirect(c.GetHeader("Referer"), http.StatusFound)
+	return c.Redirect(http.StatusFound, c.GetHeader("Referer"))
 }
 
 func (c *Context) GetParam(key string) string {

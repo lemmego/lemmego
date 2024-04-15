@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"pressebo/internal/plugins/auth/cmd"
-
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +19,7 @@ func Execute() error {
 	genCmd.AddCommand(migrationCmd)
 	genCmd.AddCommand(modelCmd)
 	genCmd.AddCommand(inputCmd)
-	genCmd.AddCommand(cmd.AuthCmd)
+	genCmd.AddCommand(templCmd)
 
 	RootCmd.AddCommand(genCmd)
 

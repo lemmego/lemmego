@@ -1,0 +1,21 @@
+package {{.PackageName}}
+
+templ {{.TemplName}}() {
+  <form action="{{.Route}}" method="POST">
+    {{range .Fields}}
+    <div>
+      <label for="{{.Name}}" class="label-primary">{{.Name | toSpaceDelimited}}</label>
+      <div class="mt-2">
+        {{if eq .Type "textarea"}}
+        <textarea id="{{.Name}}" name="{{.Name}}" class="input"></textarea>
+        {{else}}
+        <input id="{{.Name}}" name="{{.Name}}" type="{{.Type}}" class="input"/>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+    <div>
+      <button type="submit" class="btn-primary">Submit</button>
+    </div>
+  </form>
+}

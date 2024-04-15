@@ -27,22 +27,22 @@ var DataTypeMap = map[string]string{
 }
 
 var DBTypeMap = map[string]string{
-	"text":     "String",
-	"textarea": "Text",
-	"integer":  "UnsignedBigInt",
-	"decimal":  "Decimal",
-	"boolean":  "Boolean",
-	"radio":    "String",
-	"checkbox": "String",
-	"dropdown": "String",
-	"date":     "DateTime",
-	"time":     "Time",
-	"image":    "String",
+	"text":     "string",
+	"textarea": "text",
+	"integer":  "unsignedBigInt",
+	"decimal":  "decimal",
+	"boolean":  "boolean",
+	"radio":    "string",
+	"checkbox": "string",
+	"dropdown": "string",
+	"date":     "dateTime",
+	"time":     "time",
+	"image":    "string",
 }
 
 type Replacable struct {
 	Placeholder string
-	Value       string
+	Value       interface{}
 }
 
 type Generator interface {
@@ -63,9 +63,12 @@ func NewGeneratorCommand(generator Generator) *GeneratorCommand {
 	return &GeneratorCommand{generator}
 }
 
-func ParseTemplate(tmplData map[string]string, fileContents string) (string, error) {
+func ParseTemplate(tmplData map[string]interface{}, fileContents string, funcMap template.FuncMap) (string, error) {
 	var out bytes.Buffer
 	tx := template.New("template")
+	if funcMap != nil {
+		tx.Funcs(funcMap)
+	}
 	t := template.Must(tx.Parse(fileContents))
 	err := t.Execute(&out, tmplData)
 	if err != nil {

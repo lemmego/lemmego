@@ -2,15 +2,14 @@ package handlers
 
 import (
 	"pressebo/api"
-	"pressebo/templates"
 )
 
-func RegisterRoutes(app *api.App) {
+func Register(app *api.App) {
 	app.Get("/", IndexHomeHandler)
 	app.Post("/test", StoreTestHandler)
-	app.Get("/foo", func(c *api.Context) error {
-		return c.Templ(
-			templates.BaseLayout(templates.Hello("Tanmay")),
-		)
-	})
+
+	app.Get("/login", LoginIndexHandler)
+	app.Post("/login", LoginStoreHandler)
+	app.Get("/register", RegistrationIndexHandler)
+	app.Post("/register", RegistrationStoreHandler)
 }

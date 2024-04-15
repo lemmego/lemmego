@@ -72,7 +72,7 @@ func (mg *ModelGenerator) Generate() error {
 		packageName = parts[len(parts)-1]
 	}
 
-	tmplData := map[string]string{
+	tmplData := map[string]interface{}{
 		"PackageName": packageName,
 	}
 
@@ -80,7 +80,7 @@ func (mg *ModelGenerator) Generate() error {
 		tmplData[v.Placeholder] = v.Value
 	}
 
-	output, err := ParseTemplate(tmplData, mg.GetStub())
+	output, err := ParseTemplate(tmplData, mg.GetStub(), nil)
 
 	if err != nil {
 		return err

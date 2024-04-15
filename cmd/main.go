@@ -1,7 +1,11 @@
 package main
 
-import "pressebo/api/cmd"
+import (
+	baseCmd "pressebo/api/cmd"
+	"pressebo/internal/plugins/auth/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	baseCmd.RootCmd.AddCommand(cmd.AuthCmd)
+	baseCmd.Execute()
 }

@@ -356,7 +356,7 @@ func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.
 		if err := finalHandler(ctx); err != nil {
 			logger.Log().Error(err.Error())
 			if !ctx.WantsJSON() {
-				ctx.Redirect("/error", http.StatusFound)
+				ctx.Redirect(http.StatusFound, "/error")
 				return
 			}
 			ctx.JSON(http.StatusInternalServerError, M{"error": err.Error()})

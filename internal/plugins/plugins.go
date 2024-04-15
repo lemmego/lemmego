@@ -1,15 +1,10 @@
 package plugins
 
 import (
-	"errors"
-	"fmt"
 	"github.com/invopop/validation"
-	"golang.org/x/crypto/bcrypt"
-	"log"
 	"pressebo/api"
 	"pressebo/api/validator"
-	"pressebo/internal/plugins/auth"
-	"pressebo/internal/repositories"
+	// "pressebo/internal/plugins/auth"
 )
 
 type RegistrationInput struct {
@@ -60,57 +55,58 @@ func (r *RegistrationInput) Validate() error {
 // Load plugins
 func Load() api.PluginRegistry {
 	registry := api.PluginRegistry{}
-	authPlugin := auth.New(auth.WithUserCreator(func(c *api.Context, opts *auth.Options) (bool, validation.Errors) {
-		input := &RegistrationInput{}
-		if validated, err := c.ParseAndValidate(input); err != nil {
-			return false, err.(validation.Errors)
-		} else {
-			input = validated.(*RegistrationInput)
-		}
+	// authPlugin := auth.New()
+	// authPlugin := auth.New(auth.WithUserCreator(func(c *api.Context, opts *auth.Options) (bool, validation.Errors) {
+	// 	input := &RegistrationInput{}
+	// 	if validated, err := c.ParseAndValidate(input); err != nil {
+	// 		return false, err.(validation.Errors)
+	// 	} else {
+	// 		input = validated.(*RegistrationInput)
+	// 	}
 
-		db := opts.DB
+	// 	db := opts.DB
 
-		encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	// 	encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 
-		org, err := repositories.CreateOrg(db, repositories.OrgAttrs{
-			Name:      input.OrgName,
-			Subdomain: input.Subdomain,
-			Email:     input.Username,
-		})
+	// 	org, err := repositories.CreateOrg(db, repositories.OrgAttrs{
+	// 		Name:      input.OrgName,
+	// 		Subdomain: input.Subdomain,
+	// 		Email:     input.Username,
+	// 	})
 
-		if err != nil {
-			log.Println(err)
-			return false, validation.Errors{
-				"org": fmt.Errorf("Org was not created: %w", err),
-			}
-		}
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		return false, validation.Errors{
+	// 			"org": fmt.Errorf("Org was not created: %w", err),
+	// 		}
+	// 	}
 
-		user, err := repositories.CreateUser(db, repositories.UserAttrs{
-			FirstName: input.FirstName,
-			LastName:  input.LastName,
-			Email:     input.Username,
-			Password:  string(encryptedPassword),
-			OrgID:     org.ID,
-		})
+	// 	user, err := repositories.CreateUser(db, repositories.UserAttrs{
+	// 		FirstName: input.FirstName,
+	// 		LastName:  input.LastName,
+	// 		Email:     input.Username,
+	// 		Password:  string(encryptedPassword),
+	// 		OrgID:     org.ID,
+	// 	})
 
-		if err != nil {
-			log.Println(err)
-			return false, validation.Errors{
-				"user": fmt.Errorf("User was not created: %w", err),
-			}
-		}
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		return false, validation.Errors{
+	// 			"user": fmt.Errorf("User was not created: %w", err),
+	// 		}
+	// 	}
 
-		if user.ID == 0 {
-			return false, validation.Errors{
-				"user": errors.New("User was not created."),
-			}
-		}
+	// 	if user.ID == 0 {
+	// 		return false, validation.Errors{
+	// 			"user": errors.New("User was not created."),
+	// 		}
+	// 	}
 
-		return true, nil
-	}), auth.WithUserResolver(func(c *api.Context, opts *auth.Options) (*auth.AuthUser, *auth.Credentials, validation.Errors) {
-		return nil, nil, nil
-	}))
+	// 	return true, nil
+	// }), auth.WithUserResolver(func(c *api.Context, opts *auth.Options) (*auth.AuthUser, *auth.Credentials, validation.Errors) {
+	// 	return nil, nil, nil
+	// }))
 
-	registry.Add(authPlugin)
+	// registry.Add(authPlugin)
 	return registry
 }

@@ -2,6 +2,11 @@ package cmder
 
 import (
 	"errors"
+	"fmt"
+	"slices"
+	"strings"
+
+	"github.com/manifoldco/promptui"
 )
 
 var SnakeCase = func(input string) error {
@@ -24,6 +29,40 @@ var SnakeCase = func(input string) error {
 		}
 	}
 	return nil
+}
+
+var NotIn = func(ignoreList []string, message string, validators ...promptui.ValidateFunc) promptui.ValidateFunc {
+	return func(input string) error {
+		if slices.Contains(ignoreList, input) {
+			if message == "" {
+				return errors.New(fmt.Sprintf("input must not contain %s", strings.Join(ignoreList, ",")))
+			}
+			return errors.New(message)
+		}
+		for _, v := range validators {
+			if err := v(input); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+var In = func(allowList []string, message string, validators ...promptui.ValidateFunc) promptui.ValidateFunc {
+	return func(input string) error {
+		if !slices.Contains(allowList, input) {
+			if message == "" {
+				return errors.New(fmt.Sprintf("input must contain %s", strings.Join(allowList, ",")))
+			}
+			return errors.New(message)
+		}
+		for _, v := range validators {
+			if err := v(input); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 var SnakeCaseEmptyAllowed = func(input string) error {

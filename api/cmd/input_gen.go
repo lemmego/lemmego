@@ -52,7 +52,7 @@ func (ig *InputGenerator) GetPackagePath() string {
 }
 
 func (ig *InputGenerator) GetStub() string {
-	return modelStub
+	return inputStub
 }
 
 func (ig *InputGenerator) Generate() error {
@@ -64,7 +64,7 @@ func (ig *InputGenerator) Generate() error {
 		packageName = parts[len(parts)-1]
 	}
 
-	tmplData := map[string]string{
+	tmplData := map[string]interface{}{
 		"PackageName": packageName,
 	}
 
@@ -72,13 +72,13 @@ func (ig *InputGenerator) Generate() error {
 		tmplData[v.Placeholder] = v.Value
 	}
 
-	output, err := ParseTemplate(tmplData, ig.GetStub())
+	output, err := ParseTemplate(tmplData, ig.GetStub(), nil)
 
 	if err != nil {
 		return err
 	}
 
-	err = fs.Write(ig.GetPackagePath()+"/"+ig.name+".go", []byte(output))
+	err = fs.Write(ig.GetPackagePath()+"/"+ig.name+"_input.go", []byte(output))
 
 	if err != nil {
 		return err

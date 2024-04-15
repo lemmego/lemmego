@@ -17,7 +17,7 @@ import (
 var migrationStub string
 
 var migrationFieldTypes = []string{
-	"string", "text", "boolean", "int", "bigInt", "unsignedInt", "unsignedBigInt", "decimal", "date", "time",
+	"string", "text", "boolean", "int", "bigInt", "unsignedInt", "unsignedBigInt", "decimal", "dateTime", "time",
 }
 
 type MigrationField struct {
@@ -32,6 +32,7 @@ type MigrationConfig struct {
 	Fields         []*MigrationField
 	PrimaryColumns []string
 	UniqueColumns  []string
+	Timestamps     bool
 }
 
 type MigrationGenerator struct {
@@ -46,16 +47,36 @@ type MigrationGenerator struct {
 
 func NewMigrationGenerator(mc *MigrationConfig) *MigrationGenerator {
 	version := time.Now().Format("20060102150405")
-	return &MigrationGenerator{fmt.Sprintf("create_%s_table", mc.TableName), mc.TableName, mc.Fields, version, mc.PrimaryColumns, mc.UniqueColumns}
+	if mc.Timestamps {
+		timeStampFields := []*MigrationField{
+			{Name: "created_at", Type: "dateTime", Nullable: true},
+			{Name: "updated_at", Type: "dateTime", Nullable: true},
+			{Name: "deleted_at", Type: "dateTime", Nullable: true},
+		}
+		mc.Fields = append(mc.Fields, timeStampFields...)
+	}
+	return &MigrationGenerator{
+		fmt.Sprintf("create_%s_table", mc.TableName),
+		mc.TableName,
+		mc.Fields,
+		version,
+		mc.PrimaryColumns,
+		mc.UniqueColumns,
+	}
 }
 
 func (mg *MigrationGenerator) GetReplacables() []*Replacable {
 	var fieldLines string
 	for index, f := range mg.fields {
 		typeString := "\tt.%s(\"%s\""
-		if f.Type == "string" {
+		switch f.Type {
+		case "string":
+			typeString += ", 255)"
+		case "dateTime":
 			typeString += ", 0)"
-		} else {
+		case "decimal":
+			typeString += ", 8, 2)"
+		default:
 			typeString += ")"
 		}
 		fieldLines += fmt.Sprintf(typeString, strcase.ToCamel(f.Type), f.Name)
@@ -119,7 +140,7 @@ func (mg *MigrationGenerator) Generate() error {
 		packageName = parts[len(parts)-1]
 	}
 
-	tmplData := map[string]string{
+	tmplData := map[string]interface{}{
 		"PackageName": packageName,
 	}
 
@@ -127,7 +148,7 @@ func (mg *MigrationGenerator) Generate() error {
 		tmplData[v.Placeholder] = v.Value
 	}
 
-	output, err := ParseTemplate(tmplData, mg.GetStub())
+	output, err := ParseTemplate(tmplData, mg.GetStub(), nil)
 
 	if err != nil {
 		return err
@@ -152,6 +173,7 @@ var migrationCmd = &cobra.Command{
 
 		primaryColumns := []*cmder.Item{}
 		uniqueColumns := []*cmder.Item{}
+		timestamps := false
 		selectedPrimaryColumns := []string{}
 		selectedUniqueColumns := []string{}
 
@@ -177,9 +199,16 @@ var migrationCmd = &cobra.Command{
 				return prompt
 			}).
 			MultiSelect("Select the column(s) for the primary key", primaryColumns, 0).Fill(&selectedPrimaryColumns).
-			MultiSelect("Select the column(s) for the unique key", uniqueColumns, 0).Fill(&selectedUniqueColumns)
+			MultiSelect("Select the column(s) for the unique key", uniqueColumns, 0).Fill(&selectedUniqueColumns).
+			Confirm("Do you want timestamp fields (created_at, updated_at, deleted_at) ?", 'y').Fill(&timestamps)
 
-		mg := NewMigrationGenerator(&MigrationConfig{TableName: tableName, Fields: fields, PrimaryColumns: selectedPrimaryColumns, UniqueColumns: selectedUniqueColumns})
+		mg := NewMigrationGenerator(&MigrationConfig{
+			TableName:      tableName,
+			Fields:         fields,
+			PrimaryColumns: selectedPrimaryColumns,
+			UniqueColumns:  selectedUniqueColumns,
+			Timestamps:     timestamps,
+		})
 		err := mg.Generate()
 		if err != nil {
 			fmt.Println(err)

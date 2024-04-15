@@ -11,6 +11,7 @@ type TemplateData struct {
 	IntMap           map[string]int
 	FloatMap         map[string]float64
 	BoolMap          map[string]bool
+	FuncMap          template.FuncMap
 	Data             map[string]any
 	CSRFToken        string
 	ValidationErrors []*ValidationError
@@ -19,7 +20,7 @@ type TemplateData struct {
 
 func RenderTemplate(w http.ResponseWriter, tmpl string, data *TemplateData) error {
 	// create a template cache
-	tc, err := createTemplateCache()
+	tc, err := createTemplateCache(data)
 	if err != nil {
 		return err
 	}
@@ -39,7 +40,7 @@ func RenderTemplate(w http.ResponseWriter, tmpl string, data *TemplateData) erro
 	return nil
 }
 
-func createTemplateCache() (map[string]*template.Template, error) {
+func createTemplateCache(data *TemplateData) (map[string]*template.Template, error) {
 	// create a map to act as a cache
 	myCache := map[string]*template.Template{}
 
@@ -64,6 +65,9 @@ func createTemplateCache() (map[string]*template.Template, error) {
 
 		// parse the page template file in to a template set
 		ts, err := template.ParseFiles(page)
+		if data.FuncMap != nil {
+			ts.Funcs(data.FuncMap)
+		}
 		if err != nil {
 			return myCache, err
 		}

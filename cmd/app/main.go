@@ -15,7 +15,7 @@ func main() {
 	)
 	app.Use(middleware.Logger, middleware.Recoverer)
 
-	handlers.RegisterRoutes(app)
+	handlers.Register(app)
 
 	// Handle signals
 	go app.HandleSignals()
