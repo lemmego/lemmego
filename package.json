@@ -3,7 +3,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && vite build --ssr && node bootstrap/ssr/ssr.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:static": "tailwindcss -i static/css/style.css -o static/css/dist.css",
+    "dev:static": "tailwindcss -i static/css/style.css -o static/css/dist.css --watch"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.7",
