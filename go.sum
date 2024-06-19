@@ -58,6 +58,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/fsnotify/fsnotify v1.4.3-0.20170329110642-4da3e2cfbabc/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/garyburd/redigo v1.1.1-0.20170914051019-70e1b1943d4f/go.mod h1:NR3MbYisc3/PwhQ00EMzDiPmrwpPxAn5GI05/YaO1SY=
+github.com/gertd/go-pluralize v0.2.1 h1:M3uASbVjMnTsPb0PNqg+E/24Vwigyo/tvyMTtAlLgiA=
+github.com/gertd/go-pluralize v0.2.1/go.mod h1:rbYaKDbsXxmRfr8uygAEKhOWsjyrrqrkHVpZvoOp8zk=
 github.com/ggicci/httpin v0.15.3 h1:oDq5GDA+NN2mszOC6Ms2m9KNoyHqRlh1NvGJaXBCNvE=
 github.com/ggicci/httpin v0.15.3/go.mod h1:whE/5nx1jCp//UQ6rgNpq2WNxOr9FV0OpxMnQQC0Xvs=
 github.com/ggicci/owl v0.7.0 h1:+AMlCR0AY7j72q7hjtN4pm8VJiikwpROtMgvPnXtuik=
@@ -210,8 +212,8 @@ github.com/kr/pretty v0.2.0/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfn
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/pty v1.1.8/go.mod h1:O1sed60cT9XZ5uDucP5qwvh+TE3NnUj51EiZO/lmSfw=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/lemmego/migration v0.1.2 h1:8uVm0Yk34VxcvfHuyXDkjotyMdRUExCRLJPSer5OK2Y=
-github.com/lemmego/migration v0.1.2/go.mod h1:YQtNaQtrfIsmlirvXEu8qNG//TV4wx1KSFWgZxsPvjY=
+github.com/lemmego/migration v0.1.3 h1:9TrbQJkZvocMpcsKHDbhWv/DkVO8r5GBvynfgvO9BOM=
+github.com/lemmego/migration v0.1.3/go.mod h1:2tLHC7S2uHRPN3ixwCrQlspffXESPuOWXMd8GHx9W0E=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.1.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=

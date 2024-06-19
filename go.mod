@@ -8,7 +8,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/gomodule/redigo v1.8.0
 	github.com/iancoleman/strcase v0.3.0
-	github.com/lemmego/migration v0.1.2
+	github.com/lemmego/migration v0.1.3
 	github.com/spf13/cobra v1.5.0
 )
 
@@ -18,6 +18,7 @@ require (
 	cloud.google.com/go/iam v1.1.7 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/gertd/go-pluralize v0.2.1 // indirect
 	github.com/ggicci/owl v0.7.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

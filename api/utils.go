@@ -14,6 +14,7 @@ import (
 func MustEnv[T any](key string, fallback T) T {
 	value, ok := os.LookupEnv(key)
 	if !ok {
+		println("using fallback for key", key)
 		return fallback
 	}
 

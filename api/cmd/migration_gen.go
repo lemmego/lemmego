@@ -6,9 +6,11 @@ import (
 	"pressebo/api/cmder"
 	"pressebo/api/fsys"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gertd/go-pluralize"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 )
@@ -17,21 +19,24 @@ import (
 var migrationStub string
 
 var migrationFieldTypes = []string{
-	"string", "text", "boolean", "int", "bigInt", "unsignedInt", "unsignedBigInt", "decimal", "dateTime", "time",
+	"increments", "bigIncrements", "int", "bigInt", "string", "text", "boolean", "unsignedInt", "unsignedBigInt", "decimal", "dateTime", "time",
 }
 
 type MigrationField struct {
-	Name     string
-	Type     string
-	Nullable bool
-	Unique   bool
+	Name               string
+	Type               string
+	Nullable           bool
+	Unique             bool
+	Primary            bool
+	ForeignConstrained bool
 }
 
 type MigrationConfig struct {
 	TableName      string
 	Fields         []*MigrationField
 	PrimaryColumns []string
-	UniqueColumns  []string
+	UniqueColumns  [][]string
+	ForeignColumns [][]string
 	Timestamps     bool
 }
 
@@ -42,7 +47,8 @@ type MigrationGenerator struct {
 	version   string
 
 	primaryColumns []string
-	uniqueColumns  []string
+	uniqueColumns  [][]string
+	foreignColumns [][]string
 }
 
 func NewMigrationGenerator(mc *MigrationConfig) *MigrationGenerator {
@@ -62,7 +68,14 @@ func NewMigrationGenerator(mc *MigrationConfig) *MigrationGenerator {
 		version,
 		mc.PrimaryColumns,
 		mc.UniqueColumns,
+		mc.ForeignColumns,
 	}
+}
+
+func (mg *MigrationGenerator) BumpVersion() *MigrationGenerator {
+	intVersion, _ := strconv.Atoi(mg.version)
+	mg.version = fmt.Sprintf("%d", intVersion+1)
+	return mg
 }
 
 func (mg *MigrationGenerator) GetReplacables() []*Replacable {
@@ -79,13 +92,23 @@ func (mg *MigrationGenerator) GetReplacables() []*Replacable {
 		default:
 			typeString += ")"
 		}
-		fieldLines += fmt.Sprintf(typeString, strcase.ToCamel(f.Type), f.Name)
+
+		if f.ForeignConstrained {
+			fieldLines += fmt.Sprintf("\tt.ForeignID(\"%s\").Constrained()", f.Name)
+		} else if f.Primary {
+			fieldLines += fmt.Sprintf("\tt.BigIncrements(\"%s\").Primary()", f.Name)
+		} else {
+			fieldLines += fmt.Sprintf(typeString, strcase.ToCamel(f.Type), f.Name)
+		}
+
 		if f.Unique {
 			fieldLines += ".Unique()"
 		}
+
 		if f.Nullable {
 			fieldLines += ".Nullable()"
 		}
+
 		if index < len(mg.fields)-1 {
 			fieldLines += "\n"
 		}
@@ -103,16 +126,35 @@ func (mg *MigrationGenerator) GetReplacables() []*Replacable {
 		fieldLines += "\n" + primaryKeyString + ")"
 	}
 
-	if len(mg.uniqueColumns) > 0 {
-		uniqueKeyString := fmt.Sprintf("\tt.UniqueKey(")
-		for i, c := range mg.uniqueColumns {
-			prefix := "\"%s\""
-			if i > 0 {
-				prefix = ", \"%s\""
+	if len(mg.uniqueColumns) > 0 && len(mg.uniqueColumns[0]) > 0 {
+		for _, c := range mg.uniqueColumns {
+			uniqueKeyString := fmt.Sprintf("\tt.UniqueKey(")
+			for j, c2 := range c {
+				prefix := "\"%s\""
+				if j > 0 {
+					prefix = ", \"%s\""
+				}
+				uniqueKeyString += fmt.Sprintf(prefix, c2)
 			}
-			uniqueKeyString += fmt.Sprintf(prefix, c)
+			fieldLines += "\n" + uniqueKeyString + ")"
 		}
-		fieldLines += "\n" + uniqueKeyString + ")"
+	}
+
+	if len(mg.foreignColumns) > 0 && len(mg.foreignColumns[0]) > 0 {
+		for _, columns := range mg.foreignColumns {
+			foreignKeyString := fmt.Sprintf("\tt.Foreign(")
+			for j, column := range columns {
+				prefix := "\"%s\""
+				if j > 0 {
+					prefix = ", \"%s\""
+				}
+				foreignKeyString += fmt.Sprintf(prefix, column)
+				table := guessPluralizedTableNameFromColumnName(column)
+				suffix := fmt.Sprintf(").References(\"id\").On(\"%s\");", table)
+				foreignKeyString += suffix
+			}
+			fieldLines += "\n" + foreignKeyString
+		}
 	}
 
 	return []*Replacable{
@@ -173,14 +215,16 @@ var migrationCmd = &cobra.Command{
 
 		primaryColumns := []*cmder.Item{}
 		uniqueColumns := []*cmder.Item{}
+		foreignColumns := []*cmder.Item{}
 		timestamps := false
 		selectedPrimaryColumns := []string{}
 		selectedUniqueColumns := []string{}
+		selectedForeignColumns := []string{}
 
 		cmder.Ask("Enter the table name in snake_case", cmder.SnakeCase).Fill(&tableName).
 			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
-				selectedType := ""
 				selectedAttrs := []string{}
+				selectedType := ""
 				prompt := cmder.Select("What should the data type be?", migrationFieldTypes).Fill(&selectedType).
 					MultiSelect("Select all the attributes that apply to this column", []*cmder.Item{
 						{Label: "Nullable"}, {Label: "Unique"},
@@ -195,18 +239,21 @@ var migrationCmd = &cobra.Command{
 
 				primaryColumns = append(primaryColumns, &cmder.Item{Label: result.(string)})
 				uniqueColumns = append(uniqueColumns, &cmder.Item{Label: result.(string)})
+				foreignColumns = append(foreignColumns, &cmder.Item{Label: result.(string)})
 
 				return prompt
 			}).
 			MultiSelect("Select the column(s) for the primary key", primaryColumns, 0).Fill(&selectedPrimaryColumns).
 			MultiSelect("Select the column(s) for the unique key", uniqueColumns, 0).Fill(&selectedUniqueColumns).
+			MultiSelect("Select the column(s) for the foreign key", foreignColumns, 0).Fill(&selectedForeignColumns).
 			Confirm("Do you want timestamp fields (created_at, updated_at, deleted_at) ?", 'y').Fill(&timestamps)
 
 		mg := NewMigrationGenerator(&MigrationConfig{
 			TableName:      tableName,
 			Fields:         fields,
 			PrimaryColumns: selectedPrimaryColumns,
-			UniqueColumns:  selectedUniqueColumns,
+			UniqueColumns:  [][]string{selectedUniqueColumns},
+			ForeignColumns: [][]string{selectedForeignColumns},
 			Timestamps:     timestamps,
 		})
 		err := mg.Generate()
@@ -216,4 +263,16 @@ var migrationCmd = &cobra.Command{
 		}
 		fmt.Println("Migration generated successfully.")
 	},
+}
+
+func guessPluralizedTableNameFromColumnName(columnName string) string {
+	pluralize := pluralize.NewClient()
+	if strings.HasSuffix(columnName, "id") {
+		nameParts := strings.Split(columnName, "_")
+		if len(nameParts) > 1 {
+			return pluralize.Plural(nameParts[len(nameParts)-2])
+		}
+		return pluralize.Plural(nameParts[0])
+	}
+	return pluralize.Plural(columnName)
 }

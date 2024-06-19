@@ -90,47 +90,54 @@ var AuthCmd = &cobra.Command{
 
 func createMigrationFiles(fields []*Field) {
 	hasOrg := slices.ContainsFunc(fields, func(f *Field) bool { return f.FieldName == "org_username" })
+	userFields := []*cmd.MigrationField{
+		{Name: "id", Type: "bigIncrements"},
+	}
+	uniqueColumns := []string{}
+	for _, v := range fields {
+		if v.IsUnique {
+			uniqueColumns = append(uniqueColumns, v.FieldName)
+		}
+	}
 	if hasOrg {
 		om := cmd.NewMigrationGenerator(&cmd.MigrationConfig{
 			TableName: "orgs",
 			Fields: []*cmd.MigrationField{
-				{Name: "id", Type: "unsignedBigInt"},
-				{Name: "org_username", Type: "string"},
+				{Name: "id", Type: "bigIncrements", Primary: true},
+				{Name: "org_username", Type: "string", Unique: true},
 				{Name: "org_name", Type: "string"},
 				{Name: "email", Type: "string", Unique: true},
 			},
 			Timestamps: true,
 		})
 		om.Generate()
-	}
-
-	userFields := []*cmd.MigrationField{
-		{Name: "id", Type: "unsignedBigInt"},
-	}
-
-	if hasOrg {
 		userFields = append(userFields, &cmd.MigrationField{
-			Name: "org_id",
-			Type: "unsignedBigInt",
+			Name:               "org_id",
+			Type:               "bigIncrements",
+			ForeignConstrained: true,
 		})
 	}
 
 	for _, v := range fields {
 		userFields = append(userFields, &cmd.MigrationField{
-			Name: v.FieldName,
-			Type: cmd.DBTypeMap[v.FieldType],
+			Name:     v.FieldName,
+			Type:     cmd.DBTypeMap[v.FieldType],
+			Nullable: !v.IsRequired,
+			Unique:   v.IsUnique,
 		})
 	}
 
 	um := cmd.NewMigrationGenerator(&cmd.MigrationConfig{
-		TableName:  "users",
-		Fields:     userFields,
-		Timestamps: true,
+		TableName:      "users",
+		Fields:         userFields,
+		Timestamps:     true,
+		PrimaryColumns: []string{"id", "org_id"},
 	})
-	um.Generate()
+	um.BumpVersion().Generate()
 }
 
 func createInputFiles(fields []*Field) {
+	createInputDir()
 	inputFields := []*cmd.InputField{}
 	registrationFields := []*cmd.InputField{}
 	for _, f := range fields {

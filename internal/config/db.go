@@ -1,6 +1,8 @@
 package config
 
-import "pressebo/api"
+import (
+	"pressebo/api"
+)
 
 func init() {
 	api.SetConfig("db.driver", api.MustEnv("DB_DRIVER", "mysql"))
