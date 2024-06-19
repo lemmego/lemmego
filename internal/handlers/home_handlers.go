@@ -6,6 +6,8 @@ import (
 )
 
 func IndexHomeHandler(ctx *api.Context) error {
+	ctx.App().I.Render(ctx.ResponseWriter(), ctx.Request(), "Index", nil)
+	return nil
 	return ctx.HTML(200, `
 		<h1>Test Form:</h1>
 		<form enctype="multipart/form-data" action="/test" method="POST">

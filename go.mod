@@ -1,6 +1,8 @@
 module pressebo
 
-go 1.21
+go 1.22
+
+toolchain go1.22.3
 
 require (
 	cloud.google.com/go/storage v1.40.0
@@ -74,6 +76,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/manifoldco/promptui v0.9.0
+	github.com/romsar/gonertia v1.1.4
 	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/upper/db/v4 v4.7.0
 	golang.org/x/crypto v0.21.0

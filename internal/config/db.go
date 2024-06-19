@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding/json"
 	"pressebo/api"
+	"pressebo/api/logger"
 )
 
 func init() {
@@ -12,4 +14,8 @@ func init() {
 	api.SetConfig("db.username", api.MustEnv("DB_USERNAME", "root"))
 	api.SetConfig("db.password", api.MustEnv("DB_PASSWORD", ""))
 	api.SetConfig("db.params", api.MustEnv("DB_PARAMS", ""))
+
+	serializedConf, _ := json.Marshal(api.Conf)
+	logger.Log().Info("Config Loaded...", "conf", string(serializedConf))
+
 }

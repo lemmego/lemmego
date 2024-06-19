@@ -1,12 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"reflect"
 	"sync"
@@ -18,6 +20,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golobby/container/v3"
 	"github.com/joho/godotenv"
+	inertia "github.com/romsar/gonertia"
 	"github.com/spf13/cobra"
 )
 
@@ -78,6 +81,7 @@ type App struct {
 	router           Router
 	db               db.DBSession
 	dbFunc           func(config *db.DBConfig) (db.DBSession, error)
+	I                *inertia.Inertia
 }
 
 type Options struct {
@@ -134,6 +138,10 @@ func (a *App) Session() *Session {
 func (a *App) Db() db.DBSession {
 	return a.db
 }
+
+// func (a *App) Inertia() *inertia.Inertia {
+// 	return a.inertia
+// }
 
 func (a *App) DbFunc(config *db.DBConfig) (db.DBSession, error) {
 	return a.dbFunc(config)
@@ -266,6 +274,8 @@ func NewApp(options ...OptFunc) *App {
 
 	}
 
+	i := initInertia()
+
 	app := &App{
 		// opts.Container,
 		false,
@@ -279,6 +289,7 @@ func NewApp(options ...OptFunc) *App {
 		opts.Router,
 		nil,
 		nil,
+		i,
 	}
 	return app
 }
@@ -348,7 +359,7 @@ func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.
 		finalHandler = middleware(finalHandler)
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := &Context{sync.Mutex{}, app, container.New(), r, w}
 		if !app.isContextReady {
 			app.isContextReady = true
@@ -363,6 +374,52 @@ func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.
 		}
 		return
 	}
+
+	return http.HandlerFunc(fn)
+}
+
+func initInertia() *inertia.Inertia {
+	manifestPath := "./public/build/manifest.json"
+
+	i, err := inertia.NewFromFile(
+		"resources/views/root.html",
+		// inertia.WithVersion("1.0"),
+		inertia.WithVersionFromFile(manifestPath),
+		inertia.WithSSR(),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	i.ShareTemplateFunc("vite", vite(manifestPath, "/public/build/"))
+	i.ShareTemplateData("env", Config("app.env").(string))
+
+	return i
+}
+
+func vite(manifestPath, buildDir string) func(path string) (string, error) {
+	f, err := os.Open(manifestPath)
+	if err != nil {
+		log.Fatalf("cannot open provided vite manifest file: %s", err)
+	}
+	defer f.Close()
+
+	viteAssets := make(map[string]*struct {
+		File   string `json:"file"`
+		Source string `json:"src"`
+	})
+	err = json.NewDecoder(f).Decode(&viteAssets)
+	if err != nil {
+		log.Fatalf("cannot unmarshal vite manifest file to json: %s", err)
+	}
+
+	return func(p string) (string, error) {
+		if val, ok := viteAssets[p]; ok {
+			return path.Join(buildDir, val.File), nil
+		}
+		return "", fmt.Errorf("asset %q not found", p)
+	}
 }
 
 func (a *App) Run() {
@@ -375,6 +432,8 @@ func (a *App) Run() {
 	a.registerRoutes()
 
 	a.router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	a.router.Handle("/public/*", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
 
 	for _, plugin := range a.plugins {
 		if err := plugin.Boot(a); err != nil {
