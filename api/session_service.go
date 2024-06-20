@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/alexedwards/scs/redisstore"
 	"github.com/gomodule/redigo/redis"
@@ -17,7 +16,7 @@ func (provider *SessionServiceProvider) Register(app *App) {
 	pool := &redis.Pool{
 		MaxIdle: 10,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")))
+			return redis.Dial("tcp", fmt.Sprintf("%s:%s", Config("db.redisHost"), Config("db.redisPort")))
 		},
 	}
 	sm := NewSessionManager()

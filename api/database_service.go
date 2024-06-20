@@ -1,6 +1,9 @@
 package api
 
-import "pressebo/api/db"
+import (
+	"context"
+	"pressebo/api/db"
+)
 
 type DatabaseServiceProvider struct {
 	BaseServiceProvider
@@ -16,19 +19,20 @@ func (provider *DatabaseServiceProvider) Register(app *App) {
 		Password: Config("db.password").(string),
 	}
 
-	dbSession, err := db.NewConnection(dbConfig).WithForceCreateDb().Open()
+	dbc, err := db.NewConnection(dbConfig).WithForceCreateDb().Open()
 	if err != nil {
 		panic(err)
 	}
 
-	app.db = dbSession
-	app.dbFunc = func(config *db.DBConfig) (db.DBSession, error) {
+	app.db = dbc
+	app.dbFunc = func(c context.Context, config *db.DBConfig) (*db.DB, error) {
 		if config == nil {
 			config = dbConfig
 		}
-		return db.NewConnection(dbConfig).WithForceCreateDb().Open()
+		return db.NewConnection(dbConfig).
+			// WithForceCreateDb(). // Force create db if not exists
+			Open()
 	}
-
 }
 
 func (provider *DatabaseServiceProvider) Boot() {

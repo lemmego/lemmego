@@ -76,8 +76,8 @@ type CustomHandlers struct {
 
 type Options struct {
 	Router            api.Router
-	DB                db.DBSession
-	DBFunc            func() db.DBSession
+	DB                *db.DB
+	DBFunc            func() db.DB
 	Session           *api.Session
 	TokenConfig       *TokenConfig
 	ResolveUser       ResolveUserFunc
@@ -112,53 +112,53 @@ func WithCustomHandlers(customHandlers CustomHandlerFunc) OptFunc {
 }
 
 func WithDefaultUserResolver(opts *Options) {
-	opts.ResolveUser = func(c *api.Context, opts *Options) (*AuthUser, *Credentials, validation.Errors) {
-		loginInput := &LoginStoreInput{}
-		if validated, err := c.ParseAndValidate(loginInput); err != nil {
-			return nil, nil, err.(validation.Errors)
-		} else {
-			loginInput = validated.(*LoginStoreInput)
-		}
+	// opts.ResolveUser = func(c *api.Context, opts *Options) (*AuthUser, *Credentials, validation.Errors) {
+	// 	loginInput := &LoginStoreInput{}
+	// 	if validated, err := c.ParseAndValidate(loginInput); err != nil {
+	// 		return nil, nil, err.(validation.Errors)
+	// 	} else {
+	// 		loginInput = validated.(*LoginStoreInput)
+	// 	}
 
-		db := opts.DB
+	// 	db := opts.DB
 
-		authUser := AuthUser{}
-		q, err := db.SQL().QueryRow("select id, email, password from users where email = $1 limit 1", loginInput.Username)
-		if err != nil {
-			return nil, nil, validation.Errors{"error": fmt.Errorf("User not found")}
-		}
+	// 	authUser := AuthUser{}
+	// 	q, err := db.SQL().QueryRow("select id, email, password from users where email = $1 limit 1", loginInput.Username)
+	// 	if err != nil {
+	// 		return nil, nil, validation.Errors{"error": fmt.Errorf("User not found")}
+	// 	}
 
-		if err := q.Scan(&authUser.ID, &authUser.Username, &authUser.Password); err != nil {
-			return nil, nil, validation.Errors{"error": fmt.Errorf("User not found")}
-		}
-		return &authUser, &Credentials{Username: loginInput.Username, Password: loginInput.Password}, nil
-	}
+	// 	if err := q.Scan(&authUser.ID, &authUser.Username, &authUser.Password); err != nil {
+	// 		return nil, nil, validation.Errors{"error": fmt.Errorf("User not found")}
+	// 	}
+	// 	return &authUser, &Credentials{Username: loginInput.Username, Password: loginInput.Password}, nil
+	// }
 }
 
 func WithDefaultUserCreator(opts *Options) {
-	opts.CreateUser = func(c *api.Context, opts *Options) (bool, validation.Errors) {
-		registrationInput := &RegistrationStoreInput{}
-		if validated, err := c.ParseAndValidate(registrationInput); err != nil {
-			return false, err.(validation.Errors)
-		} else {
-			registrationInput = validated.(*RegistrationStoreInput)
-		}
+	// opts.CreateUser = func(c *api.Context, opts *Options) (bool, validation.Errors) {
+	// 	registrationInput := &RegistrationStoreInput{}
+	// 	if validated, err := c.ParseAndValidate(registrationInput); err != nil {
+	// 		return false, err.(validation.Errors)
+	// 	} else {
+	// 		registrationInput = validated.(*RegistrationStoreInput)
+	// 	}
 
-		db := opts.DB
+	// 	db := opts.DB
 
-		encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(registrationInput.Password), bcrypt.DefaultCost)
+	// 	encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(registrationInput.Password), bcrypt.DefaultCost)
 
-		q := db.
-			SQL().
-			InsertInto("users").
-			Columns("first_name", "last_name", "email", "password").
-			Values(registrationInput.FirstName, registrationInput.LastName, registrationInput.Username, encryptedPassword)
+	// 	q := db.
+	// 		SQL().
+	// 		InsertInto("users").
+	// 		Columns("first_name", "last_name", "email", "password").
+	// 		Values(registrationInput.FirstName, registrationInput.LastName, registrationInput.Username, encryptedPassword)
 
-		if _, err := q.Exec(); err != nil {
-			return false, validation.Errors{"error": fmt.Errorf("Registration failed")}
-		}
-		return true, nil
-	}
+	// 	if _, err := q.Exec(); err != nil {
+	// 		return false, validation.Errors{"error": fmt.Errorf("Registration failed")}
+	// 	}
+	// 	return true, nil
+	// }
 }
 
 func WithUserResolver(resolveUser ResolveUserFunc) OptFunc {

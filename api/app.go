@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -79,8 +80,8 @@ type App struct {
 	routeMiddlewares map[string]Middleware
 	hooks            *AppHooks
 	router           Router
-	db               db.DBSession
-	dbFunc           func(config *db.DBConfig) (db.DBSession, error)
+	db               *db.DB
+	dbFunc           func(c context.Context, config *db.DBConfig) (*db.DB, error)
 	I                *inertia.Inertia
 }
 
@@ -135,7 +136,7 @@ func (a *App) Session() *Session {
 	return a.session
 }
 
-func (a *App) Db() db.DBSession {
+func (a *App) Db() *db.DB {
 	return a.db
 }
 
@@ -143,8 +144,8 @@ func (a *App) Db() db.DBSession {
 // 	return a.inertia
 // }
 
-func (a *App) DbFunc(config *db.DBConfig) (db.DBSession, error) {
-	return a.dbFunc(config)
+func (a *App) DbFunc(c context.Context, config *db.DBConfig) (*db.DB, error) {
+	return a.dbFunc(c, config)
 }
 
 func getDefaultConfig() ConfigMap {

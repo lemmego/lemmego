@@ -31,6 +31,10 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.3 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/jackc/pgx/v5 v5.5.5 // indirect
+	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -51,6 +55,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311132316-a219d84964c2 // indirect
 	google.golang.org/grpc v1.62.1 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
+	gorm.io/gorm v1.25.10 // indirect
 )
 
 require (
@@ -82,4 +87,6 @@ require (
 	golang.org/x/crypto v0.21.0
 	golang.org/x/oauth2 v0.18.0
 	golang.org/x/text v0.14.0 // indirect
+	gorm.io/driver/mysql v1.5.7
+	gorm.io/driver/postgres v1.5.9
 )
