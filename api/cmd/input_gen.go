@@ -7,12 +7,17 @@ import (
 	"pressebo/api/fsys"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 )
 
 //go:embed input.txt
 var inputStub string
+
+var inputFieldTypes = []string{
+	"int", "uint", "int64", "uint64", "float64", "string", "bool", "time.Time", "custom",
+}
 
 type InputField struct {
 	Name string
@@ -95,18 +100,67 @@ var inputCmd = &cobra.Command{
 		var inputName string
 		var fields []*InputField
 
-		cmder.Ask("Enter the input name in snake_case", cmder.SnakeCase).Fill(&inputName).
-			AskRepeat("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
-				selectedType := ""
-				prompt := cmder.Ask("What should the data type be? (https://go.dev/ref/spec#Types)", cmder.SnakeCase).Fill(&selectedType)
+		nameForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title("Enter the input name in snake_case").
+					Value(&inputName).
+					Validate(cmder.SnakeCase),
+			),
+		)
+		err := nameForm.Run()
+		if err != nil {
+			return
+		}
 
-				fields = append(fields, &InputField{Name: result.(string), Type: selectedType})
+		for {
+			var fieldName, fieldType string
+			fieldNameForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewInput().
+						Title("Enter the field name in snake_case").
+						Validate(cmder.SnakeCaseEmptyAllowed).
+						Value(&fieldName),
+				),
+			)
+			err := fieldNameForm.Run()
+			if err != nil {
+				return
+			}
+			if fieldName == "" {
+				break
+			}
+			fieldTypeForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[string]().
+						Title("What should the data type be?").
+						Options(huh.NewOptions(inputFieldTypes...)...).
+						Value(&fieldType),
+				),
+			)
+			err = fieldTypeForm.Run()
+			if err != nil {
+				return
+			}
 
-				return prompt
-			})
+			if fieldType == "custom" {
+				fieldTypeForm := huh.NewForm(
+					huh.NewGroup(
+						huh.NewInput().
+							Title("Enter the data type (You'll need to import it if necessary)").
+							Value(&fieldType),
+					),
+				)
+				err = fieldTypeForm.Run()
+				if err != nil {
+					return
+				}
+			}
+			fields = append(fields, &InputField{Name: fieldName, Type: fieldType})
+		}
 
 		mg := NewInputGenerator(&InputConfig{Name: inputName, Fields: fields})
-		err := mg.Generate()
+		err = mg.Generate()
 		if err != nil {
 			fmt.Println(err)
 			return

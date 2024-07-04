@@ -6,9 +6,12 @@ import (
 )
 
 func IndexHomeHandler(ctx *api.Context) error {
-	return ctx.App().I.Render(ctx.ResponseWriter(), ctx.Request(), "Home/Welcome", map[string]any{
+	err := ctx.App().I.Render(ctx.ResponseWriter(), ctx.Request(), "Home/Welcome", map[string]any{
 		"name": "John Doe",
 	})
+	if err != nil {
+		return ctx.Unauthorized(err)
+	}
 	return nil
 	return ctx.HTML(200, `
 		<h1>Test Form:</h1>

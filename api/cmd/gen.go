@@ -66,7 +66,7 @@ func ParseTemplate(tmplData map[string]interface{}, fileContents string, funcMap
 
 // genCmd represents the generator command
 var genCmd = &cobra.Command{
-	Use:   "gen",
+	Use:   "g",
 	Short: "Generate code",
 	Long:  `Generate code`,
 	Run: func(cmd *cobra.Command, args []string) {

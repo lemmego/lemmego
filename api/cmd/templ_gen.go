@@ -8,12 +8,15 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/charmbracelet/huh"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 )
 
 //go:embed templ_form.txt
 var templFormStub string
+
+var templFieldTypes = []string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "image"}
 
 type TemplField struct {
 	Name    string
@@ -103,34 +106,91 @@ var templCmd = &cobra.Command{
 		var templName, route string
 		var fields []*TemplField
 
-		cmder.Ask("Enter the template name in snake_case", cmder.SnakeCase).Fill(&templName).
-			Ask("Enter the route where the form should be submitted (e.g. /login)", nil).Fill(&route).
-			AskRepeat("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
-				// var required, unique bool
-				choices := []string{}
-				selectedType := ""
-				prompt := cmder.Select(
-					"Select the field type",
-					[]string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "image"},
-				).Fill(&selectedType).
-					When(func(res any) bool {
-						if val, ok := res.(string); ok {
-							return val == "radio" || val == "checkbox" || val == "dropdown"
-						}
-						return false
-					}, func(prompt cmder.Prompter) cmder.Prompter {
-						return prompt.AskRepeat("Enter choices", cmder.SnakeCaseEmptyAllowed).Fill(&choices)
-					})
-					// Confirm("Is this a required field?", 'n').Fill(&required).
-					// Confirm("Is this a unique field?", 'n').Fill(&unique)
+		nameForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title("Enter the resource name in snake_case").
+					Value(&templName).
+					Validate(cmder.SnakeCase),
+				huh.NewInput().
+					Title("Enter the route where the form should be submitted (e.g. /login)").
+					Value(&route),
+			),
+		)
 
-				fields = append(fields, &TemplField{Name: result.(string), Type: selectedType, Choices: choices})
+		err := nameForm.Run()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
-				return prompt
-			})
+		for {
+			var fieldName, fieldType string
+			var choices []string
+
+			fieldNameForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewInput().
+						Title("Enter the field name in snake_case").
+						Validate(cmder.SnakeCaseEmptyAllowed).
+						Value(&fieldName),
+				),
+			)
+
+			err = fieldNameForm.Run()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			if fieldName == "" {
+				break
+			}
+
+			fieldTypeForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[string]().
+						Title("Select the field type").
+						Value(&fieldType).
+						Options(huh.NewOptions(templFieldTypes...)...),
+				),
+			)
+
+			err = fieldTypeForm.Run()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			if fieldType == "radio" || fieldType == "checkbox" || fieldType == "dropdown" {
+
+				for {
+					var choice string
+					choicesForm := huh.NewForm(
+						huh.NewGroup(
+							huh.NewInput().
+								Title(fmt.Sprintf("Add new choice for %s %s (Press enter to finish)", fieldName, fieldType)).
+								Value(&choice),
+						),
+					)
+
+					err = choicesForm.Run()
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+
+					if choice == "" {
+						break
+					}
+					choices = append(choices, choice)
+				}
+			}
+			fields = append(fields, &TemplField{Name: fieldName, Type: fieldType, Choices: choices})
+		}
 
 		mg := NewTemplGenerator(&TemplConfig{Name: templName, Fields: fields, Route: route})
-		err := mg.Generate()
+		err = mg.Generate()
 		if err != nil {
 			fmt.Println(err)
 			return

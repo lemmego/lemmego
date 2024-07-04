@@ -8,6 +8,7 @@ import (
 	"pressebo/internal/plugins"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httplog/v2"
 )
 
 func main() {
@@ -21,9 +22,26 @@ func main() {
 	app := api.NewApp(
 		api.WithPlugins(registry),
 	)
-
+	logger := httplog.NewLogger("lemmego", httplog.Options{
+		// JSON:             true,
+		LogLevel:         slog.LevelDebug,
+		Concise:          true,
+		RequestHeaders:   true,
+		MessageFieldName: "message",
+		TimeFieldFormat:  "[15:04:05.000]",
+		// Tags: map[string]string{
+		// 	"version": "v1.0-81aa4244d9fc8076a",
+		// 	"env":     "dev",
+		// },
+		// QuietDownRoutes: []string{
+		// 	"/",
+		// 	"/ping",
+		// },
+		// QuietDownPeriod: 10 * time.Second,
+		// SourceFieldName: "source",
+	})
 	// Register global middleware
-	app.Use(middleware.Logger, middleware.Recoverer)
+	app.Use(httplog.RequestLogger(logger), middleware.Recoverer)
 
 	// Register routes
 	handlers.Register(app)

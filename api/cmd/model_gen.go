@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 )
@@ -182,44 +183,100 @@ var modelCmd = &cobra.Command{
 		var modelName string
 		var fields []*ModelField
 
-		cmder.Ask("Enter the model name in singular form and in snake_case", cmder.SnakeCase).Fill(&modelName).
-			AskRepeat(
-				"Enter the field name in snake_case",
-				cmder.NotIn(
-					[]string{"id", "created_at", "updated_at", "deleted_at"},
-					"This field will be provided for you",
-					cmder.SnakeCaseEmptyAllowed,
+		nameForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title("Enter the model name in snake_case and singular form").
+					Value(&modelName).
+					Validate(cmder.SnakeCase),
+			),
+		)
+		err := nameForm.Run()
+		if err != nil {
+			return
+		}
+
+		for {
+			var fieldName, fieldType string
+			const required = "Required"
+			const unique = "Unique"
+			selectedAttrs := []string{}
+
+			fieldNameForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewInput().
+						Title("Enter the field name in snake_case").
+						Validate(cmder.SnakeCaseEmptyAllowed).
+						Validate(
+							cmder.NotIn(
+								[]string{"id", "created_at", "updated_at", "deleted_at"},
+								"This field will be provided for you",
+							),
+						).
+						Value(&fieldName),
 				),
-				func(result any) cmder.Prompter {
-					const required = "Required"
-					const unique = "Unique"
-					selectedAttrs := []string{}
-					selectedType := ""
-					prompt := cmder.Select("What should the data type be?", modelFieldTypes).Fill(&selectedType).
-						When(func(result interface{}) bool {
-							return result.(string) == "custom"
-						}, func(prompt cmder.Prompter) cmder.Prompter {
-							return cmder.Ask("Enter the data type (You'll need to import it if necessary)", nil).Fill(&selectedType)
-						}).
-						MultiSelect("Select attribute(s) for this field:", []*cmder.Item{
-							{Label: required}, {Label: unique},
-						}, 0).Fill(&selectedAttrs)
+			)
+			err := fieldNameForm.Run()
+			if err != nil {
+				return
+			}
+			if fieldName == "" {
+				break
+			}
 
-					fields = append(
-						fields,
-						&ModelField{
-							Name:     result.(string),
-							Type:     selectedType,
-							Required: slices.Contains(selectedAttrs, required),
-							Unique:   slices.Contains(selectedAttrs, unique),
-						},
-					)
+			fieldTypeForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[string]().
+						Title("What should the data type be?").
+						Options(huh.NewOptions(modelFieldTypes...)...).
+						Value(&fieldType),
+				),
+			)
+			err = fieldTypeForm.Run()
+			if err != nil {
+				return
+			}
 
-					return prompt
-				})
+			if fieldType == "custom" {
+				fieldTypeForm := huh.NewForm(
+					huh.NewGroup(
+						huh.NewInput().
+							Title("Enter the data type (You'll need to import it if necessary)").
+							Value(&fieldType),
+					),
+				)
+				err = fieldTypeForm.Run()
+				if err != nil {
+					return
+				}
+			}
+
+			selectedAttrsForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewMultiSelect[string]().
+						Title("Press x to select the attributes").
+						Options(huh.NewOptions(required, unique)...).
+						Value(&selectedAttrs),
+				),
+			)
+			err = selectedAttrsForm.Run()
+			if err != nil {
+				return
+			}
+
+			fields = append(
+				fields,
+				&ModelField{
+					Name:     fieldName,
+					Type:     fieldType,
+					Required: slices.Contains(selectedAttrs, required),
+					Unique:   slices.Contains(selectedAttrs, unique),
+				},
+			)
+		}
 
 		mg := NewModelGenerator(&ModelConfig{Name: modelName, Fields: fields})
-		err := mg.Generate()
+		err = mg.Generate()
 		if err != nil {
 			fmt.Println(err)
 			return

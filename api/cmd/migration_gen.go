@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/huh"
 	"github.com/gertd/go-pluralize"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
@@ -213,40 +214,104 @@ var migrationCmd = &cobra.Command{
 		var tableName string
 		var fields []*MigrationField
 
-		primaryColumns := []*cmder.Item{}
-		uniqueColumns := []*cmder.Item{}
-		foreignColumns := []*cmder.Item{}
+		primaryColumns := []string{}
+		uniqueColumns := []string{}
+		foreignColumns := []string{}
 		timestamps := false
 		selectedPrimaryColumns := []string{}
 		selectedUniqueColumns := []string{}
 		selectedForeignColumns := []string{}
 
-		cmder.Ask("Enter the table name in snake_case", cmder.SnakeCase).Fill(&tableName).
-			AskRepeat("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
-				selectedAttrs := []string{}
-				selectedType := ""
-				prompt := cmder.Select("What should the data type be?", migrationFieldTypes).Fill(&selectedType).
-					MultiSelect("Select all the attributes that apply to this column", []*cmder.Item{
-						{Label: "Nullable"}, {Label: "Unique"},
-					}, 0).Fill(&selectedAttrs)
+		nameForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title("Enter the table name in snake_case and plular form").
+					Value(&tableName).
+					Validate(cmder.SnakeCase),
+			),
+		)
 
-				fields = append(fields, &MigrationField{
-					Name:     result.(string),
-					Type:     selectedType,
-					Nullable: slices.Contains(selectedAttrs, "Nullable"),
-					Unique:   slices.Contains(selectedAttrs, "Unique"),
-				})
+		err := nameForm.Run()
+		if err != nil {
+			return
+		}
 
-				primaryColumns = append(primaryColumns, &cmder.Item{Label: result.(string)})
-				uniqueColumns = append(uniqueColumns, &cmder.Item{Label: result.(string)})
-				foreignColumns = append(foreignColumns, &cmder.Item{Label: result.(string)})
+		for {
+			var fieldName, fieldType string
+			var selectedAttrs []string
 
-				return prompt
-			}).
-			MultiSelect("Select the column(s) for the primary key", primaryColumns, 0).Fill(&selectedPrimaryColumns).
-			MultiSelect("Select the column(s) for the unique key", uniqueColumns, 0).Fill(&selectedUniqueColumns).
-			MultiSelect("Select the column(s) for the foreign key", foreignColumns, 0).Fill(&selectedForeignColumns).
-			Confirm("Do you want timestamp fields (created_at, updated_at, deleted_at) ?", 'y').Fill(&timestamps)
+			fieldNameForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewInput().
+						Title("Enter the field name in snake_case").
+						Value(&fieldName).
+						Validate(cmder.SnakeCaseEmptyAllowed),
+				),
+			)
+
+			err := fieldNameForm.Run()
+			if err != nil {
+				return
+			}
+
+			if fieldName == "" {
+				break
+			}
+
+			fieldTypeForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[string]().
+						Title("Enter the data type").
+						Options(huh.NewOptions(migrationFieldTypes...)...).
+						Value(&fieldType),
+					huh.NewMultiSelect[string]().
+						Title("Press x to select the attributes that apply to this field").
+						Options(huh.NewOptions("Nullable", "Unique")...).
+						Value(&selectedAttrs),
+				),
+			)
+
+			err = fieldTypeForm.Run()
+			if err != nil {
+				return
+			}
+
+			fields = append(fields, &MigrationField{
+				Name:     fieldName,
+				Type:     fieldType,
+				Nullable: slices.Contains(selectedAttrs, "Nullable"),
+				Unique:   slices.Contains(selectedAttrs, "Unique"),
+			})
+
+			primaryColumns = append(primaryColumns, fieldName)
+			uniqueColumns = append(uniqueColumns, fieldName)
+			foreignColumns = append(foreignColumns, fieldName)
+		}
+
+		constraintForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewMultiSelect[string]().
+					Title("Press x to select the primary keys").
+					Options(huh.NewOptions(primaryColumns...)...).
+					Value(&selectedPrimaryColumns),
+				huh.NewMultiSelect[string]().
+					Title("Press x to select the unique keys").
+					Options(huh.NewOptions(uniqueColumns...)...).
+					Value(&selectedUniqueColumns),
+				huh.NewMultiSelect[string]().
+					Title("Press x to select the foreign keys").
+					Options(huh.NewOptions(foreignColumns...)...).
+					Value(&selectedForeignColumns),
+				huh.NewConfirm().
+					Title("Do you want timestamp fields (created_at, updated_at, deleted_at) ?").
+					Value(&timestamps),
+			),
+		)
+
+		err = constraintForm.Run()
+		if err != nil {
+			return
+		}
 
 		mg := NewMigrationGenerator(&MigrationConfig{
 			TableName:      tableName,
@@ -256,7 +321,7 @@ var migrationCmd = &cobra.Command{
 			ForeignColumns: [][]string{selectedForeignColumns},
 			Timestamps:     timestamps,
 		})
-		err := mg.Generate()
+		err = mg.Generate()
 		if err != nil {
 			fmt.Println(err)
 			return

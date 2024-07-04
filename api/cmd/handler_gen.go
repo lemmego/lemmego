@@ -4,6 +4,9 @@ import (
 	_ "embed"
 	"fmt"
 	"pressebo/api/cmder"
+
+	"github.com/charmbracelet/huh"
+
 	"pressebo/api/fsys"
 	"strings"
 
@@ -32,7 +35,7 @@ func NewHandlerGenerator(mc *HandlerConfig) *HandlerGenerator {
 
 func (mg *HandlerGenerator) GetReplacables() []*Replacable {
 	return []*Replacable{
-		{Placeholder: "HandlerName", Value: strcase.ToCamel(mg.name)},
+		{Placeholder: "Name", Value: strcase.ToCamel(mg.name)},
 	}
 }
 
@@ -83,10 +86,19 @@ var handlerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var handlerName string
 
-		cmder.Ask("Enter the resource name in snake_case", cmder.SnakeCase).Fill(&handlerName)
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title("Enter the resource name in snake_case").
+					Value(&handlerName).
+					Validate(cmder.SnakeCase),
+			),
+		)
+
+		err := form.Run()
 
 		mg := NewHandlerGenerator(&HandlerConfig{Name: handlerName})
-		err := mg.Generate()
+		err = mg.Generate()
 		if err != nil {
 			fmt.Println(err)
 			return
