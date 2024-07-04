@@ -43,9 +43,9 @@ func handleServerErr(w http.ResponseWriter, err error) {
 }
 
 func Register(app *api.App) {
-	app.Router().Get("/", app.I.Middleware(IndexHandler(app.I)).ServeHTTP)
-	app.Router().Get("/welcome", app.I.Middleware(WelcomeHandler(app.I)).ServeHTTP)
-	// app.Get("/", IndexHomeHandler)
+	// app.Router().Get("/", app.I.Middleware(IndexHandler(app.I)).ServeHTTP)
+	// app.Router().Get("/welcome", app.I.Middleware(WelcomeHandler(app.I)).ServeHTTP)
+	app.Get("/", IndexHomeHandler)
 	app.Post("/test", StoreTestHandler)
 
 	app.Get("/login", LoginIndexHandler)

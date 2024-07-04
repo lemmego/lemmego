@@ -29,7 +29,7 @@ func (provider *DatabaseServiceProvider) Register(app *App) {
 		if config == nil {
 			config = dbConfig
 		}
-		return db.NewConnection(dbConfig).
+		return db.NewConnection(config).
 			// WithForceCreateDb(). // Force create db if not exists
 			Open()
 	}

@@ -2,7 +2,7 @@ package api
 
 type ConfigMap map[string]interface{}
 
-var Conf ConfigMap = ConfigMap{}
+var conf ConfigMap = ConfigMap{}
 
 func (c ConfigMap) set(key string, value interface{}) {
 	c[key] = value
@@ -13,9 +13,13 @@ func (c ConfigMap) get(key string) interface{} {
 }
 
 func SetConfig(key string, value interface{}) {
-	Conf.set(key, value)
+	conf.set(key, value)
 }
 
 func Config(key string) interface{} {
-	return Conf.get(key)
+	return conf.get(key)
+}
+
+func ConfMap() ConfigMap {
+	return conf
 }

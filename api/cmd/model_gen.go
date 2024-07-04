@@ -15,12 +15,43 @@ import (
 //go:embed model.txt
 var modelStub string
 
+var modelFieldTypes = []string{
+	"int", "uint", "int64", "uint64", "float64", "string", "bool", "time.Time", "custom",
+}
+
+const (
+	TagColumn                 = "column"
+	TagType                   = "type"
+	TagSerializer             = "serializer"
+	TagSize                   = "size"
+	TagPrimaryKey             = "primaryKey"
+	TagUnique                 = "unique"
+	TagDefault                = "default"
+	TagPrecision              = "precision"
+	TagScale                  = "scale"
+	TagNotNull                = "not null"
+	TagAutoIncrement          = "autoIncrement"
+	TagAutoIncrementIncrement = "autoIncrementIncrement"
+	TagEmbedded               = "embedded"
+	TagEmbeddedPrefix         = "embeddedPrefix"
+	TagAutoCreateTime         = "autoCreateTime"
+	TagAutoUpdateTime         = "autoUpdateTime"
+	TagIndex                  = "index"
+	TagUniqueIndex            = "uniqueIndex"
+	TagCheck                  = "check"
+	TagWritePerm              = "<-"
+	TagReadPerm               = "->"
+	TagIgnore                 = "-"
+	TagComment                = "comment"
+)
+
 type ModelField struct {
-	Name        string
-	Type        string
-	Unique      bool
-	Required    bool
-	SkipIfEmpty bool
+	Name               string
+	Type               string
+	Required           bool
+	Unique             bool
+	Primary            bool
+	ForeignConstrained bool
 }
 
 type ModelConfig struct {
@@ -33,6 +64,42 @@ type ModelGenerator struct {
 	fields []*ModelField
 }
 
+type DBTag struct {
+	Name     string
+	Argument string
+}
+
+type DBTagBuilder struct {
+	tags       []*DBTag
+	driverName string
+}
+
+func NewDBTagBuilder(tags []*DBTag, driverName string) *DBTagBuilder {
+	return &DBTagBuilder{tags, driverName}
+}
+
+func (mtb *DBTagBuilder) Add(name, argument string) *DBTagBuilder {
+	mtb.tags = append(mtb.tags, &DBTag{name, argument})
+	return mtb
+}
+
+func (mtb *DBTagBuilder) Build() string {
+	// Build the tag string in this format: gorm:"tagName1:tagArgument1,tagName2:tagArgument2".
+	// If the argument is empty, it's omitted: gorm:"tagName1,tagName2".
+	var tagStrs []string
+	for _, t := range mtb.tags {
+		if t.Argument != "" {
+			tagStrs = append(tagStrs, fmt.Sprintf(`"%s:%s"`, t.Name, t.Argument))
+		} else {
+			tagStrs = append(tagStrs, fmt.Sprintf(`"%s"`, t.Name))
+		}
+	}
+	if len(tagStrs) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%s:", mtb.driverName) + strings.Join(tagStrs, ",")
+}
+
 func NewModelGenerator(mc *ModelConfig) *ModelGenerator {
 	return &ModelGenerator{mc.Name, mc.Fields}
 }
@@ -40,11 +107,14 @@ func NewModelGenerator(mc *ModelConfig) *ModelGenerator {
 func (mg *ModelGenerator) GetReplacables() []*Replacable {
 	var fieldLines string
 	for index, f := range mg.fields {
-		omitEmpty := ""
-		if f.SkipIfEmpty {
-			omitEmpty = ",omitempty"
+		tb := NewDBTagBuilder(nil, "gorm")
+		if f.Required {
+			tb.Add(TagNotNull, "")
 		}
-		fieldLines += fmt.Sprintf("\t%s %s `json:\"%s\" db:\"%s%s\"`", strcase.ToCamel(f.Name), f.Type, f.Name, f.Name, omitEmpty)
+		if f.Unique {
+			tb.Add(TagUnique, "")
+		}
+		fieldLines += fmt.Sprintf("\t%s %s `json:\"%s\" %s`", strcase.ToCamel(f.Name), f.Type, f.Name, tb.Build())
 		if index < len(mg.fields)-1 {
 			fieldLines += "\n"
 		}
@@ -86,10 +156,19 @@ func (mg *ModelGenerator) Generate() error {
 		return err
 	}
 
-	err = fs.Write(mg.GetPackagePath()+"/"+mg.name+".go", []byte(output))
+	if exists, _ := fs.Exists(mg.GetPackagePath()); exists {
+		err = fs.Write(mg.GetPackagePath()+"/"+mg.name+".go", []byte(output))
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+	} else {
+		fs.CreateDirectory(mg.GetPackagePath())
+		err = fs.Write(mg.GetPackagePath()+"/"+mg.name+".go", []byte(output))
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -103,32 +182,41 @@ var modelCmd = &cobra.Command{
 		var modelName string
 		var fields []*ModelField
 
-		cmder.Ask("Enter the model name in snake_case", cmder.SnakeCase).Fill(&modelName).
-			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
-				const required = "Required"
-				const unique = "Unique"
-				const omitEmpty = "Omit Empty (Skip from db when the value is empty)"
-				selectedAttrs := []string{}
-				selectedType := ""
-				prompt := cmder.Ask("What should the data type be? (https://go.dev/ref/spec#Types)", cmder.SnakeCase).
-					Fill(&selectedType).
-					MultiSelect("Select the attributes for this field:", []*cmder.Item{
-						{Label: required}, {Label: unique}, {Label: omitEmpty},
-					}, 0).Fill(&selectedAttrs)
+		cmder.Ask("Enter the model name in singular form and in snake_case", cmder.SnakeCase).Fill(&modelName).
+			AskRepeat(
+				"Enter the field name in snake_case",
+				cmder.NotIn(
+					[]string{"id", "created_at", "updated_at", "deleted_at"},
+					"This field will be provided for you",
+					cmder.SnakeCaseEmptyAllowed,
+				),
+				func(result any) cmder.Prompter {
+					const required = "Required"
+					const unique = "Unique"
+					selectedAttrs := []string{}
+					selectedType := ""
+					prompt := cmder.Select("What should the data type be?", modelFieldTypes).Fill(&selectedType).
+						When(func(result interface{}) bool {
+							return result.(string) == "custom"
+						}, func(prompt cmder.Prompter) cmder.Prompter {
+							return cmder.Ask("Enter the data type (You'll need to import it if necessary)", nil).Fill(&selectedType)
+						}).
+						MultiSelect("Select attribute(s) for this field:", []*cmder.Item{
+							{Label: required}, {Label: unique},
+						}, 0).Fill(&selectedAttrs)
 
-				fields = append(
-					fields,
-					&ModelField{
-						Name:        result.(string),
-						Type:        selectedType,
-						Required:    slices.Contains(selectedAttrs, required),
-						Unique:      slices.Contains(selectedAttrs, unique),
-						SkipIfEmpty: slices.Contains(selectedAttrs, omitEmpty),
-					},
-				)
+					fields = append(
+						fields,
+						&ModelField{
+							Name:     result.(string),
+							Type:     selectedType,
+							Required: slices.Contains(selectedAttrs, required),
+							Unique:   slices.Contains(selectedAttrs, unique),
+						},
+					)
 
-				return prompt
-			})
+					return prompt
+				})
 
 		mg := NewModelGenerator(&ModelConfig{Name: modelName, Fields: fields})
 		err := mg.Generate()

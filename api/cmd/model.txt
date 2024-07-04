@@ -1,5 +1,13 @@
 package {{.PackageName}}
 
+import (
+	"time"
+	"database/sql"
+
+	"gorm.io/gorm"
+)
+
 type {{.ModelName}} struct {
-  {{.Fields}}
+	gorm.Model
+{{.Fields}}
 }

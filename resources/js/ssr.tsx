@@ -2,6 +2,7 @@ import { createInertiaApp } from "@inertiajs/react";
 import createServer from "@inertiajs/react/server";
 import ReactDOMServer from "react-dom/server";
 import React from "react";
+import "../css/app.css";
 
 type InertiaSetupArgs = {
   App: React.ComponentType<any>;

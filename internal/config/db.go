@@ -1,9 +1,7 @@
 package config
 
 import (
-	"encoding/json"
 	"pressebo/api"
-	"pressebo/api/logger"
 )
 
 func init() {
@@ -19,8 +17,4 @@ func init() {
 	// Redis
 	api.SetConfig("db.redisHost", api.MustEnv("REDIS_HOST", "localhost"))
 	api.SetConfig("db.redisPort", api.MustEnv("REDIS_PORT", 6379))
-
-	serializedConf, _ := json.Marshal(api.Conf)
-	logger.Log().Info("Config Loaded...", "conf", string(serializedConf))
-
 }

@@ -105,7 +105,7 @@ var templCmd = &cobra.Command{
 
 		cmder.Ask("Enter the template name in snake_case", cmder.SnakeCase).Fill(&templName).
 			Ask("Enter the route where the form should be submitted (e.g. /login)", nil).Fill(&route).
-			AskRecurring("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
+			AskRepeat("Enter the field name in snake_case", cmder.SnakeCaseEmptyAllowed, func(result any) cmder.Prompter {
 				// var required, unique bool
 				choices := []string{}
 				selectedType := ""
@@ -119,7 +119,7 @@ var templCmd = &cobra.Command{
 						}
 						return false
 					}, func(prompt cmder.Prompter) cmder.Prompter {
-						return prompt.AskRecurring("Enter choices", cmder.SnakeCaseEmptyAllowed).Fill(&choices)
+						return prompt.AskRepeat("Enter choices", cmder.SnakeCaseEmptyAllowed).Fill(&choices)
 					})
 					// Confirm("Is this a required field?", 'n').Fill(&required).
 					// Confirm("Is this a unique field?", 'n').Fill(&unique)

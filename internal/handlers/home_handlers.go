@@ -6,7 +6,7 @@ import (
 )
 
 func IndexHomeHandler(ctx *api.Context) error {
-	ctx.App().I.Render(ctx.ResponseWriter(), ctx.Request(), "Home/Welcome", map[string]any{
+	return ctx.App().I.Render(ctx.ResponseWriter(), ctx.Request(), "Home/Welcome", map[string]any{
 		"name": "John Doe",
 	})
 	return nil

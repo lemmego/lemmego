@@ -3,18 +3,31 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"log/slog"
 	"math/rand"
 	"os"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	slog.Info("Loading .env file...\n")
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	slog.Info(".env file loaded...\n")
+}
 
 // MustEnv returns the value of the environment variable or panics if the variable is not set or if the type is unsupported.
 func MustEnv[T any](key string, fallback T) T {
 	value, ok := os.LookupEnv(key)
 	if !ok {
-		println("using fallback for key", key)
+		slog.Info(fmt.Sprintf("Using fallback value for key: %s", key), key, fallback)
 		return fallback
 	}
 

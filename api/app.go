@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,7 +20,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golobby/container/v3"
-	"github.com/joho/godotenv"
 	inertia "github.com/romsar/gonertia"
 	"github.com/spf13/cobra"
 )
@@ -53,6 +52,7 @@ type AppConfig struct {
 
 type Plugin interface {
 	Boot(a *App) error
+	InstallCommand() *cobra.Command
 	Commands() []*cobra.Command
 	Namespace() string
 	EventListeners() map[string]func()
@@ -62,6 +62,7 @@ type Plugin interface {
 	RouteMiddlewares() map[string]Middleware
 	Routes() []*Route
 	Webhooks() []string
+	// Generators() []cmd.Generator
 }
 
 type AppHooks struct {
@@ -149,27 +150,7 @@ func (a *App) DbFunc(c context.Context, config *db.DBConfig) (*db.DB, error) {
 }
 
 func getDefaultConfig() ConfigMap {
-	return Conf
-	// host := MustEnv("DB_HOST", "localhost")
-	// port := MustEnv("DB_PORT", 5432)
-	// database := MustEnv("DB_DATABASE", "fluentapp")
-	// user := MustEnv("DB_USERNAME", "fluentapp")
-	// password := MustEnv("DB_PASSWORD", "fluentapp")
-	// appName := MustEnv("APP_NAME", "FluentApp")
-	// appPort := MustEnv("APP_PORT", 3000)
-
-	// return &AppConfig{
-	// 	AppName: appName,
-	// 	AppPort: appPort,
-	// 	DbConfig: &DBConfig{
-	// 		Host:     host,
-	// 		Port:     port,
-	// 		Database: database,
-	// 		User:     user,
-	// 		Password: password,
-	// 	},
-	// 	TemplateDir: "templates",
-	// }
+	return ConfMap()
 }
 
 func defaultOptions() *Options {
@@ -222,11 +203,6 @@ func WithSession(sm *Session) OptFunc {
 }
 
 func NewApp(options ...OptFunc) *App {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	opts := defaultOptions()
 	for _, option := range options {
 		option(opts)
@@ -254,7 +230,11 @@ func NewApp(options ...OptFunc) *App {
 		for name, content := range plugin.Templates() {
 			filePath := filepath.Join(opts.Config.get("app.templateDir").(string), name)
 			if _, err := os.Stat(filePath); err != nil {
-				ioutil.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0644)
+				if err != nil {
+					panic(err)
+				}
+				slog.Info("Copied template %s to %s\n", name, filePath)
 			}
 		}
 
@@ -301,40 +281,44 @@ func NewApp(options ...OptFunc) *App {
 
 func (app *App) registerServices(services []ServiceProvider) {
 	for _, svc := range services {
+		extendsBase := false
 		if reflect.TypeOf(svc).Kind() != reflect.Ptr {
 			panic("Service must be a pointer")
 		}
 		if reflect.TypeOf(svc).Elem().Kind() != reflect.Struct {
 			panic("Service must be a struct")
 		}
-		if reflect.TypeOf(svc).Elem().Field(0).Name != "BaseServiceProvider" {
-			panic("Service must extend BaseServiceProvider")
+
+		// Iterate over all the fields of the struct and see if it extends BaseServiceProvider
+		for i := 0; i < reflect.TypeOf(svc).Elem().NumField(); i++ {
+			if reflect.TypeOf(svc).Elem().Field(i).Type == reflect.TypeOf(BaseServiceProvider{}) {
+				extendsBase = true
+				break
+			}
 		}
-		if reflect.TypeOf(svc).Elem().Field(0).Type != reflect.TypeOf(BaseServiceProvider{}) {
+
+		if !extendsBase {
 			panic("Service must extend BaseServiceProvider")
 		}
 
 		// Check if service implements ServiceProvider interface, not necessary if type hinted
-		if reflect.TypeOf(svc).Implements(reflect.TypeOf((*ServiceProvider)(nil)).Elem()) == true {
-			println("Registering service: " + reflect.TypeOf(svc).Elem().Name())
-			svc.(ServiceProvider).Register(app)
-			app.services = append(app.services, svc.(ServiceProvider))
+		if reflect.TypeOf(svc).Implements(reflect.TypeOf((*ServiceProvider)(nil)).Elem()) {
+			slog.Info("Registering service: " + reflect.TypeOf(svc).Elem().Name())
+			svc.Register(app)
+			app.services = append(app.services, svc)
 		} else {
 			panic("Service must implement ServiceProvider interface")
 		}
-
 	}
+
 	for _, service := range services {
 		if reflect.TypeOf(service).Implements(reflect.TypeOf((*ServiceProvider)(nil)).Elem()) {
-			service.(ServiceProvider).Boot()
+			service.Boot()
 		}
 	}
 }
 
-func (app *App) registerMiddlewares(middlewares []func(http.Handler) http.Handler) {
-	for _, middleware := range middlewares {
-		app.router.Use(middleware)
-	}
+func (app *App) registerMiddlewares() {
 	for _, plugin := range app.plugins {
 		for _, middleware := range plugin.Middlewares() {
 			app.router.Use(middleware)
@@ -366,7 +350,7 @@ func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.
 			app.isContextReady = true
 		}
 		if err := finalHandler(ctx); err != nil {
-			logger.Log().Error(err.Error())
+			logger.V().Error(err.Error())
 			if !ctx.WantsJSON() {
 				ctx.Redirect(http.StatusFound, "/error")
 				return
@@ -376,7 +360,7 @@ func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.
 		return
 	}
 
-	return http.HandlerFunc(fn)
+	return app.I.Middleware(http.HandlerFunc(fn)).ServeHTTP
 }
 
 func initInertia() *inertia.Inertia {
@@ -432,6 +416,8 @@ func (a *App) Run() {
 
 	a.registerRoutes()
 
+	a.registerMiddlewares()
+
 	a.router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	a.router.Handle("/public/*", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
@@ -442,7 +428,7 @@ func (a *App) Run() {
 		}
 	}
 
-	fmt.Println(fmt.Sprintf("%s is running on port %d...", a.config.get("app.name"), a.config.get("app.port")))
+	slog.Info(fmt.Sprintf("%s is running on port %d...", a.config.get("app.name"), a.config.get("app.port")))
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", a.config.get("app.port")), a.session.LoadAndSave(a.router)); err != nil {
 		panic(err)
 	}

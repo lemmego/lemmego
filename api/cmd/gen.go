@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"html/template"
 	"log"
 	"reflect"
@@ -12,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var DataTypeMap = map[string]string{
+var UiDataTypeMap = map[string]string{
 	"text":     reflect.String.String(),
 	"textarea": reflect.String.String(),
 	"integer":  reflect.Int.String(),
@@ -26,7 +25,7 @@ var DataTypeMap = map[string]string{
 	"image":    reflect.String.String(),
 }
 
-var DBTypeMap = map[string]string{
+var UiDbTypeMap = map[string]string{
 	"text":     "string",
 	"textarea": "text",
 	"integer":  "unsignedBigInt",
@@ -46,21 +45,7 @@ type Replacable struct {
 }
 
 type Generator interface {
-	GetStub() []byte
-	GetPackagePath() string
-	GetReplacables() []*Replacable
-}
-
-type GeneratorCommand struct {
-	Generator
-}
-
-func (gc *GeneratorCommand) Generate() {
-	fmt.Println("Generating...")
-}
-
-func NewGeneratorCommand(generator Generator) *GeneratorCommand {
-	return &GeneratorCommand{generator}
+	Generate() error
 }
 
 func ParseTemplate(tmplData map[string]interface{}, fileContents string, funcMap template.FuncMap) (string, error) {

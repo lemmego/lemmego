@@ -227,6 +227,10 @@ func (c *Context) Send(status int, body []byte) error {
 	return err
 }
 
+func (c *Context) AuthUser() interface{} {
+	return c.Pop("authUser")
+}
+
 func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
 	if data == nil {
 		data = &TemplateData{}

@@ -10,6 +10,7 @@ import (
 	"os"
 	"pressebo/api"
 	"pressebo/api/db"
+	pluginCmd "pressebo/internal/plugins/auth/cmd"
 	"strings"
 
 	"dario.cat/mergo"
@@ -350,6 +351,10 @@ func (p *AuthPlugin) Namespace() string {
 
 func (p *AuthPlugin) Commands() []*cobra.Command {
 	return []*cobra.Command{}
+}
+
+func (p *AuthPlugin) InstallCommand() *cobra.Command {
+	return pluginCmd.GetInstallCommand(p)
 }
 
 func (p *AuthPlugin) Boot(app *api.App) error {

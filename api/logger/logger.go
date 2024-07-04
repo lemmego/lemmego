@@ -11,9 +11,17 @@ import (
 	"sync"
 )
 
-var logger = slog.New(NewHandler(&slog.HandlerOptions{
+var defaultLoggerOptions = &slog.HandlerOptions{}
+var verboseLoggerOptions = &slog.HandlerOptions{
 	AddSource: true,
-}))
+}
+
+var defaultLogger = slog.New(NewHandler(defaultLoggerOptions))
+var verboseLogger = slog.New(NewHandler(verboseLoggerOptions))
+
+func init() {
+	slog.SetDefault(defaultLogger)
+}
 
 const (
 	timeFormat = "[15:04:05.000]"
@@ -198,6 +206,10 @@ func NewHandler(opts *slog.HandlerOptions) *LogHandler {
 	}
 }
 
-func Log() *slog.Logger {
-	return logger
+func V() *slog.Logger {
+	return verboseLogger
+}
+
+func D() *slog.Logger {
+	return defaultLogger
 }

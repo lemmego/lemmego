@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-
-	"github.com/manifoldco/promptui"
 )
 
 var SnakeCase = func(input string) error {
@@ -31,9 +29,9 @@ var SnakeCase = func(input string) error {
 	return nil
 }
 
-var NotIn = func(ignoreList []string, message string, validators ...promptui.ValidateFunc) promptui.ValidateFunc {
+var NotIn = func(ignoreList []string, message string, validators ...ValidateFunc) ValidateFunc {
 	return func(input string) error {
-		if slices.Contains(ignoreList, input) {
+		if slices.Contains(ignoreList, strings.ToLower(input)) {
 			if message == "" {
 				return errors.New(fmt.Sprintf("input must not contain %s", strings.Join(ignoreList, ",")))
 			}
@@ -48,9 +46,9 @@ var NotIn = func(ignoreList []string, message string, validators ...promptui.Val
 	}
 }
 
-var In = func(allowList []string, message string, validators ...promptui.ValidateFunc) promptui.ValidateFunc {
+var In = func(allowList []string, message string, validators ...ValidateFunc) ValidateFunc {
 	return func(input string) error {
-		if !slices.Contains(allowList, input) {
+		if slices.Contains(allowList, strings.ToLower(input)) {
 			if message == "" {
 				return errors.New(fmt.Sprintf("input must contain %s", strings.Join(allowList, ",")))
 			}

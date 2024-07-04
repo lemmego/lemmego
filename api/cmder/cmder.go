@@ -31,10 +31,12 @@ type PromptResult struct {
 	Error         error
 }
 
+type ValidateFunc func(string) error
+
 type Prompter interface {
-	Ask(question string, validator promptui.ValidateFunc) Prompter
+	Ask(question string, validator ValidateFunc) Prompter
 	Confirm(question string, defaultValue rune) Prompter
-	AskRecurring(question string, validator promptui.ValidateFunc, prompts ...func(result any) Prompter) Prompter
+	AskRepeat(question string, validator ValidateFunc, prompts ...func(result any) Prompter) Prompter
 	Select(label string, items []string) Prompter
 	MultiSelect(label string, items []*Item, selectedPos int) Prompter
 	When(cb func(result interface{}) bool, thenPrompt func(prompt Prompter) Prompter) Prompter
@@ -51,7 +53,7 @@ func (pr *PromptResult) Fill(ptr any) Prompter {
 	return pr
 }
 
-func (pr *PromptResult) Ask(question string, validator promptui.ValidateFunc) Prompter {
+func (pr *PromptResult) Ask(question string, validator ValidateFunc) Prompter {
 	if pr.ShouldAskNext {
 		return Ask(question, validator)
 	}
@@ -65,7 +67,7 @@ func (pr *PromptResult) Confirm(question string, defaultValue rune) Prompter {
 	return pr
 }
 
-func (pr *PromptResult) AskRecurring(question string, validator promptui.ValidateFunc, prompts ...func(result any) Prompter) Prompter {
+func (pr *PromptResult) AskRepeat(question string, validator ValidateFunc, prompts ...func(result any) Prompter) Prompter {
 	if pr.ShouldAskNext {
 		return AskRecurring(question, validator, prompts...)
 	}
@@ -95,7 +97,7 @@ func (pr *PromptResult) When(cb func(result interface{}) bool, thenPrompt func(p
 	return pr
 }
 
-func Ask(question string, validator promptui.ValidateFunc) Prompter {
+func Ask(question string, validator ValidateFunc) Prompter {
 	if validator == nil {
 		validator = func(input string) error {
 			return nil
@@ -104,7 +106,7 @@ func Ask(question string, validator promptui.ValidateFunc) Prompter {
 
 	prompt := promptui.Prompt{
 		Label:    question,
-		Validate: validator,
+		Validate: promptui.ValidateFunc(validator),
 	}
 
 	res, err := prompt.Run()
@@ -236,7 +238,7 @@ func MultiSelect(label string, allItems []*Item, selectedPos int) Prompter {
 	return &PromptResult{Type: PromptResultTypeMultiSelect, ShouldAskNext: true, Result: selectedLabels, Error: nil}
 }
 
-func AskRecurring(question string, validator promptui.ValidateFunc, prompts ...func(result any) Prompter) Prompter {
+func AskRecurring(question string, validator ValidateFunc, prompts ...func(result any) Prompter) Prompter {
 	if validator == nil {
 		validator = func(input string) error {
 			return nil
@@ -249,7 +251,7 @@ func AskRecurring(question string, validator promptui.ValidateFunc, prompts ...f
 	for !inputsFinished {
 		prompt := promptui.Prompt{
 			Label:    question + " (press enter when finished)",
-			Validate: validator,
+			Validate: promptui.ValidateFunc(validator),
 		}
 
 		input, err := prompt.Run()

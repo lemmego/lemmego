@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"pressebo/api/logger"
+	"log/slog"
 	"strconv"
 
 	"gorm.io/driver/mysql"
@@ -127,7 +127,7 @@ func (c *Connection) connectToMySQL() (*DB, error) {
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 
-	logger.Log().Info(fmt.Sprintf("created db session %s", dsn.Name))
+	slog.Info(fmt.Sprintf("created db session %s", dsn.Name))
 
 	return &DB{db}, nil
 }
@@ -148,7 +148,7 @@ func (c *Connection) connectToPostgres() (*DB, error) {
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 
-	logger.Log().Info(fmt.Sprintf("created db session %s", dsn.Name))
+	slog.Info(fmt.Sprintf("created db session %s", dsn.Name))
 
 	return &DB{db}, nil
 }
@@ -166,7 +166,7 @@ func (c *Connection) existsDb() error {
 	defer func() {
 		c.WithDatabase(database)
 		if dbConn != nil {
-			logger.Log().Info(fmt.Sprintf("closing db session %s", dbConn.Name()))
+			slog.Info(fmt.Sprintf("closing db session %s", dbConn.Name()))
 			dbConn.Close()
 		}
 	}()
@@ -240,7 +240,7 @@ func (c *Connection) createDb() error {
 	defer func() {
 		c.WithDatabase(database)
 		if db != nil {
-			logger.Log().Info(fmt.Sprintf("closing db session %s", database))
+			slog.Info(fmt.Sprintf("closing db session %s", database))
 			db.Close()
 		}
 	}()
@@ -253,7 +253,7 @@ func (c *Connection) createDb() error {
 		if err != nil {
 			return err
 		} else {
-			log.Println("database", database, "created")
+			slog.Info("database", database, "created")
 			return nil
 		}
 	}
