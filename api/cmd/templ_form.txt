@@ -1,21 +1,84 @@
 package {{.PackageName}}
 
-templ {{.TemplName}}() {
+templ {{.Name}}() {
+  <div class="container w-1/3 mx-auto">
+  <h1 class="text-3xl text-center">{{.Name | toTitle}}</h1>
   <form action="{{.Route}}" method="POST">
     {{range .Fields}}
-    <div>
-      <label for="{{.Name}}" class="label-primary">{{.Name | toSpaceDelimited}}</label>
       <div class="mt-2">
-        {{if eq .Type "textarea"}}
-        <textarea id="{{.Name}}" name="{{.Name}}" class="input"></textarea>
-        {{else}}
-        <input id="{{.Name}}" name="{{.Name}}" type="{{.Type}}" class="input"/>
-        {{end}}
+        {{- if eq .Type "text"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+          {{- if contains .Name "password"}}
+          <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="password" class="input"/>
+          {{- else if contains .Name "email"}}
+          <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="email" class="input"/>
+          {{- else}}
+          <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="text" class="input"/>
+          {{- end}}
+        {{- end}}
+        {{- if eq .Type "textarea"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+        <textarea id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" class="input"></textarea>
+        {{- end}}
+        {{- if eq .Type "integer"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="number" min="0" class="input"/>
+        {{- end}}
+        {{- if eq .Type "decimal"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="number" min="0.0" class="input"/>
+        {{- end}}
+        {{- if eq .Type "boolean"}}
+        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="checkbox" class="mr-2"/>
+        <label for="{{.Name | toSnake}}">{{.Name | toSpaceDelimited | toTitle}}</label>
+        {{- end}}
+        {{- if eq .Type "radio"}}
+          {{- $name := .Name}}
+          <div class="flex items-center">
+          {{range $i, $choice := .Choices}}
+          <input id="{{$choice | toSnake}}" name="{{$name | toSnake}}" type="radio" value="{{$choice | toSnake}}"/>
+          <label for="{{$choice | toSnake}}" class="mx-2">{{$choice}}</label>
+          {{end}}
+          </div>
+        {{- end}}
+        {{- if eq .Type "checkbox"}}
+          {{- $name := .Name}}
+          <div class="flex items-center">
+          {{range $i, $choice := .Choices}}
+          <input id="{{$choice | toSnake}}" name="{{$name | toSnake}}" type="checkbox" value="{{$choice | toSnake}}"/>
+          <label for="{{$choice | toSnake}}" class="mx-2">{{$choice}}</label>
+          {{end}}
+          </div>
+        {{- end}}
+        {{- if eq .Type "dropdown"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+        <select id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" class="input">
+          {{range $i, $choice := .Choices}}
+          <option value="{{$choice | toSnake}}" class="label-primary">{{$choice}}</option>
+          {{end}}
+        </select>
+        {{- end}}
+        {{- if eq .Type "date"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="date" class="input"/>
+        {{- end}}
+        {{- if eq .Type "time"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="time" class="input"/>
+        {{- end}}
+        {{- if eq .Type "datetime"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="datetime-local" class="input"/>
+        {{- end}}
+        {{- if eq .Type "image"}}
+        <label for="{{.Name | toSnake}}" class="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="file"/>
+        {{- end}}
       </div>
-    </div>
     {{end}}
     <div>
-      <button type="submit" class="btn-primary">Submit</button>
+      <button type="submit" class="mt-4 btn-primary">Submit</button>
     </div>
   </form>
+</div>
 }

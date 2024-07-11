@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"pressebo/api"
+	"fmt"
+	"lemmego/api"
 )
 
 // func IndexHandler(i *inertia.Inertia) http.Handler {
@@ -38,14 +39,47 @@ import (
 // 	w.Write([]byte("server error"))
 // }
 
-func Register(app *api.App) {
-	// app.Router().Get("/", app.I.Middleware(IndexHandler(app.I)).ServeHTTP)
-	// app.Router().Get("/welcome", app.I.Middleware(WelcomeHandler(app.I)).ServeHTTP)
-	app.Get("/", IndexHomeHandler)
-	app.Post("/test", StoreTestHandler)
+func Register(r *api.Router) {
+	//app.HTTPRouter().Get("/", app.Inertia().Middleware(IndexHandler(app.Inertia())).ServeHTTP)
+	//app.HTTPRouter().Get("/welcome", app.Inertia().Middleware(WelcomeHandler(app.i)).ServeHTTP)
+	//app.Post("/test", StoreTestHandler)
+	r.Get("/", IndexHomeHandler, func(next api.Handler) api.Handler {
+		return func(c *api.Context) error {
+			return next(c)
+		}
+	})
+	r.Group("/api", func(r *api.Router) {
+		r.Group("/v1", func(r *api.Router) {
+			r.Get("/test", func(c *api.Context) error {
+				fmt.Println("Malta hit")
+				return c.JSON(200, api.M{
+					"foo": "bar",
+				})
+			})
+			r.Get("/test2", func(c *api.Context) error {
+				fmt.Println("Malta hit 2")
+				return c.JSON(200, api.M{
+					"foo": "bar",
+				})
+			})
+		})
+	}, func(next api.Handler) api.Handler {
+		println("out")
+		return func(c *api.Context) error {
+			println("in")
+			return next(c)
+		}
+	})
+	//app.Get("/test2", func(c *api.Context) error {
+	//	fmt.Println("Malta hit 2")
+	//	return c.JSON(200, api.M{
+	//		"foo": "bar",
+	//	})
+	//})
 
-	app.Get("/login", LoginIndexHandler)
-	app.Post("/login", LoginStoreHandler)
-	app.Get("/register", RegistrationIndexHandler)
-	app.Post("/register", RegistrationStoreHandler)
+	//
+	//app.Get("/login", LoginIndexHandler)
+	//app.Post("/login", LoginStoreHandler)
+	//app.Get("/register", RegistrationIndexHandler)
+	//app.Post("/register", RegistrationStoreHandler)
 }

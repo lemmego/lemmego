@@ -1,7 +1,7 @@
 package main
 
 import (
-	baseCmd "pressebo/api/cmd"
+	baseCmd "lemmego/api/cmd"
 )
 
 func main() {

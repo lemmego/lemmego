@@ -19,7 +19,7 @@ func Execute() error {
 	genCmd.AddCommand(migrationCmd)
 	genCmd.AddCommand(modelCmd)
 	genCmd.AddCommand(inputCmd)
-	genCmd.AddCommand(templCmd)
+	genCmd.AddCommand(formCmd)
 
 	RootCmd.AddCommand(genCmd)
 

@@ -1,14 +1,13 @@
 package main
 
 import (
-	"log/slog"
-	"pressebo/api"
-	_ "pressebo/internal/config"
-	"pressebo/internal/handlers"
-	"pressebo/internal/plugins"
-
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog/v2"
+	"lemmego/api"
+	_ "lemmego/internal/config"
+	"lemmego/internal/handlers"
+	"lemmego/internal/plugins"
+	"log/slog"
 )
 
 func main() {
@@ -22,6 +21,7 @@ func main() {
 	app := api.NewApp(
 		api.WithPlugins(registry),
 	)
+
 	logger := httplog.NewLogger("lemmego", httplog.Options{
 		// JSON:             true,
 		LogLevel:         slog.LevelDebug,
@@ -40,11 +40,13 @@ func main() {
 		// QuietDownPeriod: 10 * time.Second,
 		// SourceFieldName: "source",
 	})
-	// Register global middleware
-	app.Use(httplog.RequestLogger(logger), middleware.Recoverer)
 
-	// Register routes
-	handlers.Register(app)
+	// Register global middleware
+	app.Router().Use(httplog.RequestLogger(logger), middleware.Recoverer)
+
+	app.RegisterRoutes(func(r *api.Router) {
+		handlers.Register(r)
+	})
 
 	// Handle signals
 	go app.HandleSignals()

@@ -5,15 +5,17 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"github.com/golobby/container/v3"
+	"mime/multipart"
 	"net/http"
 	"reflect"
 	"sync"
 
+	"lemmego/api/req"
+
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
-	"github.com/golobby/container/v3"
 	"github.com/invopop/validation"
-	"pressebo/api/req"
 )
 
 func init() {
@@ -267,6 +269,10 @@ func (c *Context) Render(status int, tmplPath string, data *TemplateData) error 
 	return RenderTemplate(c.responseWriter, tmplPath, data)
 }
 
+func (c *Context) Inertia(filePath string, props map[string]any) error {
+	return c.App().i.Render(c.ResponseWriter(), c.Request(), filePath, props)
+}
+
 func (c *Context) Redirect(status int, url string) error {
 	c.responseWriter.Header().Set("Location", url)
 	c.responseWriter.WriteHeader(status)
@@ -278,25 +284,30 @@ func (c *Context) WithErrors(data map[string]error) *Context {
 	for key, value := range data {
 		errors = append(errors, &ValidationError{key, value.Error()})
 	}
+	c.app.i.ShareProp("validationErrors", errors)
 	return c.Put("validationErrors", errors)
 }
 
 func (c *Context) WithSuccess(message string) *Context {
+	c.app.i.ShareProp("success", message)
 	c.app.session.Put(c.Request().Context(), "success", message)
 	return c
 }
 
 func (c *Context) WithInfo(message string) *Context {
+	c.app.i.ShareProp("info", message)
 	c.app.session.Put(c.Request().Context(), "info", message)
 	return c
 }
 
 func (c *Context) WithWarning(message string) *Context {
+	c.app.i.ShareProp("warning", message)
 	c.app.session.Put(c.Request().Context(), "warning", message)
 	return c
 }
 
 func (c *Context) WithError(message string) *Context {
+	c.app.i.ShareProp("error", message)
 	c.app.session.Put(c.Request().Context(), "error", message)
 	return c
 }
@@ -321,6 +332,11 @@ func (c *Context) GetQuery(key string) string {
 func (c *Context) GetBody() map[string][]string {
 	c.request.ParseForm()
 	return c.request.Form
+}
+
+func (c *Context) UploadedFile(key string) (multipart.File, *multipart.FileHeader, error) {
+	c.request.ParseMultipartForm(32 << 20)
+	return c.request.FormFile(key)
 }
 
 func (c *Context) Set(key string, value interface{}) {

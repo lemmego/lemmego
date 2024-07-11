@@ -3,11 +3,11 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
-	"pressebo/api/cmder"
+	"lemmego/api/cmder"
 
 	"github.com/charmbracelet/huh"
 
-	"pressebo/api/fsys"
+	"lemmego/api/fsys"
 	"strings"
 
 	"github.com/iancoleman/strcase"

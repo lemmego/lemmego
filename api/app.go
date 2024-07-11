@@ -2,26 +2,23 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"lemmego/api/session"
+	// "lemmego/api/session"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"reflect"
 	"sync"
 	"syscall"
 
-	"pressebo/api/db"
-	"pressebo/api/logger"
-
-	"github.com/go-chi/chi/v5"
 	"github.com/golobby/container/v3"
 	inertia "github.com/romsar/gonertia"
 	"github.com/spf13/cobra"
+	"lemmego/api/db"
 )
 
 type PluginID string
@@ -41,7 +38,14 @@ func (r PluginRegistry) Add(plugin Plugin) {
 type M map[string]any
 
 type Handler func(c *Context) error
+
 type Middleware func(next Handler) Handler
+
+//type Middleware func(c *Context) func(next http.Handler) http.Handler
+
+//type Handler[T any] func(c T) error
+
+//type Middleware[T any] func(next Handler[T]) Handler[T]
 
 type AppConfig struct {
 	DbConfig    *db.DBConfig
@@ -58,7 +62,7 @@ type Plugin interface {
 	EventListeners() map[string]func()
 	Migrations() []string
 	Templates() map[string][]byte
-	Middlewares() []func(http.Handler) http.Handler
+	Middlewares() []Middleware
 	RouteMiddlewares() map[string]Middleware
 	Routes() []*Route
 	Webhooks() []string
@@ -73,80 +77,67 @@ type AppHooks struct {
 type App struct {
 	isContextReady bool
 	mu             sync.Mutex
-	session        *Session
+	session        *session.Session
 	// config           *AppConfig
-	config           ConfigMap
-	plugins          PluginRegistry
-	services         []ServiceProvider
-	routeMiddlewares map[string]Middleware
-	hooks            *AppHooks
-	router           Router
-	db               *db.DB
-	dbFunc           func(c context.Context, config *db.DBConfig) (*db.DB, error)
-	I                *inertia.Inertia
+	config   ConfigMap
+	plugins  PluginRegistry
+	services []ServiceProvider
+	//routeMiddlewares map[string]Middleware
+	//httpMiddlewares  []func(http.Handler) http.Handler
+	//routes           []*Route
+	hooks          *AppHooks
+	router         *Router
+	db             *db.DB
+	dbFunc         func(c context.Context, config *db.DBConfig) (*db.DB, error)
+	i              *inertia.Inertia
+	routeRegistrar RouteRegistrarFunc
+	currentGroup   *RouteGroup
+}
+
+// RouteGroup represents a group of routes
+type RouteGroup struct {
+	prefix      string
+	middlewares []Middleware
 }
 
 type Options struct {
 	container.Container
-	*Session
+	*session.Session
 	Config           ConfigMap
 	Plugins          map[PluginID]Plugin
 	Providers        []ServiceProvider
 	routeMiddlewares map[string]Middleware
 	Hooks            *AppHooks
-	Router           Router
 }
 
 type OptFunc func(opts *Options)
 
-func (a *App) Plugin(namespace string) Plugin {
-	return a.plugins.Find(namespace)
+func (app *App) Plugin(namespace string) Plugin {
+	return app.plugins.Find(namespace)
 }
 
-func (a *App) Use(middlewares ...func(http.Handler) http.Handler) {
-	for _, m := range middlewares {
-		a.router.Use(m)
-	}
+func (app *App) RegisterRoutes(fn RouteRegistrarFunc) {
+	app.router.routeRegistrar = fn
 }
 
-func (a *App) Get(pattern string, handler Handler, middlewares ...Middleware) {
-	a.router.MethodFunc(http.MethodGet, pattern, makeHandlerFunc(a, handler, middlewares...))
+func (app *App) Router() *Router {
+	return app.router
 }
 
-func (a *App) Post(pattern string, handler Handler, middlewares ...Middleware) {
-	a.router.MethodFunc(http.MethodPost, pattern, makeHandlerFunc(a, handler, middlewares...))
+func (app *App) Session() *session.Session {
+	return app.session
 }
 
-func (a *App) Put(pattern string, handler Handler, middlewares ...Middleware) {
-	a.router.MethodFunc(http.MethodPut, pattern, makeHandlerFunc(a, handler, middlewares...))
+func (app *App) Db() *db.DB {
+	return app.db
 }
 
-func (a *App) Patch(pattern string, handler Handler, middlewares ...Middleware) {
-	a.router.MethodFunc(http.MethodPatch, pattern, makeHandlerFunc(a, handler, middlewares...))
+func (app *App) Inertia() *inertia.Inertia {
+	return app.i
 }
 
-func (a *App) Delete(pattern string, handler Handler, middlewares ...Middleware) {
-	a.router.MethodFunc(http.MethodDelete, pattern, makeHandlerFunc(a, handler, middlewares...))
-}
-
-func (a *App) Router() chi.Router {
-	return a.router
-}
-
-func (a *App) Session() *Session {
-	return a.session
-}
-
-func (a *App) Db() *db.DB {
-	return a.db
-}
-
-// func (a *App) Inertia() *inertia.Inertia {
-// 	return a.inertia
-// }
-
-func (a *App) DbFunc(c context.Context, config *db.DBConfig) (*db.DB, error) {
-	return a.dbFunc(c, config)
+func (app *App) DbFunc(c context.Context, config *db.DBConfig) (*db.DB, error) {
+	return app.dbFunc(c, config)
 }
 
 func getDefaultConfig() ConfigMap {
@@ -162,7 +153,6 @@ func defaultOptions() *Options {
 		nil,
 		nil,
 		nil,
-		NewRouter(),
 	}
 }
 
@@ -184,11 +174,11 @@ func WithHooks(hooks *AppHooks) OptFunc {
 	}
 }
 
-func WithRouter(router Router) OptFunc {
-	return func(opts *Options) {
-		opts.Router = router
-	}
-}
+//func WithRouter(router HTTPRouter) OptFunc {
+//	return func(opts *Options) {
+//		opts.HTTPRouter = router
+//	}
+//}
 
 func WithContainer(container container.Container) OptFunc {
 	return func(opts *Options) {
@@ -196,7 +186,7 @@ func WithContainer(container container.Container) OptFunc {
 	}
 }
 
-func WithSession(sm *Session) OptFunc {
+func WithSession(sm *session.Session) OptFunc {
 	return func(opts *Options) {
 		opts.Session = sm
 	}
@@ -204,6 +194,9 @@ func WithSession(sm *Session) OptFunc {
 
 func NewApp(options ...OptFunc) *App {
 	opts := defaultOptions()
+	i := initInertia()
+	hr := NewRouter(NewChiRouter())
+
 	for _, option := range options {
 		option(opts)
 	}
@@ -248,29 +241,20 @@ func NewApp(options ...OptFunc) *App {
 			}
 			routeMiddlewares[key] = middleware
 		}
-
-		// if err := plugin.Boot(opts.Container); err != nil {
-		// 	panic(err)
-		// }
-
 	}
 
-	i := initInertia()
+	hr.setRouteMiddleware(routeMiddlewares)
 
 	app := &App{
 		// opts.Container,
-		false,
-		sync.Mutex{},
-		nil,
-		opts.Config,
-		opts.Plugins,
-		opts.Providers,
-		routeMiddlewares,
-		opts.Hooks,
-		opts.Router,
-		nil,
-		nil,
-		i,
+		isContextReady: false,
+		mu:             sync.Mutex{},
+		config:         opts.Config,
+		plugins:        opts.Plugins,
+		services:       opts.Providers,
+		hooks:          opts.Hooks,
+		router:         hr,
+		i:              i,
 	}
 	return app
 }
@@ -318,123 +302,34 @@ func (app *App) registerServices(services []ServiceProvider) {
 	}
 }
 
-func (app *App) registerMiddlewares() {
-	for _, plugin := range app.plugins {
-		for _, middleware := range plugin.Middlewares() {
-			app.router.Use(middleware)
-		}
-	}
-}
-
-func (app *App) registerRoutes() {
-	// for _, route := range routes {
-	// 	app.Router.MethodFunc(route.Method, route.Path, makeHandlerFunc(app, route.Handler, route.Middlewares...))
-	// }
-
-	for _, plugin := range app.plugins {
-		for _, route := range plugin.Routes() {
-			app.router.MethodFunc(route.Method, route.Path, makeHandlerFunc(app, route.Handler, route.Middlewares...))
-		}
-	}
-}
-
-func makeHandlerFunc(app *App, handler Handler, middlewares ...Middleware) http.HandlerFunc {
-	finalHandler := handler
-	for _, middleware := range middlewares {
-		finalHandler = middleware(finalHandler)
-	}
-
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := &Context{sync.Mutex{}, app, container.New(), r, w}
-		if !app.isContextReady {
-			app.isContextReady = true
-		}
-		if err := finalHandler(ctx); err != nil {
-			logger.V().Error(err.Error())
-			if !ctx.WantsJSON() {
-				ctx.Redirect(http.StatusFound, "/error")
-				return
-			}
-			ctx.JSON(http.StatusInternalServerError, M{"error": err.Error()})
-		}
-		return
-	}
-
-	return app.I.Middleware(http.HandlerFunc(fn)).ServeHTTP
-}
-
-func initInertia() *inertia.Inertia {
-	manifestPath := "./public/build/manifest.json"
-
-	i, err := inertia.NewFromFile(
-		"resources/views/root.html",
-		// inertia.WithVersion("1.0"),
-		inertia.WithVersionFromFile(manifestPath),
-		inertia.WithSSR(),
-	)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	i.ShareTemplateFunc("vite", vite(manifestPath, "/public/build/"))
-	i.ShareTemplateData("env", Config("app.env").(string))
-
-	return i
-}
-
-func vite(manifestPath, buildDir string) func(path string) (string, error) {
-	f, err := os.Open(manifestPath)
-	if err != nil {
-		log.Fatalf("cannot open provided vite manifest file: %s", err)
-	}
-	defer f.Close()
-
-	viteAssets := make(map[string]*struct {
-		File   string `json:"file"`
-		Source string `json:"src"`
-	})
-	err = json.NewDecoder(f).Decode(&viteAssets)
-	if err != nil {
-		log.Fatalf("cannot unmarshal vite manifest file to json: %s", err)
-	}
-
-	return func(p string) (string, error) {
-		if val, ok := viteAssets[p]; ok {
-			return path.Join(buildDir, val.File), nil
-		}
-		return "", fmt.Errorf("asset %q not found", p)
-	}
-}
-
-func (a *App) Run() {
-	a.registerServices([]ServiceProvider{
+func (app *App) Run() {
+	app.registerServices([]ServiceProvider{
 		&DatabaseServiceProvider{},
 		&SessionServiceProvider{},
 		&AuthServiceProvider{},
 	})
 
-	a.registerRoutes()
+	app.router.registerMiddlewares(app)
 
-	a.registerMiddlewares()
+	app.router.registerRoutes(app)
 
-	a.router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	app.router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	a.router.Handle("/public/*", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
+	app.router.Handle("/public/*", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
 
-	for _, plugin := range a.plugins {
-		if err := plugin.Boot(a); err != nil {
+	for _, plugin := range app.plugins {
+		if err := plugin.Boot(app); err != nil {
 			panic(err)
 		}
 	}
 
-	slog.Info(fmt.Sprintf("%s is running on port %d...", a.config.get("app.name"), a.config.get("app.port")))
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", a.config.get("app.port")), a.session.LoadAndSave(a.router)); err != nil {
+	slog.Info(fmt.Sprintf("%s is running on port %d...", app.config.get("app.name"), app.config.get("app.port")))
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", app.config.get("app.port")), app.session.LoadAndSave(app.router)); err != nil {
 		panic(err)
 	}
 }
 
-func (a *App) HandleSignals() {
+func (app *App) HandleSignals() {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel,
 		syscall.SIGINT,
@@ -444,15 +339,15 @@ func (a *App) HandleSignals() {
 	sig := <-signalChannel
 	switch sig {
 	case syscall.SIGINT, syscall.SIGTERM:
-		a.Shutdown()
+		app.Shutdown()
 		os.Exit(0)
 	}
 }
 
-func (a *App) Shutdown() {
+func (app *App) Shutdown() {
 	log.Println("Shutting down application...")
-	sessName := a.db.Name()
-	err := a.db.Close()
+	sessName := app.db.Name()
+	err := app.db.Close()
 	if err != nil {
 		log.Fatal("Error closing database connection:", err)
 	}

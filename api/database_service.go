@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"pressebo/api/db"
+	"lemmego/api/db"
 )
 
 type DatabaseServiceProvider struct {

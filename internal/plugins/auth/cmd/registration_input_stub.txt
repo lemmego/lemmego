@@ -1,7 +1,0 @@
-package inputs
-
-type RegistrationStoreInput struct {
-{{.Fields}}
-}
-
-

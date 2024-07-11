@@ -1,0 +1,88 @@
+import React from "react";
+
+const {{.Name}}: React.FC = () => {
+	return (
+		<div className="container w-1/3 mx-auto">
+			<h1 className="text-3xl text-center">{{.Name | toTitle}}</h1>
+			<form action="{{.Route}}" method="POST">
+				{{range .Fields}}
+					<div className="mt-2">
+						{{- if eq .Type "text"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+							{{- if contains .Name "password"}}
+							<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="password" className="input"/>
+							{{- else if contains .Name "email"}}
+							<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="email" className="input"/>
+							{{- else}}
+							<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="text" className="input"/>
+							{{- end}}
+						{{- end}}
+						{{- if eq .Type "textarea"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+						<textarea id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" className="input"></textarea>
+						{{- end}}
+						{{- if eq .Type "integer"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="number" min="0" className="input"/>
+						{{- end}}
+						{{- if eq .Type "decimal"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="number" min="0.0" className="input"/>
+						{{- end}}
+						{{- if eq .Type "boolean"}}
+						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="checkbox"/>
+						<label htmlFor="{{.Name | toSnake}}" className="mx-2">{{.Name | toSpaceDelimited | toTitle}}</label>
+						{{- end}}
+						{{- if eq .Type "radio"}}
+							{{- $name := .Name}}
+							<div className="flex items-center">
+							{{range $i, $choice := .Choices}}
+							<input id="{{$choice | toSnake}}" name="{{$name | toSnake}}" type="radio" value="{{$choice | toSnake}}"/>
+							<label htmlFor="{{$choice | toSnake}}" className="mx-2">{{$choice}}</label>
+							{{end}}
+							</div>
+						{{- end}}
+						{{- if eq .Type "checkbox"}}
+							{{- $name := .Name}}
+							<div className="flex items-center">
+							{{range $i, $choice := .Choices}}
+							<input id="{{$choice | toSnake}}" name="{{$name | toSnake}}" type="checkbox" value="{{$choice | toSnake}}"/>
+							<label htmlFor="{{$choice | toSnake}}" className="mx-2">{{$choice}}</label>
+							{{end}}
+							</div>
+						{{- end}}
+						{{- if eq .Type "dropdown"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+						<select id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" className="input">
+							{{range $i, $choice := .Choices}}
+							<option value="{{$choice | toSnake}}" className="label-primary">{{$choice}}</option>
+							{{end}}
+						</select>
+						{{- end}}
+						{{- if eq .Type "date"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="date" className="input"/>
+						{{- end}}
+						{{- if eq .Type "time"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="time" className="input"/>
+						{{- end}}
+						{{- if eq .Type "datetime"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="datetime-local" className="input"/>
+						{{- end}}
+						{{- if eq .Type "image"}}
+						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
+						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="file"/>
+						{{- end}}
+					</div>
+				{{end}}
+				<div>
+					<button type="submit" className="mt-4 btn-primary">Submit</button>
+				</div>
+			</form>
+		</div>
+	);
+};
+
+export default {{.Name}};

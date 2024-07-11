@@ -1,4 +1,4 @@
-module pressebo
+module lemmego
 
 go 1.22
 
@@ -7,9 +7,12 @@ toolchain go1.22.3
 require (
 	cloud.google.com/go/storage v1.40.0
 	github.com/a-h/templ v0.2.513
+	github.com/charmbracelet/huh v0.4.2
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-chi/chi/v5 v5.1.0
+	github.com/go-chi/httplog/v2 v2.0.11
 	github.com/gomodule/redigo v1.8.0
+	github.com/google/uuid v1.6.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/lemmego/migration v0.1.3
 	github.com/spf13/cobra v1.5.0
@@ -25,7 +28,6 @@ require (
 	github.com/catppuccin/go v0.2.0 // indirect
 	github.com/charmbracelet/bubbles v0.18.0 // indirect
 	github.com/charmbracelet/bubbletea v0.26.3 // indirect
-	github.com/charmbracelet/huh v0.4.2 // indirect
 	github.com/charmbracelet/lipgloss v0.11.0 // indirect
 	github.com/charmbracelet/x/ansi v0.1.1 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240524151031-ff83003bf67a // indirect
@@ -37,13 +39,11 @@ require (
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/ggicci/owl v0.7.0 // indirect
-	github.com/go-chi/httplog/v2 v2.0.11 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.3 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -102,7 +102,7 @@ require (
 	github.com/romsar/gonertia v1.1.4
 	golang.org/x/crypto v0.23.0
 	golang.org/x/oauth2 v0.18.0
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/text v0.15.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/postgres v1.5.9
 )

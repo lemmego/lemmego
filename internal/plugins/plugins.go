@@ -2,8 +2,8 @@ package plugins
 
 import (
 	"github.com/invopop/validation"
-	"pressebo/api"
-	"pressebo/api/validator"
+	"lemmego/api"
+	"lemmego/api/validator"
 	// "pressebo/internal/plugins/auth"
 )
 

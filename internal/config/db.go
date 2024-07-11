@@ -1,7 +1,7 @@
 package config
 
 import (
-	"pressebo/api"
+	"lemmego/api"
 )
 
 func init() {

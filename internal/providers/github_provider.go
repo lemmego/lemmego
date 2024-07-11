@@ -1,6 +1,6 @@
 package providers
 
-import "pressebo/api"
+import "lemmego/api"
 
 type GithubServiceProvider struct {
 	api.BaseServiceProvider

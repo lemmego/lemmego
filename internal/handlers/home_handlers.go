@@ -1,18 +1,24 @@
 package handlers
 
 import (
-	"pressebo/api"
-	"pressebo/templates"
+	"errors"
+	"lemmego/api"
+	"lemmego/templates"
+	"net/http"
 )
 
 func IndexHomeHandler(ctx *api.Context) error {
-	err := ctx.App().I.Render(ctx.ResponseWriter(), ctx.Request(), "Home/Welcome", map[string]any{
+	ctx.Put("foo", "Bar")
+	return ctx.JSON(http.StatusOK, map[string]interface{}{
+		"foo": ctx.Pop("foo"),
+	})
+	err := ctx.Inertia("Home/Welcome", map[string]any{
 		"name": "John Doe",
 	})
 	if err != nil {
 		return ctx.Unauthorized(err)
 	}
-	return nil
+	return ctx.Unauthorized(errors.New("Unauthorized"))
 	return ctx.HTML(200, `
 		<h1>Test Form:</h1>
 		<form enctype="multipart/form-data" action="/test" method="POST">

@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"lemmego/api"
+	"lemmego/api/db"
+	"lemmego/api/session"
+	pluginCmd "lemmego/internal/plugins/auth/cmd"
 	"log"
 	"net/http"
 	"os"
-	"pressebo/api"
-	"pressebo/api/db"
-	pluginCmd "pressebo/internal/plugins/auth/cmd"
 	"strings"
 
 	"dario.cat/mergo"
@@ -76,10 +77,10 @@ type CustomHandlers struct {
 }
 
 type Options struct {
-	Router            api.Router
+	Router            *api.Router
 	DB                *db.DB
 	DBFunc            func() db.DB
-	Session           *api.Session
+	Session           *session.Session
 	TokenConfig       *TokenConfig
 	ResolveUser       ResolveUserFunc
 	CreateUser        CreateUserFunc
@@ -174,7 +175,7 @@ func WithUserCreator(createUser CreateUserFunc) OptFunc {
 	}
 }
 
-func WithSessionManager(session *api.Session) OptFunc {
+func WithSessionManager(session *session.Session) OptFunc {
 	return func(opts *Options) {
 		opts.Session = session
 	}
@@ -373,13 +374,14 @@ func (p *AuthPlugin) Migrations() []string {
 }
 
 func (p *AuthPlugin) Templates() map[string][]byte {
+	return nil
 	return map[string][]byte{
-		"login.page.tmpl":    loginTmpl,
-		"register.page.tmpl": registerTmpl,
+		// "login.page.tmpl":    loginTmpl,
+		// "register.page.tmpl": registerTmpl,
 	}
 }
 
-func (p *AuthPlugin) Middlewares() []func(http.Handler) http.Handler {
+func (p *AuthPlugin) Middlewares() []api.Middleware {
 	return nil
 }
 

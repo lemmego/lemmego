@@ -15,12 +15,12 @@ import (
 )
 
 func init() {
-	slog.Info("Loading .env file...\n")
+	slog.Info("Loading .env file...")
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	slog.Info(".env file loaded...\n")
+	slog.Info(".env file loaded...")
 }
 
 // MustEnv returns the value of the environment variable or panics if the variable is not set or if the type is unsupported.

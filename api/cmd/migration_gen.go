@@ -3,8 +3,8 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
-	"pressebo/api/cmder"
-	"pressebo/api/fsys"
+	"lemmego/api/cmder"
+	"lemmego/api/fsys"
 	"slices"
 	"strconv"
 	"strings"

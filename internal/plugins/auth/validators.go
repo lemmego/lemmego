@@ -4,7 +4,7 @@ package auth
 import (
 	// "mime/multipart"
 	// "pressebo/framework"
-	"pressebo/api/validator"
+	"lemmego/api/validator"
 
 	"github.com/invopop/validation"
 )
