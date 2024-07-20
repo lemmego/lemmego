@@ -1,5 +1,21 @@
 package {{.PackageName}}
 
-type {{.InputName}}Input struct {
-{{.Fields}}
+import (
+    "lemmego/api/vee"
+)
+
+type {{.InputName | toCamel}}Input struct {
+{{- range .Fields}}
+    {{.Name | toCamel}} {{.Type}} `json:"{{.Name | toSnake}}" in:"form={{.Name | toSnake}}"`
+{{- end}}
+}
+
+func (i *{{.InputName | toCamel}}Input) Validate() error {
+	v := vee.New()
+    {{- range .Fields}}
+        {{- if .Required}}
+    v.Required("{{.Name | toSnake}}", i.{{.Name | toCamel}})
+        {{- end}}
+    {{- end}}
+	return v.Errors
 }

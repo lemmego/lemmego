@@ -3,16 +3,12 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
-	"lemmego/api/cmder"
-	"lemmego/api/fsys"
-	"strings"
-	"text/template"
-
 	"github.com/charmbracelet/huh"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"lemmego/api/cmder"
+	"lemmego/api/fsys"
+	"strings"
 )
 
 //go:embed templ_form.txt
@@ -92,25 +88,7 @@ func (fg *FormGenerator) Generate() error {
 		tmplData[v.Placeholder] = v.Value
 	}
 
-	output, err := ParseTemplate(tmplData, fg.GetStub(), template.FuncMap{
-		"toTitle": func(str string) string {
-			caser := cases.Title(language.English)
-			return caser.String(str)
-		},
-		"toCamel": func(str string) string {
-			return strcase.ToCamel(str)
-		},
-		"toLowerCamel": func(str string) string {
-			return strcase.ToLowerCamel(str)
-		},
-		"toSnake": func(str string) string {
-			return strcase.ToSnake(str)
-		},
-		"toSpaceDelimited": func(str string) string {
-			return strcase.ToDelimited(str, ' ')
-		},
-		"contains": strings.Contains,
-	})
+	output, err := ParseTemplate(tmplData, fg.GetStub(), commonFuncs)
 
 	if err != nil {
 		return err

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"lemmego/api/cmder"
 	"lemmego/api/fsys"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -20,8 +21,10 @@ var inputFieldTypes = []string{
 }
 
 type InputField struct {
-	Name string
-	Type string
+	Name     string
+	Type     string
+	Required bool
+	Unique   bool
 }
 
 type InputConfig struct {
@@ -71,13 +74,15 @@ func (ig *InputGenerator) Generate() error {
 
 	tmplData := map[string]interface{}{
 		"PackageName": packageName,
+		"InputName":   ig.name,
+		"Fields":      ig.fields,
 	}
 
-	for _, v := range ig.GetReplacables() {
-		tmplData[v.Placeholder] = v.Value
-	}
+	//for _, v := range ig.GetReplacables() {
+	//	tmplData[v.Placeholder] = v.Value
+	//}
 
-	output, err := ParseTemplate(tmplData, ig.GetStub(), nil)
+	output, err := ParseTemplate(tmplData, ig.GetStub(), commonFuncs)
 
 	if err != nil {
 		return err
@@ -115,6 +120,9 @@ var inputCmd = &cobra.Command{
 
 		for {
 			var fieldName, fieldType string
+			const required = "Required"
+			const unique = "Unique"
+			selectedAttrs := []string{}
 			fieldNameForm := huh.NewForm(
 				huh.NewGroup(
 					huh.NewInput().
@@ -156,7 +164,25 @@ var inputCmd = &cobra.Command{
 					return
 				}
 			}
-			fields = append(fields, &InputField{Name: fieldName, Type: fieldType})
+			selectedAttrsForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewMultiSelect[string]().
+						Title("Press x to select the attributes").
+						Options(huh.NewOptions(required, unique)...).
+						Value(&selectedAttrs),
+				),
+			)
+			err = selectedAttrsForm.Run()
+			if err != nil {
+				return
+			}
+
+			fields = append(fields, &InputField{
+				Name:     fieldName,
+				Type:     fieldType,
+				Required: slices.Contains(selectedAttrs, required),
+				Unique:   slices.Contains(selectedAttrs, unique),
+			})
 		}
 
 		mg := NewInputGenerator(&InputConfig{Name: inputName, Fields: fields})

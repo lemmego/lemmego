@@ -3,6 +3,9 @@ package cmd
 import (
 	"bytes"
 	"errors"
+	"github.com/iancoleman/strcase"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"html/template"
 	"log"
 	"reflect"
@@ -37,6 +40,26 @@ var UiDbTypeMap = map[string]string{
 	"date":     "dateTime",
 	"time":     "time",
 	"image":    "string",
+}
+
+var commonFuncs = template.FuncMap{
+	"toTitle": func(str string) string {
+		caser := cases.Title(language.English)
+		return caser.String(str)
+	},
+	"toCamel": func(str string) string {
+		return strcase.ToCamel(str)
+	},
+	"toLowerCamel": func(str string) string {
+		return strcase.ToLowerCamel(str)
+	},
+	"toSnake": func(str string) string {
+		return strcase.ToSnake(str)
+	},
+	"toSpaceDelimited": func(str string) string {
+		return strcase.ToDelimited(str, ' ')
+	},
+	"contains": strings.Contains,
 }
 
 type Replacable struct {
