@@ -9,13 +9,13 @@ const {{.Name}}: React.FC = () => {
 					<div className="mt-2">
 						{{- if eq .Type "text"}}
 						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
-							{{- if contains .Name "password"}}
-							<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="password" className="input"/>
-							{{- else if contains .Name "email"}}
-							<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="email" className="input"/>
-							{{- else}}
-							<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="text" className="input"/>
-							{{- end}}
+                        {{- if contains .Name "password"}}
+                        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="password" className="input"/>
+                        {{- else if contains .Name "email"}}
+                        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="email" className="input"/>
+                        {{- else}}
+                        <input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="text" className="input"/>
+                        {{- end}}
 						{{- end}}
 						{{- if eq .Type "textarea"}}
 						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>

@@ -107,74 +107,6 @@ func DefaultOptions() *Options {
 	}
 }
 
-func WithCustomHandlers(customHandlers CustomHandlerFunc) OptFunc {
-	return func(opts *Options) {
-		opts.CustomHandlers = customHandlers(opts)
-	}
-}
-
-func WithDefaultUserResolver(opts *Options) {
-	// opts.ResolveUser = func(c *api.Context, opts *Options) (*AuthUser, *Credentials, validation.Errors) {
-	// 	loginInput := &LoginStoreInput{}
-	// 	if validated, err := c.ParseAndValidate(loginInput); err != nil {
-	// 		return nil, nil, err.(validation.Errors)
-	// 	} else {
-	// 		loginInput = validated.(*LoginStoreInput)
-	// 	}
-
-	// 	db := opts.DB
-
-	// 	authUser := AuthUser{}
-	// 	q, err := db.SQL().QueryRow("select id, email, password from users where email = $1 limit 1", loginInput.Username)
-	// 	if err != nil {
-	// 		return nil, nil, validation.Errors{"error": fmt.Errorf("User not found")}
-	// 	}
-
-	// 	if err := q.Scan(&authUser.ID, &authUser.Username, &authUser.Password); err != nil {
-	// 		return nil, nil, validation.Errors{"error": fmt.Errorf("User not found")}
-	// 	}
-	// 	return &authUser, &Credentials{Username: loginInput.Username, Password: loginInput.Password}, nil
-	// }
-}
-
-func WithDefaultUserCreator(opts *Options) {
-	// opts.CreateUser = func(c *api.Context, opts *Options) (bool, validation.Errors) {
-	// 	registrationInput := &RegistrationStoreInput{}
-	// 	if validated, err := c.ParseAndValidate(registrationInput); err != nil {
-	// 		return false, err.(validation.Errors)
-	// 	} else {
-	// 		registrationInput = validated.(*RegistrationStoreInput)
-	// 	}
-
-	// 	db := opts.DB
-
-	// 	encryptedPassword, _ := bcrypt.GenerateFromPassword([]byte(registrationInput.Password), bcrypt.DefaultCost)
-
-	// 	q := db.
-	// 		SQL().
-	// 		InsertInto("users").
-	// 		Columns("first_name", "last_name", "email", "password").
-	// 		Values(registrationInput.FirstName, registrationInput.LastName, registrationInput.Username, encryptedPassword)
-
-	// 	if _, err := q.Exec(); err != nil {
-	// 		return false, validation.Errors{"error": fmt.Errorf("Registration failed")}
-	// 	}
-	// 	return true, nil
-	// }
-}
-
-func WithUserResolver(resolveUser ResolveUserFunc) OptFunc {
-	return func(opts *Options) {
-		opts.ResolveUser = resolveUser
-	}
-}
-
-func WithUserCreator(createUser CreateUserFunc) OptFunc {
-	return func(opts *Options) {
-		opts.CreateUser = createUser
-	}
-}
-
 func WithSessionManager(session *session.Session) OptFunc {
 	return func(opts *Options) {
 		opts.Session = session
@@ -189,16 +121,14 @@ func WithTokenConfig(tokenConfig *TokenConfig) OptFunc {
 
 func New(opts ...OptFunc) *AuthPlugin {
 	o := DefaultOptions()
-	WithDefaultUserResolver(o)
-	WithDefaultUserCreator(o)
 
 	for _, opt := range opts {
 		opt(o)
 	}
 
-	// if o.TokenConfig == nil && o.Session == nil {
-	// 	panic(ErrNoStrategy)
-	// }
+	//if o.TokenConfig == nil && o.Session == nil {
+	//	panic(ErrNoStrategy)
+	//}
 
 	if o.TokenConfig != nil && os.Getenv("JWT_SECRET") == "" {
 		panic(ErrNoSecret)
@@ -469,52 +399,20 @@ func (p *AuthPlugin) storeLoginHandler() api.Handler {
 }
 
 func (p *AuthPlugin) Routes() []*api.Route {
-
-	// Default handlers
-	loginIndexHandler := p.indexLoginPageHandler()
-	registerIndexHandler := p.indexRegisterPageHandler()
-	loginStoreHandler := p.storeLoginHandler()
-	registerStoreHandler := p.storeRegisterHandler()
-
-	// Custom handlers
-	if p.Opts.CustomHandlers != nil {
-		if p.Opts.CustomHandlers.ShowLogin != nil {
-			loginIndexHandler = p.Opts.CustomHandlers.ShowLogin
-		}
-
-		if p.Opts.CustomHandlers.ShowRegister != nil {
-			registerIndexHandler = p.Opts.CustomHandlers.ShowRegister
-		}
-
-		if p.Opts.CustomHandlers.StoreLogin != nil {
-			loginStoreHandler = p.Opts.CustomHandlers.StoreLogin
-		}
-
-		if p.Opts.CustomHandlers.StoreRegister != nil {
-			registerStoreHandler = p.Opts.CustomHandlers.StoreRegister
-		}
-	}
-
 	routes := []*api.Route{
-		{
-			Path:    "/login",
-			Method:  "POST",
-			Handler: p.Guest(loginStoreHandler),
+		&api.Route{
+			Method: http.MethodGet,
+			Path:   "/login",
+			Handler: func(c *api.Context) error {
+				return c.Inertia("Forms/Login", nil)
+			},
 		},
-		{
-			Path:    "/login",
-			Method:  "GET",
-			Handler: p.Guest(loginIndexHandler),
-		},
-		{
-			Path:    "/register",
-			Method:  "GET",
-			Handler: p.Guest(registerIndexHandler),
-		},
-		{
-			Path:    "/register",
-			Method:  "POST",
-			Handler: p.Guest(registerStoreHandler),
+		&api.Route{
+			Method: http.MethodGet,
+			Path:   "/register",
+			Handler: func(c *api.Context) error {
+				return c.Inertia("Forms/Register", nil)
+			},
 		},
 	}
 

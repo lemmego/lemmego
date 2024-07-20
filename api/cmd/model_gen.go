@@ -90,15 +90,15 @@ func (mtb *DBTagBuilder) Build() string {
 	var tagStrs []string
 	for _, t := range mtb.tags {
 		if t.Argument != "" {
-			tagStrs = append(tagStrs, fmt.Sprintf(`"%s:%s"`, t.Name, t.Argument))
+			tagStrs = append(tagStrs, fmt.Sprintf(`%s:%s`, t.Name, t.Argument))
 		} else {
-			tagStrs = append(tagStrs, fmt.Sprintf(`"%s"`, t.Name))
+			tagStrs = append(tagStrs, fmt.Sprintf(`%s`, t.Name))
 		}
 	}
 	if len(tagStrs) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%s:", mtb.driverName) + strings.Join(tagStrs, ",")
+	return fmt.Sprintf("%s:", mtb.driverName) + "\"" + strings.Join(tagStrs, ",") + "\""
 }
 
 func NewModelGenerator(mc *ModelConfig) *ModelGenerator {

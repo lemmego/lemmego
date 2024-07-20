@@ -94,12 +94,6 @@ type App struct {
 	currentGroup   *RouteGroup
 }
 
-// RouteGroup represents a group of routes
-type RouteGroup struct {
-	prefix      string
-	middlewares []Middleware
-}
-
 type Options struct {
 	container.Container
 	*session.Session

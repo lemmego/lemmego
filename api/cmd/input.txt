@@ -1,5 +1,5 @@
 package {{.PackageName}}
 
-type {{.InputName}} struct {
+type {{.InputName}}Input struct {
 {{.Fields}}
 }

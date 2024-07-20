@@ -4,6 +4,7 @@ import (
 	"github.com/invopop/validation"
 	"lemmego/api"
 	"lemmego/api/validator"
+	"lemmego/internal/plugins/auth"
 	// "pressebo/internal/plugins/auth"
 )
 
@@ -55,7 +56,7 @@ func (r *RegistrationInput) Validate() error {
 // Load plugins
 func Load() api.PluginRegistry {
 	registry := api.PluginRegistry{}
-	// authPlugin := auth.New()
+	authPlugin := auth.New()
 	// authPlugin := auth.New(auth.WithUserCreator(func(c *api.Context, opts *auth.Options) (bool, validation.Errors) {
 	// 	input := &RegistrationInput{}
 	// 	if validated, err := c.ParseAndValidate(input); err != nil {
@@ -107,6 +108,6 @@ func Load() api.PluginRegistry {
 	// 	return nil, nil, nil
 	// }))
 
-	// registry.Add(authPlugin)
+	registry.Add(authPlugin)
 	return registry
 }

@@ -215,6 +215,7 @@ func (c *Context) WantsJSON() bool {
 }
 
 func (c *Context) JSON(status int, body M) error {
+	// TODO: Check if header is already sent
 	response, _ := json.Marshal(body)
 	c.responseWriter.Header().Set("Content-Type", "application/json")
 	c.responseWriter.WriteHeader(status)

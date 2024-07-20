@@ -2,12 +2,14 @@ package vee
 
 import (
 	"encoding/json"
+	"fmt"
 	"image"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -17,30 +19,37 @@ import (
 	"github.com/google/uuid"
 )
 
-type Validator struct {
-	Errors map[string][]string
+type Errors map[string][]string
+
+func (e Errors) Error() string {
+	val, _ := json.Marshal(e)
+	return string(val)
 }
 
-func NewValidator() *Validator {
-	return &Validator{
+type Vee struct {
+	Errors
+}
+
+func New() *Vee {
+	return &Vee{
 		Errors: make(map[string][]string),
 	}
 }
 
-func (v *Validator) AddError(field, message string) {
+func (v *Vee) AddError(field, message string) {
 	v.Errors[field] = append(v.Errors[field], message)
 }
 
-func (v *Validator) IsValid() bool {
+func (v *Vee) IsValid() bool {
 	return len(v.Errors) == 0
 }
 
-func (v *Validator) ErrorsJSON() map[string][]string {
+func (v *Vee) ErrorsJSON() map[string][]string {
 	return v.Errors
 }
 
 // Required checks if the value is not empty
-func (v *Validator) Required(field string, value interface{}) bool {
+func (v *Vee) Required(field string, value interface{}) bool {
 	if value == nil || value == "" {
 		v.AddError(field, "This field is required")
 		return false
@@ -49,7 +58,7 @@ func (v *Validator) Required(field string, value interface{}) bool {
 }
 
 // Min checks if the value is greater than or equal to the minimum
-func (v *Validator) Min(field string, value int, min int) bool {
+func (v *Vee) Min(field string, value int, min int) bool {
 	if value < min {
 		v.AddError(field, "This field must be at least "+strconv.Itoa(min))
 		return false
@@ -58,7 +67,7 @@ func (v *Validator) Min(field string, value int, min int) bool {
 }
 
 // Max checks if the value is less than or equal to the maximum
-func (v *Validator) Max(field string, value int, max int) bool {
+func (v *Vee) Max(field string, value int, max int) bool {
 	if value > max {
 		v.AddError(field, "This field must not exceed "+strconv.Itoa(max))
 		return false
@@ -67,7 +76,7 @@ func (v *Validator) Max(field string, value int, max int) bool {
 }
 
 // Between checks if the value is between min and max (inclusive)
-func (v *Validator) Between(field string, value int, min int, max int) bool {
+func (v *Vee) Between(field string, value int, min int, max int) bool {
 	if value < min || value > max {
 		v.AddError(field, "This field must be between "+strconv.Itoa(min)+" and "+strconv.Itoa(max))
 		return false
@@ -76,7 +85,7 @@ func (v *Validator) Between(field string, value int, min int, max int) bool {
 }
 
 // Email checks if the value is a valid email address
-func (v *Validator) Email(field string, value string) bool {
+func (v *Vee) Email(field string, value string) bool {
 	emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 	if !emailRegex.MatchString(value) {
 		v.AddError(field, "This field must be a valid email address")
@@ -86,7 +95,7 @@ func (v *Validator) Email(field string, value string) bool {
 }
 
 // Alpha checks if the value contains only alphabetic characters
-func (v *Validator) Alpha(field string, value string) bool {
+func (v *Vee) Alpha(field string, value string) bool {
 	for _, char := range value {
 		if !unicode.IsLetter(char) {
 			v.AddError(field, "This field must contain only alphabetic characters")
@@ -97,7 +106,7 @@ func (v *Validator) Alpha(field string, value string) bool {
 }
 
 // Numeric checks if the value contains only numeric characters
-func (v *Validator) Numeric(field string, value string) bool {
+func (v *Vee) Numeric(field string, value string) bool {
 	for _, char := range value {
 		if !unicode.IsDigit(char) {
 			v.AddError(field, "This field must contain only numeric characters")
@@ -108,7 +117,7 @@ func (v *Validator) Numeric(field string, value string) bool {
 }
 
 // AlphaNumeric checks if the value contains only alphanumeric characters
-func (v *Validator) AlphaNumeric(field string, value string) bool {
+func (v *Vee) AlphaNumeric(field string, value string) bool {
 	for _, char := range value {
 		if !unicode.IsLetter(char) && !unicode.IsDigit(char) {
 			v.AddError(field, "This field must contain only alphanumeric characters")
@@ -119,7 +128,7 @@ func (v *Validator) AlphaNumeric(field string, value string) bool {
 }
 
 // Date checks if the value is a valid date in the specified format
-func (v *Validator) Date(field string, value string, layout string) bool {
+func (v *Vee) Date(field string, value string, layout string) bool {
 	_, err := time.Parse(layout, value)
 	if err != nil {
 		v.AddError(field, "This field must be a valid date in the format "+layout)
@@ -129,7 +138,7 @@ func (v *Validator) Date(field string, value string, layout string) bool {
 }
 
 // In checks if the value is in the given slice of valid values
-func (v *Validator) In(field string, value string, validValues []string) bool {
+func (v *Vee) In(field string, value string, validValues []string) bool {
 	for _, validValue := range validValues {
 		if value == validValue {
 			return true
@@ -140,7 +149,7 @@ func (v *Validator) In(field string, value string, validValues []string) bool {
 }
 
 // Regex checks if the value matches the given regular expression
-func (v *Validator) Regex(field string, value string, pattern string) bool {
+func (v *Vee) Regex(field string, value string, pattern string) bool {
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
 		v.AddError(field, "Invalid regular expression pattern")
@@ -154,7 +163,7 @@ func (v *Validator) Regex(field string, value string, pattern string) bool {
 }
 
 // URL checks if the value is a valid URL
-func (v *Validator) URL(field string, value string) bool {
+func (v *Vee) URL(field string, value string) bool {
 	_, err := url.ParseRequestURI(value)
 	if err != nil {
 		v.AddError(field, "This field must be a valid URL")
@@ -164,7 +173,7 @@ func (v *Validator) URL(field string, value string) bool {
 }
 
 // IP checks if the value is a valid IP address (v4 or v6)
-func (v *Validator) IP(field string, value string) bool {
+func (v *Vee) IP(field string, value string) bool {
 	ip := net.ParseIP(value)
 	if ip == nil {
 		v.AddError(field, "This field must be a valid IP address")
@@ -174,7 +183,7 @@ func (v *Validator) IP(field string, value string) bool {
 }
 
 // UUID checks if the value is a valid UUID
-func (v *Validator) UUID(field string, value string) bool {
+func (v *Vee) UUID(field string, value string) bool {
 	_, err := uuid.Parse(value)
 	if err != nil {
 		v.AddError(field, "This field must be a valid UUID")
@@ -184,7 +193,7 @@ func (v *Validator) UUID(field string, value string) bool {
 }
 
 // Boolean checks if the value is a valid boolean
-func (v *Validator) Boolean(field string, value interface{}) bool {
+func (v *Vee) Boolean(field string, value interface{}) bool {
 	switch value.(type) {
 	case bool:
 		return true
@@ -204,7 +213,7 @@ func (v *Validator) Boolean(field string, value interface{}) bool {
 }
 
 // JSON checks if the value is a valid JSON string
-func (v *Validator) JSON(field string, value string) bool {
+func (v *Vee) JSON(field string, value string) bool {
 	var js json.RawMessage
 	if json.Unmarshal([]byte(value), &js) != nil {
 		v.AddError(field, "This field must be a valid JSON string")
@@ -214,7 +223,7 @@ func (v *Validator) JSON(field string, value string) bool {
 }
 
 // AfterDate checks if the date is after the specified date
-func (v *Validator) AfterDate(field string, value time.Time, afterDate time.Time) bool {
+func (v *Vee) AfterDate(field string, value time.Time, afterDate time.Time) bool {
 	if value.After(afterDate) {
 		return true
 	}
@@ -223,7 +232,7 @@ func (v *Validator) AfterDate(field string, value time.Time, afterDate time.Time
 }
 
 // BeforeDate checks if the date is before the specified date
-func (v *Validator) BeforeDate(field string, value time.Time, beforeDate time.Time) bool {
+func (v *Vee) BeforeDate(field string, value time.Time, beforeDate time.Time) bool {
 	if value.Before(beforeDate) {
 		return true
 	}
@@ -232,7 +241,7 @@ func (v *Validator) BeforeDate(field string, value time.Time, beforeDate time.Ti
 }
 
 // StartsWith checks if the string starts with the specified substring
-func (v *Validator) StartsWith(field string, value string, prefix string) bool {
+func (v *Vee) StartsWith(field string, value string, prefix string) bool {
 	if strings.HasPrefix(value, prefix) {
 		return true
 	}
@@ -241,7 +250,7 @@ func (v *Validator) StartsWith(field string, value string, prefix string) bool {
 }
 
 // EndsWith checks if the string ends with the specified substring
-func (v *Validator) EndsWith(field string, value string, suffix string) bool {
+func (v *Vee) EndsWith(field string, value string, suffix string) bool {
 	if strings.HasSuffix(value, suffix) {
 		return true
 	}
@@ -250,7 +259,7 @@ func (v *Validator) EndsWith(field string, value string, suffix string) bool {
 }
 
 // Contains checks if the string contains the specified substring
-func (v *Validator) Contains(field string, value string, substring string) bool {
+func (v *Vee) Contains(field string, value string, substring string) bool {
 	if strings.Contains(value, substring) {
 		return true
 	}
@@ -259,7 +268,7 @@ func (v *Validator) Contains(field string, value string, substring string) bool 
 }
 
 // Dimensions checks if the image file has the specified dimensions
-func (v *Validator) Dimensions(field string, filepath string, width, height int) bool {
+func (v *Vee) Dimensions(field string, filepath string, width, height int) bool {
 	file, err := os.Open(filepath)
 	if err != nil {
 		v.AddError(field, "Unable to open the file")
@@ -281,7 +290,7 @@ func (v *Validator) Dimensions(field string, filepath string, width, height int)
 }
 
 // MimeTypes checks if the file has one of the specified MIME types
-func (v *Validator) MimeTypes(field string, filepath string, allowedTypes []string) bool {
+func (v *Vee) MimeTypes(field string, filepath string, allowedTypes []string) bool {
 	file, err := os.Open(filepath)
 	if err != nil {
 		v.AddError(field, "Unable to open the file")
@@ -309,7 +318,7 @@ func (v *Validator) MimeTypes(field string, filepath string, allowedTypes []stri
 }
 
 // Timezone checks if the value is a valid timezone
-func (v *Validator) Timezone(field string, value string) bool {
+func (v *Vee) Timezone(field string, value string) bool {
 	_, err := time.LoadLocation(value)
 	if err != nil {
 		v.AddError(field, "Invalid timezone")
@@ -319,7 +328,7 @@ func (v *Validator) Timezone(field string, value string) bool {
 }
 
 // ActiveURL checks if the URL is active and reachable
-func (v *Validator) ActiveURL(field string, value string) bool {
+func (v *Vee) ActiveURL(field string, value string) bool {
 	resp, err := http.Get(value)
 	if err != nil {
 		v.AddError(field, "The URL is not active or reachable")
@@ -335,7 +344,7 @@ func (v *Validator) ActiveURL(field string, value string) bool {
 }
 
 // AlphaDash checks if the string contains only alpha-numeric characters, dashes, or underscores
-func (v *Validator) AlphaDash(field string, value string) bool {
+func (v *Vee) AlphaDash(field string, value string) bool {
 	re := regexp.MustCompile("^[a-zA-Z0-9-_]+$")
 	if !re.MatchString(value) {
 		v.AddError(field, "This field may only contain alpha-numeric characters, dashes, and underscores")
@@ -345,7 +354,7 @@ func (v *Validator) AlphaDash(field string, value string) bool {
 }
 
 // Ascii checks if the string contains only ASCII characters
-func (v *Validator) Ascii(field string, value string) bool {
+func (v *Vee) Ascii(field string, value string) bool {
 	for _, char := range value {
 		if char > unicode.MaxASCII {
 			v.AddError(field, "This field may only contain ASCII characters")
@@ -356,7 +365,7 @@ func (v *Validator) Ascii(field string, value string) bool {
 }
 
 // MacAddress checks if the string is a valid MAC address
-func (v *Validator) MacAddress(field string, value string) bool {
+func (v *Vee) MacAddress(field string, value string) bool {
 	_, err := net.ParseMAC(value)
 	if err != nil {
 		v.AddError(field, "This field must be a valid MAC address")
@@ -366,7 +375,7 @@ func (v *Validator) MacAddress(field string, value string) bool {
 }
 
 // ULID checks if the string is a valid ULID
-func (v *Validator) ULID(field string, value string) bool {
+func (v *Vee) ULID(field string, value string) bool {
 	re := regexp.MustCompile("^[0-9A-HJKMNP-TV-Z]{26}$")
 	if !re.MatchString(value) {
 		v.AddError(field, "This field must be a valid ULID")
@@ -376,7 +385,7 @@ func (v *Validator) ULID(field string, value string) bool {
 }
 
 // Distinct checks if all elements in a slice are unique
-func (v *Validator) Distinct(field string, values []interface{}) bool {
+func (v *Vee) Distinct(field string, values []interface{}) bool {
 	seen := make(map[interface{}]bool)
 	for _, value := range values {
 		if seen[value] {
@@ -389,7 +398,7 @@ func (v *Validator) Distinct(field string, values []interface{}) bool {
 }
 
 // Filled checks if the value is not empty (for strings, slices, maps, and pointers)
-func (v *Validator) Filled(field string, value interface{}) bool {
+func (v *Vee) Filled(field string, value interface{}) bool {
 	switch val := value.(type) {
 	case string:
 		if val == "" {
@@ -414,11 +423,50 @@ func (v *Validator) Filled(field string, value interface{}) bool {
 }
 
 // HexColor checks if the string is a valid hexadecimal color code
-func (v *Validator) HexColor(field string, value string) bool {
+func (v *Vee) HexColor(field string, value string) bool {
 	re := regexp.MustCompile("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
 	if !re.MatchString(value) {
 		v.AddError(field, "This field must be a valid hexadecimal color code")
 		return false
 	}
 	return true
+}
+
+// ValidationRule is a function type that defines a validation rule
+type ValidationRule func(field string, value interface{}, index int) bool
+
+// ForEach applies validation rules to each item in an array
+func (v *Vee) ForEach(field string, array interface{}, rules ...ValidationRule) bool {
+	// Get the value of the array
+	arrayValue := reflect.ValueOf(array)
+
+	// Check if it's a pointer, and if so, get the element it points to
+	if arrayValue.Kind() == reflect.Ptr {
+		arrayValue = arrayValue.Elem()
+	}
+
+	// Ensure we're dealing with a slice or array
+	if arrayValue.Kind() != reflect.Slice && arrayValue.Kind() != reflect.Array {
+		v.AddError(field, "This field must be an array or slice")
+		return false
+	}
+
+	// Flag to track if all validations passed
+	allValid := true
+
+	// Iterate over each item in the array
+	for i := 0; i < arrayValue.Len(); i++ {
+		item := arrayValue.Index(i).Interface()
+		itemField := fmt.Sprintf("%s.%d", field, i)
+
+		// Apply each validation rule to the item
+		for _, rule := range rules {
+			if !rule(itemField, item, i) {
+				allValid = false
+				// Note: We don't return false here so that we can collect all errors
+			}
+		}
+	}
+
+	return allValid
 }

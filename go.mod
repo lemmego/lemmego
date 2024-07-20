@@ -11,7 +11,6 @@ require (
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/httplog/v2 v2.0.11
-	github.com/gomodule/redigo v1.8.0
 	github.com/google/uuid v1.6.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/lemmego/migration v0.1.3
@@ -85,7 +84,6 @@ require (
 require (
 	cloud.google.com/go v0.112.1 // indirect
 	dario.cat/mergo v1.0.0
-	github.com/alexedwards/scs/redisstore v0.0.0-20231113091146-cef4b05350c8
 	github.com/alexedwards/scs/v2 v2.7.0
 	github.com/aws/aws-sdk-go v1.51.16
 	github.com/ggicci/httpin v0.15.3

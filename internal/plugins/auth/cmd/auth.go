@@ -33,157 +33,141 @@ type Field struct {
 	Choices    []string
 }
 
-func GetInstallCommand(p api.Plugin) *cobra.Command {
-	var AuthCmd = &cobra.Command{
-		Use:   "auth",
-		Short: "Generate auth related files",
-		Long:  `Generate auth related files`,
+var AuthCmd = &cobra.Command{
+	Use:   "auth",
+	Short: "Generate auth related files",
+	Long:  `Generate auth related files`,
 
-		Run: func(cmd *cobra.Command, args []string) {
-			selectedFrontend := ""
-			username, password := "email", "password"
-			fields := []*Field{}
-			hasOrg := false
+	Run: func(cmd *cobra.Command, args []string) {
+		selectedFrontend := ""
+		username, password := "email", "password"
+		fields := []*Field{}
+		hasOrg := false
 
-			orgForm := huh.NewForm(
+		orgForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Title("Which frontend scaffolding should be generated?").
+					Options(huh.NewOptions("templ", "react")...).
+					Value(&selectedFrontend),
+				huh.NewConfirm().
+					Title("Should your users belong to an org? (useful for multitenant apps)").
+					Value(&hasOrg),
+			),
+		)
+
+		err := orgForm.Run()
+		if err != nil {
+			fmt.Println("Error:", err.Error())
+			return
+		}
+
+		for {
+			var fieldName, fieldType string
+			const required = "Required"
+			const unique = "Unique"
+			selectedAttrs := []string{}
+			choices := []string{}
+			fieldNameForm := huh.NewForm(
 				huh.NewGroup(
-					huh.NewSelect[string]().
-						Title("Which frontend scaffolding should be generated?").
-						Options(huh.NewOptions("templ", "react")...).
-						Value(&selectedFrontend),
-					huh.NewConfirm().
-						Title("Should your users belong to an org? (useful for multitenant apps)").
-						Value(&hasOrg),
+					huh.NewInput().
+						Title("Enter the field name in snake_case").
+						Value(&fieldName).
+						Validate(cmder.NotIn(
+							[]string{"id", "email", "password", "org_name", "org_username", "created_at", "updated_at", "deleted_at"},
+							"No need to add this field, it will be provided.",
+							cmder.SnakeCaseEmptyAllowed,
+						)),
 				),
 			)
 
-			err := orgForm.Run()
+			err = fieldNameForm.Run()
 			if err != nil {
 				fmt.Println("Error:", err.Error())
 				return
 			}
 
-			for {
-				var fieldName, fieldType string
-				var required, unique bool
-				choices := []string{}
-				fieldNameForm := huh.NewForm(
-					huh.NewGroup(
-						huh.NewInput().
-							Title("Enter the field name in snake_case").
-							Value(&fieldName).
-							Validate(cmder.NotIn(
-								[]string{"id", "email", "password", "org_username", "created_at", "updated_at", "deleted_at"},
-								"No need to add this field, it will be provided.",
-								cmder.SnakeCaseEmptyAllowed,
-							)),
-					),
-				)
+			if fieldName == "" {
+				break
+			}
 
-				err = fieldNameForm.Run()
-				if err != nil {
-					fmt.Println("Error:", err.Error())
-					return
-				}
+			fieldTypeForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[string]().
+						Title("Select the field type").
+						Options(huh.NewOptions(formFieldTypes...)...).
+						Value(&fieldType),
+				),
+			)
 
-				if fieldName == "" {
-					break
-				}
+			err = fieldTypeForm.Run()
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+				return
+			}
 
-				fieldTypeForm := huh.NewForm(
-					huh.NewGroup(
-						huh.NewSelect[string]().
-							Title("Select the field type").
-							Options(huh.NewOptions(formFieldTypes...)...).
-							Value(&fieldType),
-					),
-				)
+			if fieldType == "radio" || fieldType == "checkbox" || fieldType == "dropdown" {
 
-				err = fieldTypeForm.Run()
-				if err != nil {
-					fmt.Println("Error:", err.Error())
-					return
-				}
+				for {
+					var choice string
+					choicesForm := huh.NewForm(
+						huh.NewGroup(
+							huh.NewInput().
+								Title(fmt.Sprintf("Add new choice for %s %s (Press enter to finish)", fieldName, fieldType)).
+								Value(&choice),
+						),
+					)
 
-				if fieldType == "radio" || fieldType == "checkbox" || fieldType == "dropdown" {
-
-					for {
-						var choice string
-						choicesForm := huh.NewForm(
-							huh.NewGroup(
-								huh.NewInput().
-									Title(fmt.Sprintf("Add new choice for %s %s (Press enter to finish)", fieldName, fieldType)).
-									Value(&choice),
-							),
-						)
-
-						err = choicesForm.Run()
-						if err != nil {
-							fmt.Println(err)
-							return
-						}
-
-						if choice == "" {
-							break
-						}
-						choices = append(choices, choice)
+					err = choicesForm.Run()
+					if err != nil {
+						fmt.Println(err)
+						return
 					}
+
+					if choice == "" {
+						break
+					}
+					choices = append(choices, choice)
 				}
-
-				fields = append(fields, &Field{FieldName: fieldName, FieldType: fieldType, Choices: choices, IsRequired: required, IsUnique: unique})
 			}
 
-			fields = append(fields, &Field{FieldName: username, FieldType: "text", IsUsername: true, IsRequired: true, IsUnique: true})
-			fields = append(fields, &Field{FieldName: password, FieldType: "text", IsPassword: true, IsRequired: true})
-			if hasOrg {
-				fields = append(fields, &Field{FieldName: "org_username", FieldType: "text", IsRequired: true, IsUnique: true})
+			selectedAttrsForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewMultiSelect[string]().
+						Title("Press x to select the attributes").
+						Options(huh.NewOptions(required, unique)...).
+						Value(&selectedAttrs),
+				),
+			)
+			err = selectedAttrsForm.Run()
+			if err != nil {
+				return
 			}
 
-			// cmder.Confirm("Should your users belong to an org? (useful for multitenant apps)", 'n').Fill(&hasOrg).
-			// 	AskRepeat(
-			// 		"Enter the field name in snake_case",
-			// 		cmder.NotIn(
-			// 			[]string{"id", "email", "password", "org_username", "created_at", "updated_at", "deleted_at"},
-			// 			"No need to add this field, it will be provided.",
-			// 			cmder.SnakeCaseEmptyAllowed,
-			// 		),
-			// 		func(result any) cmder.Prompter {
-			// 			var required, unique bool
-			// 			choices := []string{}
-			// 			selectedType := ""
-			// 			prompt := cmder.Select(
-			// 				"Select the field type",
-			// 				[]string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "image"},
-			// 			).Fill(&selectedType).
-			// 				When(func(res any) bool {
-			// 					if val, ok := res.(string); ok {
-			// 						return val == "radio" || val == "checkbox" || val == "dropdown"
-			// 					}
-			// 					return false
-			// 				}, func(prompt cmder.Prompter) cmder.Prompter {
-			// 					return prompt.AskRepeat("Enter choices", cmder.SnakeCaseEmptyAllowed).Fill(&choices)
-			// 				}).
-			// 				Confirm("Is this a required field?", 'n').Fill(&required).
-			// 				Confirm("Is this a unique field?", 'n').Fill(&unique)
+			fields = append(fields, &Field{
+				FieldName:  fieldName,
+				FieldType:  fieldType,
+				Choices:    choices,
+				IsRequired: slices.Contains(selectedAttrs, required),
+				IsUnique:   slices.Contains(selectedAttrs, unique),
+			})
+		}
 
-			// 			fields = append(fields, &Field{FieldName: result.(string), FieldType: selectedType, Choices: choices, IsRequired: required, IsUnique: unique})
+		fields = append(fields, &Field{FieldName: username, FieldType: "text", IsUsername: true, IsRequired: true, IsUnique: true})
+		fields = append(fields, &Field{FieldName: password, FieldType: "text", IsPassword: true, IsRequired: true})
+		if hasOrg {
+			fields = append(fields, &Field{FieldName: "org_username", FieldType: "text", IsRequired: true, IsUnique: true})
+			fields = append(fields, &Field{FieldName: "org_name", FieldType: "text", IsRequired: true, IsUnique: false})
+		}
 
-			// 			return prompt
-			// 		})
+		createInputFiles(fields, hasOrg)
+		createMigrationFiles(fields, hasOrg)
+		createModelFiles(fields, hasOrg)
+		createFormFiles(fields, selectedFrontend, hasOrg)
+	},
+}
 
-			// fields = append(fields, &Field{FieldName: username, FieldType: "text", IsUsername: true, IsRequired: true, IsUnique: true})
-			// fields = append(fields, &Field{FieldName: password, FieldType: "text", IsPassword: true, IsRequired: true})
-			// if hasOrg {
-			// 	fields = append(fields, &Field{FieldName: "org_username", FieldType: "text", IsRequired: true, IsUnique: true})
-			// }
-
-			createInputFiles(fields)
-			createMigrationFiles(fields)
-			createModelFiles(fields)
-			createFormFiles(fields, selectedFrontend)
-		},
-	}
-
+func GetInstallCommand(p api.Plugin) *cobra.Command {
 	return AuthCmd
 }
 
@@ -213,7 +197,6 @@ func generateUserMigration(userFields []*cmd.MigrationField) {
 
 func generateOrgModel() {
 	orgFields := []*cmd.ModelField{
-		{Name: "id", Type: "bigIncrements"},
 		{Name: "org_username", Type: "string", Unique: true},
 		{Name: "org_name", Type: "string"},
 		{Name: "email", Type: "string", Unique: true},
@@ -234,21 +217,20 @@ func generateUserModel(userFields []*cmd.ModelField) {
 	um.Generate()
 }
 
-func createModelFiles(fields []*Field) {
+func createModelFiles(fields []*Field, hasOrg bool) {
 	createModelDir()
-	hasOrg := slices.ContainsFunc(fields, func(f *Field) bool { return f.FieldName == "org_username" })
 	userFields := []*cmd.ModelField{}
 	if hasOrg {
 		generateOrgModel()
 		userFields = append(userFields, &cmd.ModelField{
 			Name: "org_id",
-			Type: "bigIncrements",
+			Type: cmd.UiDataTypeMap["integer"],
 		})
 	}
 	for _, f := range fields {
 		userFields = append(userFields, &cmd.ModelField{
 			Name:     f.FieldName,
-			Type:     cmd.UiDbTypeMap[f.FieldType],
+			Type:     cmd.UiDataTypeMap[f.FieldType],
 			Required: f.IsRequired,
 			Unique:   f.IsUnique,
 		})
@@ -256,8 +238,7 @@ func createModelFiles(fields []*Field) {
 	generateUserModel(userFields)
 }
 
-func createMigrationFiles(fields []*Field) {
-	hasOrg := slices.ContainsFunc(fields, func(f *Field) bool { return f.FieldName == "org_username" })
+func createMigrationFiles(fields []*Field, hasOrg bool) {
 	userFields := []*cmd.MigrationField{
 		{Name: "id", Type: "bigIncrements"},
 	}
@@ -287,7 +268,7 @@ func createMigrationFiles(fields []*Field) {
 	generateUserMigration(userFields)
 }
 
-func createInputFiles(fields []*Field) {
+func createInputFiles(fields []*Field, hasOrg bool) {
 	createInputDir()
 	inputFields := []*cmd.InputField{}
 	registrationFields := []*cmd.InputField{}
@@ -305,11 +286,21 @@ func createInputFiles(fields []*Field) {
 		}
 	}
 
+	if hasOrg {
+		inputFields = append(inputFields, &cmd.InputField{Name: "org_username", Type: "string"})
+	}
+
 	loginGen := cmd.NewInputGenerator(&cmd.InputConfig{
 		Name:   "login",
 		Fields: inputFields,
 	})
 	loginGen.Generate()
+
+	registrationFields = append(registrationFields, []*cmd.InputField{
+		{Name: "email", Type: "string"},
+		{Name: "password", Type: "string"},
+		{Name: "password_confirmation", Type: "string"},
+	}...)
 
 	registrationGen := cmd.NewInputGenerator(&cmd.InputConfig{
 		Name:   "registration",
@@ -318,24 +309,46 @@ func createInputFiles(fields []*Field) {
 	registrationGen.Generate()
 }
 
-func createFormFiles(fields []*Field, flavor string) {
+func createFormFiles(fields []*Field, flavor string, hasOrg bool) {
 	createFormDir(flavor)
-	formFields := []*cmd.FormField{}
+	registrationFields := []*cmd.FormField{}
 	for _, f := range fields {
-		formFields = append(formFields, &cmd.FormField{
+		registrationFields = append(registrationFields, &cmd.FormField{
 			Name:    f.FieldName,
-			Type:    cmd.UiDataTypeMap[f.FieldType],
+			Type:    f.FieldType,
 			Choices: f.Choices,
 		})
+		if f.IsPassword {
+			registrationFields = append(registrationFields, &cmd.FormField{Name: "password_confirmation", Type: "text"})
+		}
 	}
 
-	formGen := cmd.NewFormGenerator(&cmd.FormConfig{
-		Name:   "auth",
+	loginFields := []*cmd.FormField{
+		{Name: "email", Type: "text"},
+		{Name: "password", Type: "text"},
+	}
+
+	if hasOrg {
+		loginFields = append(loginFields, &cmd.FormField{Name: "org_username", Type: "text"})
+	}
+
+	loginForm := cmd.NewFormGenerator(&cmd.FormConfig{
+		Name:   "login",
 		Flavor: flavor,
-		Fields: formFields,
-		Route:  "/auth",
+		Fields: loginFields,
+		Route:  "/login",
 	})
-	formGen.Generate()
+
+	loginForm.Generate()
+
+	regForm := cmd.NewFormGenerator(&cmd.FormConfig{
+		Name:   "register",
+		Flavor: flavor,
+		Fields: registrationFields,
+		Route:  "/register",
+	})
+
+	regForm.Generate()
 }
 
 func createInputDir() {
