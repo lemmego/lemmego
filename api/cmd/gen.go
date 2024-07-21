@@ -60,6 +60,10 @@ var commonFuncs = template.FuncMap{
 		return strcase.ToDelimited(str, ' ')
 	},
 	"contains": strings.Contains,
+	"concat": func(str string, strs ...string) string {
+		return str + strings.Join(strs, "")
+	},
+	"join": strings.Join,
 }
 
 type Replacable struct {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime/multipart"
+	"os"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -98,6 +100,14 @@ func (gcs *GCSStorage) CreateDirectory(path string) error {
 	return nil
 }
 
-func (gcs *GCSStorage) GetUrl(path string) string {
-	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", gcs.BucketName, path)
+func (gcs *GCSStorage) GetUrl(path string) (string, error) {
+	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", gcs.BucketName, path), nil
+}
+
+func (gcs *GCSStorage) Open(path string) (*os.File, error) {
+	panic("not implemented yet")
+}
+
+func (gcs *GCSStorage) Upload(file multipart.File, header *multipart.FileHeader, dir string) (*os.File, error) {
+	panic("not implemented")
 }

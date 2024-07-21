@@ -2,6 +2,8 @@ package fsys
 
 import (
 	"io"
+	"mime/multipart"
+	"os"
 )
 
 // FS defines the methods that any storage system must implement.
@@ -31,4 +33,10 @@ type FS interface {
 	// This method may not be applicable to all storage systems.
 	// For example, local storage may return a file path, while cloud storage may return a URL.
 	GetUrl(path string) (string, error)
+
+	// Open opens a file
+	Open(path string) (*os.File, error)
+
+	// Upload uploads a file to the implemented driver
+	Upload(file multipart.File, header *multipart.FileHeader, dir string) (*os.File, error)
 }

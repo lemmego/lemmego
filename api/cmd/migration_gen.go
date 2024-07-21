@@ -12,7 +12,6 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/gertd/go-pluralize"
-	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 )
 
@@ -50,6 +49,7 @@ type MigrationGenerator struct {
 	primaryColumns []string
 	uniqueColumns  [][]string
 	foreignColumns [][]string
+	Timestamps     bool
 }
 
 func NewMigrationGenerator(mc *MigrationConfig) *MigrationGenerator {
@@ -70,6 +70,7 @@ func NewMigrationGenerator(mc *MigrationConfig) *MigrationGenerator {
 		mc.PrimaryColumns,
 		mc.UniqueColumns,
 		mc.ForeignColumns,
+		mc.Timestamps,
 	}
 }
 
@@ -77,93 +78,6 @@ func (mg *MigrationGenerator) BumpVersion() *MigrationGenerator {
 	intVersion, _ := strconv.Atoi(mg.version)
 	mg.version = fmt.Sprintf("%d", intVersion+1)
 	return mg
-}
-
-func (mg *MigrationGenerator) GetReplacables() []*Replacable {
-	var fieldLines string
-	for index, f := range mg.fields {
-		typeString := "\tt.%s(\"%s\""
-		switch f.Type {
-		case "string":
-			typeString += ", 255)"
-		case "dateTime":
-			typeString += ", 0)"
-		case "decimal":
-			typeString += ", 8, 2)"
-		default:
-			typeString += ")"
-		}
-
-		if f.ForeignConstrained {
-			fieldLines += fmt.Sprintf("\tt.ForeignID(\"%s\").Constrained()", f.Name)
-		} else if f.Primary {
-			fieldLines += fmt.Sprintf("\tt.BigIncrements(\"%s\").Primary()", f.Name)
-		} else {
-			fieldLines += fmt.Sprintf(typeString, strcase.ToCamel(f.Type), f.Name)
-		}
-
-		if f.Unique {
-			fieldLines += ".Unique()"
-		}
-
-		if f.Nullable {
-			fieldLines += ".Nullable()"
-		}
-
-		if index < len(mg.fields)-1 {
-			fieldLines += "\n"
-		}
-	}
-
-	if len(mg.primaryColumns) > 0 {
-		primaryKeyString := fmt.Sprintf("\tt.PrimaryKey(")
-		for i, c := range mg.primaryColumns {
-			prefix := "\"%s\""
-			if i > 0 {
-				prefix = ", \"%s\""
-			}
-			primaryKeyString += fmt.Sprintf(prefix, c)
-		}
-		fieldLines += "\n" + primaryKeyString + ")"
-	}
-
-	if len(mg.uniqueColumns) > 0 && len(mg.uniqueColumns[0]) > 0 {
-		for _, c := range mg.uniqueColumns {
-			uniqueKeyString := fmt.Sprintf("\tt.UniqueKey(")
-			for j, c2 := range c {
-				prefix := "\"%s\""
-				if j > 0 {
-					prefix = ", \"%s\""
-				}
-				uniqueKeyString += fmt.Sprintf(prefix, c2)
-			}
-			fieldLines += "\n" + uniqueKeyString + ")"
-		}
-	}
-
-	if len(mg.foreignColumns) > 0 && len(mg.foreignColumns[0]) > 0 {
-		for _, columns := range mg.foreignColumns {
-			foreignKeyString := fmt.Sprintf("\tt.Foreign(")
-			for j, column := range columns {
-				prefix := "\"%s\""
-				if j > 0 {
-					prefix = ", \"%s\""
-				}
-				foreignKeyString += fmt.Sprintf(prefix, column)
-				table := guessPluralizedTableNameFromColumnName(column)
-				suffix := fmt.Sprintf(").References(\"id\").On(\"%s\");", table)
-				foreignKeyString += suffix
-			}
-			fieldLines += "\n" + foreignKeyString
-		}
-	}
-
-	return []*Replacable{
-		{Placeholder: "Name", Value: mg.name},
-		{Placeholder: "TableName", Value: mg.tableName},
-		{Placeholder: "Fields", Value: fieldLines},
-		{Placeholder: "Version", Value: mg.version},
-	}
 }
 
 func (mg *MigrationGenerator) GetPackagePath() string {
@@ -184,14 +98,18 @@ func (mg *MigrationGenerator) Generate() error {
 	}
 
 	tmplData := map[string]interface{}{
-		"PackageName": packageName,
+		"PackageName":    packageName,
+		"Name":           mg.name,
+		"TableName":      mg.tableName,
+		"Version":        mg.version,
+		"Fields":         mg.fields,
+		"PrimaryColumns": mg.primaryColumns,
+		"UniqueColumns":  mg.uniqueColumns,
+		"ForeignColumns": mg.foreignColumns,
+		"Timestamps":     mg.Timestamps,
 	}
 
-	for _, v := range mg.GetReplacables() {
-		tmplData[v.Placeholder] = v.Value
-	}
-
-	output, err := ParseTemplate(tmplData, mg.GetStub(), nil)
+	output, err := ParseTemplate(tmplData, mg.GetStub(), commonFuncs)
 
 	if err != nil {
 		return err
@@ -238,6 +156,7 @@ var migrationCmd = &cobra.Command{
 
 		for {
 			var fieldName, fieldType string
+			var attrs = []string{"Nullable", "Unique", "Primary", "ForeignConstrained"}
 			var selectedAttrs []string
 
 			fieldNameForm := huh.NewForm(
@@ -265,8 +184,8 @@ var migrationCmd = &cobra.Command{
 						Options(huh.NewOptions(migrationFieldTypes...)...).
 						Value(&fieldType),
 					huh.NewMultiSelect[string]().
-						Title("Press x to select the attributes that apply to this field").
-						Options(huh.NewOptions("Nullable", "Unique")...).
+						Title("Press x to mark the attributes that apply to this field").
+						Options(huh.NewOptions(attrs...)...).
 						Value(&selectedAttrs),
 				),
 			)
@@ -277,10 +196,12 @@ var migrationCmd = &cobra.Command{
 			}
 
 			fields = append(fields, &MigrationField{
-				Name:     fieldName,
-				Type:     fieldType,
-				Nullable: slices.Contains(selectedAttrs, "Nullable"),
-				Unique:   slices.Contains(selectedAttrs, "Unique"),
+				Name:               fieldName,
+				Type:               fieldType,
+				Nullable:           slices.Contains(selectedAttrs, "Nullable"),
+				Unique:             slices.Contains(selectedAttrs, "Unique"),
+				Primary:            slices.Contains(selectedAttrs, "Primary"),
+				ForeignConstrained: slices.Contains(selectedAttrs, "ForeignConstrained"),
 			})
 
 			primaryColumns = append(primaryColumns, fieldName)
@@ -291,15 +212,15 @@ var migrationCmd = &cobra.Command{
 		constraintForm := huh.NewForm(
 			huh.NewGroup(
 				huh.NewMultiSelect[string]().
-					Title("Press x to select the primary keys").
+					Title("Press x to mark the primary key columns").
 					Options(huh.NewOptions(primaryColumns...)...).
 					Value(&selectedPrimaryColumns),
 				huh.NewMultiSelect[string]().
-					Title("Press x to select the unique keys").
+					Title("Press x to mark the unique key columns").
 					Options(huh.NewOptions(uniqueColumns...)...).
 					Value(&selectedUniqueColumns),
 				huh.NewMultiSelect[string]().
-					Title("Press x to select the foreign keys").
+					Title("Press x to mark the foreign key columns").
 					Options(huh.NewOptions(foreignColumns...)...).
 					Value(&selectedForeignColumns),
 				huh.NewConfirm().

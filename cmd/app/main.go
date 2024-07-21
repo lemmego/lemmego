@@ -20,6 +20,8 @@ func main() {
 	// Create application
 	app := api.NewApp(
 		api.WithPlugins(registry),
+		api.WithInertia(nil),
+		api.WithFS(nil),
 	)
 
 	logger := httplog.NewLogger("lemmego", httplog.Options{

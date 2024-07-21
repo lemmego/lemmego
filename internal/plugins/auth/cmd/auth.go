@@ -74,7 +74,7 @@ var AuthCmd = &cobra.Command{
 						Title("Enter the field name in snake_case").
 						Value(&fieldName).
 						Validate(cmder.NotIn(
-							[]string{"id", "email", "password", "org_name", "org_username", "created_at", "updated_at", "deleted_at"},
+							[]string{"id", "email", "password", "org_name", "org_email", "org_username", "created_at", "updated_at", "deleted_at"},
 							"No need to add this field, it will be provided.",
 							cmder.SnakeCaseEmptyAllowed,
 						)),
@@ -155,10 +155,11 @@ var AuthCmd = &cobra.Command{
 
 		fields = append(fields, &Field{FieldName: username, FieldType: "text", IsUsername: true, IsRequired: true, IsUnique: true})
 		fields = append(fields, &Field{FieldName: password, FieldType: "text", IsPassword: true, IsRequired: true})
-		if hasOrg {
-			fields = append(fields, &Field{FieldName: "org_username", FieldType: "text", IsRequired: true, IsUnique: true})
-			fields = append(fields, &Field{FieldName: "org_name", FieldType: "text", IsRequired: true, IsUnique: false})
-		}
+
+		//if hasOrg {
+		//	fields = append(fields, &Field{FieldName: "org_username", FieldType: "text", IsRequired: true, IsUnique: true})
+		//	fields = append(fields, &Field{FieldName: "org_name", FieldType: "text", IsRequired: true, IsUnique: false})
+		//}
 
 		createInputFiles(fields, hasOrg)
 		createMigrationFiles(fields, hasOrg)
@@ -172,14 +173,15 @@ func GetInstallCommand(p api.Plugin) *cobra.Command {
 }
 
 func generateOrgMigration() {
+	orgFields := []*cmd.MigrationField{
+		{Name: "id", Type: "bigIncrements", Primary: true},
+		{Name: "org_username", Type: "string", Unique: true},
+		{Name: "org_name", Type: "string"},
+		{Name: "org_email", Type: "string", Unique: true},
+	}
 	om := cmd.NewMigrationGenerator(&cmd.MigrationConfig{
-		TableName: "orgs",
-		Fields: []*cmd.MigrationField{
-			{Name: "id", Type: "bigIncrements", Primary: true},
-			{Name: "org_username", Type: "string", Unique: true},
-			{Name: "org_name", Type: "string"},
-			{Name: "email", Type: "string", Unique: true},
-		},
+		TableName:  "orgs",
+		Fields:     orgFields,
 		Timestamps: true,
 	})
 	om.Generate()
@@ -199,7 +201,7 @@ func generateOrgModel() {
 	orgFields := []*cmd.ModelField{
 		{Name: "org_username", Type: "string", Unique: true},
 		{Name: "org_name", Type: "string"},
-		{Name: "email", Type: "string", Unique: true},
+		{Name: "org_email", Type: "string", Unique: true},
 	}
 
 	om := cmd.NewModelGenerator(&cmd.ModelConfig{
@@ -270,29 +272,38 @@ func createMigrationFiles(fields []*Field, hasOrg bool) {
 
 func createInputFiles(fields []*Field, hasOrg bool) {
 	createInputDir()
-	inputFields := []*cmd.InputField{}
+	loginFields := []*cmd.InputField{}
 	registrationFields := []*cmd.InputField{}
 	for _, f := range fields {
 		if f.IsUsername || f.IsPassword {
-			inputFields = append(inputFields, &cmd.InputField{
-				Name: f.FieldName,
-				Type: cmd.UiDataTypeMap[f.FieldType],
+			loginFields = append(loginFields, &cmd.InputField{
+				Name:     f.FieldName,
+				Type:     cmd.UiDataTypeMap[f.FieldType],
+				Required: f.IsRequired,
+				Unique:   f.IsUnique,
 			})
 		} else {
 			registrationFields = append(registrationFields, &cmd.InputField{
-				Name: f.FieldName,
-				Type: cmd.UiDataTypeMap[f.FieldType],
+				Name:     f.FieldName,
+				Type:     cmd.UiDataTypeMap[f.FieldType],
+				Required: f.IsRequired,
+				Unique:   f.IsUnique,
 			})
 		}
 	}
 
 	if hasOrg {
-		inputFields = append(inputFields, &cmd.InputField{Name: "org_username", Type: "string"})
+		loginFields = append(loginFields, &cmd.InputField{Name: "org_username", Type: "string", Required: true})
+		registrationFields = append(registrationFields, []*cmd.InputField{
+			{Name: "org_name", Type: "string", Required: true},
+			{Name: "org_email", Type: "string", Required: true},
+			{Name: "org_username", Type: "string", Required: true},
+		}...)
 	}
 
 	loginGen := cmd.NewInputGenerator(&cmd.InputConfig{
 		Name:   "login",
-		Fields: inputFields,
+		Fields: loginFields,
 	})
 	loginGen.Generate()
 
@@ -330,6 +341,11 @@ func createFormFiles(fields []*Field, flavor string, hasOrg bool) {
 
 	if hasOrg {
 		loginFields = append(loginFields, &cmd.FormField{Name: "org_username", Type: "text"})
+		registrationFields = append(registrationFields, []*cmd.FormField{
+			{Name: "org_name", Type: "text"},
+			{Name: "org_email", Type: "text"},
+			{Name: "org_username", Type: "text"},
+		}...)
 	}
 
 	loginForm := cmd.NewFormGenerator(&cmd.FormConfig{

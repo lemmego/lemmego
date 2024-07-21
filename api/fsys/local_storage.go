@@ -2,7 +2,10 @@ package fsys
 
 import (
 	"io"
+	"lemmego/api/logger"
+	"mime/multipart"
 	"os"
+	"path"
 	"path/filepath"
 )
 
@@ -94,11 +97,42 @@ func (ls *LocalStorage) CreateDirectory(path string) error {
 	return nil
 }
 
-func (ls *LocalStorage) GetUrl(path string) string {
+func (ls *LocalStorage) GetUrl(path string) (string, error) {
 	// Construct the URL based on the root directory and the provided path
 	fullPath := filepath.Join(ls.RootDirectory, path)
 	// Assuming you are serving the files via HTTP
 	// return fmt.Sprintf("http://yourdomain.com/%s", fullPath)
 
-	return fullPath
+	return fullPath, nil
+}
+
+func (ls *LocalStorage) Open(path string) (*os.File, error) {
+	return os.Open(path)
+}
+
+func (ls *LocalStorage) Upload(file multipart.File, header *multipart.FileHeader, dir string) (*os.File, error) {
+	if exists, _ := ls.Exists(dir); !exists {
+		err := ls.CreateDirectory(dir)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	data, _ := io.ReadAll(file)
+	err := ls.Write(path.Join(dir, header.Filename), data)
+	if err != nil {
+		return nil, err
+	}
+
+	if storedFile, err := ls.Open(path.Join(dir, header.Filename)); err != nil {
+		return nil, err
+	} else {
+		defer func() {
+			err := storedFile.Close()
+			if err != nil {
+				logger.V().Info("Uploaded file could not be closed", "Error:", err)
+			}
+		}()
+		return storedFile, nil
+	}
 }

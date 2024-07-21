@@ -3,7 +3,7 @@ package {{.PackageName}}
 templ {{.Name}}() {
   <div class="container w-1/3 mx-auto">
   <h1 class="text-3xl text-center">{{.Name | toTitle}}</h1>
-  <form action="{{.Route}}" method="POST">
+  <form action="{{.Route}}" method="POST" enc-type="multipart/form-data">
     {{range .Fields}}
       <div class="mt-2">
         {{- if eq .Type "text"}}

@@ -6,8 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/golobby/container/v3"
+	inertia "github.com/romsar/gonertia"
+	"lemmego/api/db"
+	"lemmego/api/fsys"
+	"lemmego/api/logger"
+	"lemmego/api/vee"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"reflect"
 	"sync"
 
@@ -20,9 +26,9 @@ import (
 
 func init() {
 	gob.Register(&AlertMessage{})
-	gob.Register(&ValidationError{})
+	gob.Register(vee.Errors{})
 	gob.Register([]*AlertMessage{})
-	gob.Register([]*ValidationError{})
+	gob.Register(vee.Errors{})
 }
 
 type Context struct {
@@ -36,11 +42,6 @@ type Context struct {
 type AlertMessage struct {
 	Type string // success, error, warning, info, debug
 	Body string
-}
-
-type ValidationError struct {
-	Key   string
-	Value string
 }
 
 type R struct {
@@ -88,7 +89,7 @@ func (c *Context) Alert(typ string, message string) *AlertMessage {
 	return &AlertMessage{Type: typ, Body: message}
 }
 
-func (c *Context) ParseAndValidate(body any) (any, error) {
+func (c *Context) ParseAndValidate(body req.Validator) (any, error) {
 	// return error if body is not a pointer
 	if reflect.ValueOf(body).Kind() != reflect.Ptr {
 		return nil, errors.New("body must be a pointer")
@@ -163,15 +164,20 @@ func (c *Context) Respond(status int, r *R) error {
 		}
 		switch messageType {
 		case "success":
-			return c.WithSuccess(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
+			c.WithSuccess(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
+			return nil
 		case "info":
-			return c.WithInfo(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
+			c.WithInfo(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
+			return nil
 		case "warning":
-			return c.WithWarning(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
+			c.WithWarning(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
+			return nil
 		case "error":
-			return c.WithError(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
+			c.WithError(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
+			return nil
 		default:
-			return c.Redirect(http.StatusFound, r.RedirectTo)
+			c.Redirect(http.StatusFound, r.RedirectTo)
+			return nil
 		}
 	}
 
@@ -198,6 +204,18 @@ func (c *Context) ResponseWriter() http.ResponseWriter {
 	return c.responseWriter
 }
 
+func (c *Context) FS() fsys.FS {
+	return c.app.fs
+}
+
+func (c *Context) DB() *db.DB {
+	return c.app.db
+}
+
+func (c *Context) I() *inertia.Inertia {
+	return c.app.i
+}
+
 func (c *Context) Templ(component templ.Component) error {
 	return component.Render(c.Request().Context(), c.responseWriter)
 }
@@ -219,8 +237,8 @@ func (c *Context) JSON(status int, body M) error {
 	response, _ := json.Marshal(body)
 	c.responseWriter.Header().Set("Content-Type", "application/json")
 	c.responseWriter.WriteHeader(status)
-	c.responseWriter.Write(response)
-	return nil
+	_, err := c.responseWriter.Write(response)
+	return err
 }
 
 func (c *Context) Send(status int, body []byte) error {
@@ -238,15 +256,16 @@ func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
 	if data == nil {
 		data = &TemplateData{}
 	}
-	vErrs := []*ValidationError{}
-	if val, ok := c.Pop("validationErrors").([]*ValidationError); ok {
+
+	vErrs := vee.Errors{}
+
+	if val, ok := c.Pop("errors").(vee.Errors); ok {
 		vErrs = val
 	}
-	if data.ValidationErrors == nil {
-		data.ValidationErrors = []*ValidationError{}
-	}
 
-	data.ValidationErrors = append(data.ValidationErrors, vErrs...)
+	if data.ValidationErrors == nil {
+		data.ValidationErrors = vErrs
+	}
 
 	data.Messages = append(data.Messages, &AlertMessage{"success", c.PopString("success")})
 	data.Messages = append(data.Messages, &AlertMessage{"info", c.PopString("info")})
@@ -259,8 +278,8 @@ func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
 func (c *Context) HTML(status int, body string) error {
 	c.responseWriter.Header().Set("Content-Type", "text/html")
 	c.responseWriter.WriteHeader(status)
-	c.responseWriter.Write([]byte(body))
-	return nil
+	_, err := c.responseWriter.Write([]byte(body))
+	return err
 }
 
 func (c *Context) Render(status int, tmplPath string, data *TemplateData) error {
@@ -270,56 +289,65 @@ func (c *Context) Render(status int, tmplPath string, data *TemplateData) error 
 	return RenderTemplate(c.responseWriter, tmplPath, data)
 }
 
-func (c *Context) Inertia(filePath string, props map[string]any) error {
-	return c.App().i.Render(c.ResponseWriter(), c.Request(), filePath, props)
+func (c *Context) Inertia(status int, filePath string, props map[string]any) error {
+	if c.app.i == nil {
+		return errors.New("inertia not enabled")
+	}
+	c.responseWriter.WriteHeader(status)
+	return c.App().Inertia().Render(c.ResponseWriter(), c.Request(), filePath, props)
 }
 
-func (c *Context) Redirect(status int, url string) error {
+func (c *Context) Redirect(status int, url string) {
 	c.responseWriter.Header().Set("Location", url)
 	c.responseWriter.WriteHeader(status)
-	return nil
 }
 
-func (c *Context) WithErrors(data map[string]error) *Context {
-	errors := []*ValidationError{}
-	for key, value := range data {
-		errors = append(errors, &ValidationError{key, value.Error()})
+func (c *Context) WithErrors(errors vee.Errors) *Context {
+	if c.app.i != nil {
+		c.app.i.ShareProp("errors", errors)
 	}
-	c.app.i.ShareProp("validationErrors", errors)
-	return c.Put("validationErrors", errors)
+	return c.Put("errors", errors)
 }
 
 func (c *Context) WithSuccess(message string) *Context {
-	c.app.i.ShareProp("success", message)
-	c.app.session.Put(c.Request().Context(), "success", message)
-	return c
+	if c.app.i != nil {
+		c.app.i.ShareProp("success", message)
+	}
+	return c.Put("success", message)
 }
 
 func (c *Context) WithInfo(message string) *Context {
-	c.app.i.ShareProp("info", message)
-	c.app.session.Put(c.Request().Context(), "info", message)
-	return c
+	if c.app.i != nil {
+		c.app.i.ShareProp("info", message)
+	}
+	return c.Put("info", message)
 }
 
 func (c *Context) WithWarning(message string) *Context {
-	c.app.i.ShareProp("warning", message)
-	c.app.session.Put(c.Request().Context(), "warning", message)
-	return c
+	if c.app.i != nil {
+		c.app.i.ShareProp("warning", message)
+	}
+	return c.Put("warning", message)
 }
 
 func (c *Context) WithError(message string) *Context {
-	c.app.i.ShareProp("error", message)
-	c.app.session.Put(c.Request().Context(), "error", message)
-	return c
+	if c.app.i != nil {
+		c.app.i.ShareProp("error", message)
+	}
+	return c.Put("error", message)
 }
 
-func (c *Context) WithData(data map[string]error) *Context {
+func (c *Context) WithData(data map[string]any) *Context {
 	c.PutFlash("data", data)
 	return c
 }
 
-func (c *Context) Back() error {
-	return c.Redirect(http.StatusFound, c.GetHeader("Referer"))
+func (c *Context) Back(status int) {
+	if c.app.i != nil {
+		c.App().Inertia().Back(c.ResponseWriter(), c.Request(), status)
+		return
+	}
+	c.Redirect(status, c.request.Referer())
 }
 
 func (c *Context) GetParam(key string) string {
@@ -330,14 +358,34 @@ func (c *Context) GetQuery(key string) string {
 	return c.request.URL.Query().Get(key)
 }
 
-func (c *Context) GetBody() map[string][]string {
-	c.request.ParseForm()
-	return c.request.Form
+func (c *Context) GetBody() (map[string][]string, error) {
+	if err := c.request.ParseForm(); err != nil {
+		return nil, err
+	}
+	return c.request.Form, nil
 }
 
-func (c *Context) UploadedFile(key string) (multipart.File, *multipart.FileHeader, error) {
-	c.request.ParseMultipartForm(32 << 20)
+func (c *Context) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
+	if err := c.request.ParseMultipartForm(32 << 20); err != nil {
+		return nil, nil, err
+	}
 	return c.request.FormFile(key)
+}
+
+func (c *Context) Upload(key string, dir string) (*os.File, error) {
+	file, header, err := c.FormFile(key)
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.V().Info("Form file could not be closed", "Error:", err)
+		}
+	}()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return c.FS().Upload(file, header, dir)
 }
 
 func (c *Context) Set(key string, value interface{}) {
@@ -372,9 +420,9 @@ func (c *Context) PopString(key string) string {
 func (c *Context) Error(status int, err error) error {
 	if c.WantsJSON() {
 		return c.JSON(status, M{"message": err.Error()})
-	} else {
-		return c.WithError(err.Error()).Back()
 	}
+	c.WithError(err.Error()).Back(http.StatusFound)
+	return nil
 }
 
 func (c *Context) InternalServerError(err error) error {

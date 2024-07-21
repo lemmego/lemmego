@@ -145,13 +145,11 @@ func (mg *ModelGenerator) Generate() error {
 
 	tmplData := map[string]interface{}{
 		"PackageName": packageName,
+		"ModelName":   mg.name,
+		"Fields":      mg.fields,
 	}
 
-	for _, v := range mg.GetReplacables() {
-		tmplData[v.Placeholder] = v.Value
-	}
-
-	output, err := ParseTemplate(tmplData, mg.GetStub(), nil)
+	output, err := ParseTemplate(tmplData, mg.GetStub(), commonFuncs)
 
 	if err != nil {
 		return err

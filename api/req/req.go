@@ -46,10 +46,7 @@ func Validate(w http.ResponseWriter, r *http.Request, body Validator) error {
 			return err
 		}
 	}
-	if err := body.Validate(); err != nil {
-		return err
-	}
-	return nil
+	return body.Validate()
 }
 
 func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {

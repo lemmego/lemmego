@@ -6,7 +6,7 @@ import (
 )
 
 func IndexHomeHandler(ctx *api.Context) error {
-	return ctx.Inertia("Home/Welcome", map[string]any{
+	return ctx.Inertia(200, "Home/Welcome", map[string]any{
 		"name": "John Doe",
 	})
 	return ctx.HTML(200, `

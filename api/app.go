@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"lemmego/api/fsys"
 	"lemmego/api/session"
 	// "lemmego/api/session"
 	"log"
@@ -36,10 +37,6 @@ func (r PluginRegistry) Add(plugin Plugin) {
 }
 
 type M map[string]any
-
-type Handler func(c *Context) error
-
-type Middleware func(next Handler) Handler
 
 //type Middleware func(c *Context) func(next http.Handler) http.Handler
 
@@ -92,6 +89,7 @@ type App struct {
 	i              *inertia.Inertia
 	routeRegistrar RouteRegistrarFunc
 	currentGroup   *RouteGroup
+	fs             fsys.FS
 }
 
 type Options struct {
@@ -102,6 +100,8 @@ type Options struct {
 	Providers        []ServiceProvider
 	routeMiddlewares map[string]Middleware
 	Hooks            *AppHooks
+	inertia          *inertia.Inertia
+	fs               fsys.FS
 }
 
 type OptFunc func(opts *Options)
@@ -122,16 +122,20 @@ func (app *App) Session() *session.Session {
 	return app.session
 }
 
-func (app *App) Db() *db.DB {
-	return app.db
-}
-
 func (app *App) Inertia() *inertia.Inertia {
 	return app.i
 }
 
+func (app *App) DB() *db.DB {
+	return app.db
+}
+
 func (app *App) DbFunc(c context.Context, config *db.DBConfig) (*db.DB, error) {
 	return app.dbFunc(c, config)
+}
+
+func (app *App) FS() fsys.FS {
+	return app.fs
 }
 
 func getDefaultConfig() ConfigMap {
@@ -143,6 +147,8 @@ func defaultOptions() *Options {
 		container.New(),
 		nil,
 		getDefaultConfig(),
+		nil,
+		nil,
 		nil,
 		nil,
 		nil,
@@ -168,6 +174,24 @@ func WithHooks(hooks *AppHooks) OptFunc {
 	}
 }
 
+func WithInertia(i *inertia.Inertia) OptFunc {
+	if i == nil {
+		i = initInertia()
+	}
+	return func(opts *Options) {
+		opts.inertia = i
+	}
+}
+
+func WithFS(fs fsys.FS) OptFunc {
+	if fs == nil {
+		fs = fsys.NewLocalStorage("./storage")
+	}
+	return func(opts *Options) {
+		opts.fs = fs
+	}
+}
+
 //func WithRouter(router HTTPRouter) OptFunc {
 //	return func(opts *Options) {
 //		opts.HTTPRouter = router
@@ -186,13 +210,12 @@ func WithSession(sm *session.Session) OptFunc {
 	}
 }
 
-func NewApp(options ...OptFunc) *App {
+func NewApp(optFuncs ...OptFunc) *App {
 	opts := defaultOptions()
-	i := initInertia()
 	hr := NewRouter(NewChiRouter())
 
-	for _, option := range options {
-		option(opts)
+	for _, optFunc := range optFuncs {
+		optFunc(opts)
 	}
 
 	// Check if plugins have duplicate namespaces
@@ -248,7 +271,8 @@ func NewApp(options ...OptFunc) *App {
 		services:       opts.Providers,
 		hooks:          opts.Hooks,
 		router:         hr,
-		i:              i,
+		i:              opts.inertia,
+		fs:             opts.fs,
 	}
 	return app
 }

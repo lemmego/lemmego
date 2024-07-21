@@ -2,6 +2,7 @@ package api
 
 import (
 	"html/template"
+	"lemmego/api/vee"
 	"net/http"
 	"path/filepath"
 )
@@ -14,7 +15,7 @@ type TemplateData struct {
 	FuncMap          template.FuncMap
 	Data             map[string]any
 	CSRFToken        string
-	ValidationErrors []*ValidationError
+	ValidationErrors vee.Errors
 	Messages         []*AlertMessage
 }
 

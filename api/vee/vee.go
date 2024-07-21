@@ -21,6 +21,14 @@ import (
 
 type Errors map[string][]string
 
+func (v *Vee) Validate() error {
+	if v.IsValid() {
+		return nil
+	}
+
+	return v.Errors
+}
+
 func (e Errors) Error() string {
 	val, _ := json.Marshal(e)
 	return string(val)

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime/multipart"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -172,7 +174,15 @@ func (s3s *S3Storage) CreateDirectory(path string) error {
 }
 
 // GetUrl returns the URL of the file at the specified path in S3 storage.
-func (s3s *S3Storage) GetUrl(path string) string {
+func (s3s *S3Storage) GetUrl(path string) (string, error) {
 	// Format the URL based on the bucket name and object key
-	return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", s3s.BucketName, path)
+	return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", s3s.BucketName, path), nil
+}
+
+func (s3s *S3Storage) Open(path string) (*os.File, error) {
+	panic("not implemented")
+}
+
+func (s3s *S3Storage) Upload(file multipart.File, header *multipart.FileHeader, dir string) (*os.File, error) {
+	panic("not implemented")
 }

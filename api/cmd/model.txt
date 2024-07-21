@@ -7,7 +7,20 @@ import (
 	"gorm.io/gorm"
 )
 
-type {{.ModelName}} struct {
+type {{.ModelName | toCamel}} struct {
 	gorm.Model
-{{.Fields}}
+{{- range .Fields}}
+    {{- $gormTag := ""}}
+    {{- if .Unique}}
+        {{- $gormTag = concat $gormTag "unique "}}
+    {{- end}}
+    {{- if .Required}}
+        {{- $gormTag = concat $gormTag "not null"}}
+    {{- end}}
+    {{- if eq $gormTag ""}}
+    {{.Name | toCamel}} {{.Type}} `json:"{{.Name | toSnake}}"`
+    {{- else}}
+    {{.Name | toCamel}} {{.Type}} `json:"{{.Name | toSnake}}" gorm:"{{$gormTag}}"`
+    {{- end}}
+{{- end}}
 }

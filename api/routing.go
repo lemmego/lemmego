@@ -20,6 +20,10 @@ import (
 
 const InKey = "input"
 
+type Handler func(c *Context) error
+
+type Middleware func(next Handler) Handler
+
 type HTTPRouter interface {
 	http.Handler
 
@@ -92,6 +96,22 @@ type HTTPRouter interface {
 
 type router struct {
 	HTTPRouter
+}
+
+func NewDefaultRouter() HTTPRouter {
+	return &router{}
+}
+
+func (r *router) Get(pattern string, handler http.HandlerFunc) {
+	http.HandleFunc("GET "+pattern, handler)
+}
+
+func (r *router) Post(pattern string, handler http.HandlerFunc) {
+	http.HandleFunc("POST "+pattern, handler)
+}
+
+func (r *router) With(middlewares ...func(http.Handler) http.Handler) HTTPRouter {
+	return &router{}
 }
 
 type chiRouter struct {
@@ -467,7 +487,7 @@ func adaptMiddleware(app *App, m Middleware) func(http.Handler) http.Handler {
 }
 
 func makeHandlerFunc(app *App, route *Route) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := &Context{sync.Mutex{}, app, container.New(), r, w}
 		if !app.isContextReady {
 			app.isContextReady = true
@@ -495,17 +515,35 @@ func makeHandlerFunc(app *App, route *Route) http.HandlerFunc {
 
 		if err := chain(ctx); err != nil {
 			logger.V().Error(err.Error())
-			if !ctx.WantsJSON() {
-				ctx.Redirect(http.StatusFound, "/error")
+			// Check if the error is validation errors, if so
+			// return 422 according to the UI preference.
+			if errors.As(err, &vee.Errors{}) {
+				if !ctx.WantsJSON() {
+					ctx.WithErrors(err.(vee.Errors)).Back(http.StatusFound)
+					return
+				}
+				err := ctx.JSON(http.StatusUnprocessableEntity, M{"errors": err})
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, err)
+				}
 				return
 			}
-			if errors.As(err, &vee.Errors{}) {
-				ctx.JSON(http.StatusInternalServerError, M{"errors": err})
-			} else {
-				ctx.JSON(http.StatusInternalServerError, M{"error": err.Error()})
+
+			if !ctx.WantsJSON() {
+				ctx.WithError(err.Error()).
+					Redirect(http.StatusFound, "/error")
+				return
 			}
+			ctx.Error(http.StatusInternalServerError, err)
+			return
 		}
 	}
+
+	if app.i != nil {
+		return app.Inertia().Middleware(http.HandlerFunc(fn)).ServeHTTP
+	}
+
+	return fn
 }
 
 func initInertia() *inertia.Inertia {

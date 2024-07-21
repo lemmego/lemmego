@@ -8,6 +8,7 @@ import (
 	"lemmego/api"
 	"lemmego/api/db"
 	"lemmego/api/session"
+	"lemmego/api/vee"
 	pluginCmd "lemmego/internal/plugins/auth/cmd"
 	"log"
 	"net/http"
@@ -17,7 +18,6 @@ import (
 	"dario.cat/mergo"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/invopop/validation"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
@@ -60,8 +60,8 @@ type Credentials struct {
 // 	Password  string `json:"password"`
 // }
 
-type ResolveUserFunc func(c *api.Context, opts *Options) (*AuthUser, *Credentials, validation.Errors)
-type CreateUserFunc func(c *api.Context, opts *Options) (bool, validation.Errors)
+type ResolveUserFunc func(c *api.Context, opts *Options) (*AuthUser, *Credentials, vee.Errors)
+type CreateUserFunc func(c *api.Context, opts *Options) (bool, vee.Errors)
 
 type CustomHandlerFunc func(opts *Options) *CustomHandlers
 
@@ -290,7 +290,7 @@ func (p *AuthPlugin) InstallCommand() *cobra.Command {
 
 func (p *AuthPlugin) Boot(app *api.App) error {
 	p.Opts.Session = app.Session()
-	p.Opts.DB = app.Db()
+	p.Opts.DB = app.DB()
 	p.Opts.Router = app.Router()
 	return nil
 }
@@ -338,7 +338,7 @@ func (p *AuthPlugin) storeRegisterHandler() api.Handler {
 		ok, errs := p.Opts.CreateUser(c, p.Opts)
 
 		if errs != nil {
-			return c.WithErrors(errs).Back()
+			return errs
 		}
 
 		if ok {
@@ -348,7 +348,7 @@ func (p *AuthPlugin) storeRegisterHandler() api.Handler {
 				Payload:    api.M{"message": "Registration Successful"},
 			})
 		} else {
-			return c.WithError("Registration Failed").Back()
+			return errors.New("Registration Failed")
 		}
 	}
 }
@@ -404,14 +404,14 @@ func (p *AuthPlugin) Routes() []*api.Route {
 			Method: http.MethodGet,
 			Path:   "/login",
 			Handler: func(c *api.Context) error {
-				return c.Inertia("Forms/Login", nil)
+				return c.Inertia(200, "Forms/Login", nil)
 			},
 		},
 		&api.Route{
 			Method: http.MethodGet,
 			Path:   "/register",
 			Handler: func(c *api.Context) error {
-				return c.Inertia("Forms/Register", nil)
+				return c.Inertia(200, "Forms/Register", nil)
 			},
 		},
 	}

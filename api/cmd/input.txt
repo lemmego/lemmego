@@ -17,5 +17,5 @@ func (i *{{.InputName | toCamel}}Input) Validate() error {
     v.Required("{{.Name | toSnake}}", i.{{.Name | toCamel}})
         {{- end}}
     {{- end}}
-	return v.Errors
+	return v.Validate()
 }

@@ -4,7 +4,7 @@ const Register: React.FC = () => {
 	return (
 		<div className="container w-1/3 mx-auto">
 			<h1 className="text-3xl text-center">Register</h1>
-			<form action="/register" method="POST">
+			<form action="/register" method="POST" encType={"multipart/form-data"}>
 				
 					<div className="mt-2">
 						<label htmlFor="first_name" className="label-primary">First Name</label>
@@ -14,6 +14,11 @@ const Register: React.FC = () => {
 					<div className="mt-2">
 						<label htmlFor="last_name" className="label-primary">Last Name</label>
                         <input id="last_name" name="last_name" type="text" className="input"/>
+					</div>
+				
+					<div className="mt-2">
+						<label htmlFor="logo" className="label-primary">Logo</label>
+						<input id="logo" name="logo" type="file"/>
 					</div>
 				
 					<div className="mt-2">
@@ -32,13 +37,18 @@ const Register: React.FC = () => {
 					</div>
 				
 					<div className="mt-2">
-						<label htmlFor="org_username" className="label-primary">Org Username</label>
-                        <input id="org_username" name="org_username" type="text" className="input"/>
+						<label htmlFor="org_name" className="label-primary">Org Name</label>
+                        <input id="org_name" name="org_name" type="text" className="input"/>
 					</div>
 				
 					<div className="mt-2">
-						<label htmlFor="org_name" className="label-primary">Org Name</label>
-                        <input id="org_name" name="org_name" type="text" className="input"/>
+						<label htmlFor="org_email" className="label-primary">Org Email</label>
+                        <input id="org_email" name="org_email" type="email" className="input"/>
+					</div>
+				
+					<div className="mt-2">
+						<label htmlFor="org_username" className="label-primary">Org Username</label>
+                        <input id="org_username" name="org_username" type="text" className="input"/>
 					</div>
 				
 				<div>
