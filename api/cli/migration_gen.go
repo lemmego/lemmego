@@ -1,9 +1,8 @@
-package cmd
+package cli
 
 import (
 	_ "embed"
 	"fmt"
-	"lemmego/api/cmder"
 	"lemmego/api/fsys"
 	"slices"
 	"strconv"
@@ -81,7 +80,7 @@ func (mg *MigrationGenerator) BumpVersion() *MigrationGenerator {
 }
 
 func (mg *MigrationGenerator) GetPackagePath() string {
-	return "cmd/migrations"
+	return "cli/migrations"
 }
 
 func (mg *MigrationGenerator) GetStub() string {
@@ -124,6 +123,10 @@ func (mg *MigrationGenerator) Generate() error {
 	return nil
 }
 
+func (mg *MigrationGenerator) Command() *cobra.Command {
+	return migrationCmd
+}
+
 var migrationCmd = &cobra.Command{
 	Use:   "migration",
 	Short: "Generate a simple migration file",
@@ -145,7 +148,7 @@ var migrationCmd = &cobra.Command{
 				huh.NewInput().
 					Title("Enter the table name in snake_case and plular form").
 					Value(&tableName).
-					Validate(cmder.SnakeCase),
+					Validate(SnakeCase),
 			),
 		)
 
@@ -164,7 +167,7 @@ var migrationCmd = &cobra.Command{
 					huh.NewInput().
 						Title("Enter the field name in snake_case").
 						Value(&fieldName).
-						Validate(cmder.SnakeCaseEmptyAllowed),
+						Validate(SnakeCaseEmptyAllowed),
 				),
 			)
 

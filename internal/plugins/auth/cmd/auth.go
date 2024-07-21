@@ -5,8 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"lemmego/api"
-	"lemmego/api/cmd"
-	"lemmego/api/cmder"
+	"lemmego/api/cli"
 	"lemmego/api/fsys"
 	"os"
 	"slices"
@@ -73,10 +72,10 @@ var AuthCmd = &cobra.Command{
 					huh.NewInput().
 						Title("Enter the field name in snake_case").
 						Value(&fieldName).
-						Validate(cmder.NotIn(
+						Validate(cli.NotIn(
 							[]string{"id", "email", "password", "org_name", "org_email", "org_username", "created_at", "updated_at", "deleted_at"},
 							"No need to add this field, it will be provided.",
-							cmder.SnakeCaseEmptyAllowed,
+							cli.SnakeCaseEmptyAllowed,
 						)),
 				),
 			)
@@ -173,13 +172,13 @@ func GetInstallCommand(p api.Plugin) *cobra.Command {
 }
 
 func generateOrgMigration() {
-	orgFields := []*cmd.MigrationField{
+	orgFields := []*cli.MigrationField{
 		{Name: "id", Type: "bigIncrements", Primary: true},
 		{Name: "org_username", Type: "string", Unique: true},
 		{Name: "org_name", Type: "string"},
 		{Name: "org_email", Type: "string", Unique: true},
 	}
-	om := cmd.NewMigrationGenerator(&cmd.MigrationConfig{
+	om := cli.NewMigrationGenerator(&cli.MigrationConfig{
 		TableName:  "orgs",
 		Fields:     orgFields,
 		Timestamps: true,
@@ -187,8 +186,8 @@ func generateOrgMigration() {
 	om.Generate()
 }
 
-func generateUserMigration(userFields []*cmd.MigrationField) {
-	um := cmd.NewMigrationGenerator(&cmd.MigrationConfig{
+func generateUserMigration(userFields []*cli.MigrationField) {
+	um := cli.NewMigrationGenerator(&cli.MigrationConfig{
 		TableName:      "users",
 		Fields:         userFields,
 		Timestamps:     true,
@@ -198,21 +197,21 @@ func generateUserMigration(userFields []*cmd.MigrationField) {
 }
 
 func generateOrgModel() {
-	orgFields := []*cmd.ModelField{
+	orgFields := []*cli.ModelField{
 		{Name: "org_username", Type: "string", Unique: true},
 		{Name: "org_name", Type: "string"},
 		{Name: "org_email", Type: "string", Unique: true},
 	}
 
-	om := cmd.NewModelGenerator(&cmd.ModelConfig{
+	om := cli.NewModelGenerator(&cli.ModelConfig{
 		Name:   "org",
 		Fields: orgFields,
 	})
 	om.Generate()
 }
 
-func generateUserModel(userFields []*cmd.ModelField) {
-	um := cmd.NewModelGenerator(&cmd.ModelConfig{
+func generateUserModel(userFields []*cli.ModelField) {
+	um := cli.NewModelGenerator(&cli.ModelConfig{
 		Name:   "user",
 		Fields: userFields,
 	})
@@ -221,18 +220,18 @@ func generateUserModel(userFields []*cmd.ModelField) {
 
 func createModelFiles(fields []*Field, hasOrg bool) {
 	createModelDir()
-	userFields := []*cmd.ModelField{}
+	userFields := []*cli.ModelField{}
 	if hasOrg {
 		generateOrgModel()
-		userFields = append(userFields, &cmd.ModelField{
+		userFields = append(userFields, &cli.ModelField{
 			Name: "org_id",
-			Type: cmd.UiDataTypeMap["integer"],
+			Type: cli.UiDataTypeMap["integer"],
 		})
 	}
 	for _, f := range fields {
-		userFields = append(userFields, &cmd.ModelField{
+		userFields = append(userFields, &cli.ModelField{
 			Name:     f.FieldName,
-			Type:     cmd.UiDataTypeMap[f.FieldType],
+			Type:     cli.UiDataTypeMap[f.FieldType],
 			Required: f.IsRequired,
 			Unique:   f.IsUnique,
 		})
@@ -241,7 +240,7 @@ func createModelFiles(fields []*Field, hasOrg bool) {
 }
 
 func createMigrationFiles(fields []*Field, hasOrg bool) {
-	userFields := []*cmd.MigrationField{
+	userFields := []*cli.MigrationField{
 		{Name: "id", Type: "bigIncrements"},
 	}
 	uniqueColumns := []string{}
@@ -252,7 +251,7 @@ func createMigrationFiles(fields []*Field, hasOrg bool) {
 	}
 	if hasOrg {
 		generateOrgMigration()
-		userFields = append(userFields, &cmd.MigrationField{
+		userFields = append(userFields, &cli.MigrationField{
 			Name:               "org_id",
 			Type:               "bigIncrements",
 			ForeignConstrained: true,
@@ -260,9 +259,9 @@ func createMigrationFiles(fields []*Field, hasOrg bool) {
 	}
 
 	for _, v := range fields {
-		userFields = append(userFields, &cmd.MigrationField{
+		userFields = append(userFields, &cli.MigrationField{
 			Name:     v.FieldName,
-			Type:     cmd.UiDbTypeMap[v.FieldType],
+			Type:     cli.UiDbTypeMap[v.FieldType],
 			Nullable: !v.IsRequired,
 			Unique:   v.IsUnique,
 		})
@@ -272,20 +271,20 @@ func createMigrationFiles(fields []*Field, hasOrg bool) {
 
 func createInputFiles(fields []*Field, hasOrg bool) {
 	createInputDir()
-	loginFields := []*cmd.InputField{}
-	registrationFields := []*cmd.InputField{}
+	loginFields := []*cli.InputField{}
+	registrationFields := []*cli.InputField{}
 	for _, f := range fields {
 		if f.IsUsername || f.IsPassword {
-			loginFields = append(loginFields, &cmd.InputField{
+			loginFields = append(loginFields, &cli.InputField{
 				Name:     f.FieldName,
-				Type:     cmd.UiDataTypeMap[f.FieldType],
+				Type:     cli.UiDataTypeMap[f.FieldType],
 				Required: f.IsRequired,
 				Unique:   f.IsUnique,
 			})
 		} else {
-			registrationFields = append(registrationFields, &cmd.InputField{
+			registrationFields = append(registrationFields, &cli.InputField{
 				Name:     f.FieldName,
-				Type:     cmd.UiDataTypeMap[f.FieldType],
+				Type:     cli.UiDataTypeMap[f.FieldType],
 				Required: f.IsRequired,
 				Unique:   f.IsUnique,
 			})
@@ -293,27 +292,27 @@ func createInputFiles(fields []*Field, hasOrg bool) {
 	}
 
 	if hasOrg {
-		loginFields = append(loginFields, &cmd.InputField{Name: "org_username", Type: "string", Required: true})
-		registrationFields = append(registrationFields, []*cmd.InputField{
+		loginFields = append(loginFields, &cli.InputField{Name: "org_username", Type: "string", Required: true})
+		registrationFields = append(registrationFields, []*cli.InputField{
 			{Name: "org_name", Type: "string", Required: true},
 			{Name: "org_email", Type: "string", Required: true},
 			{Name: "org_username", Type: "string", Required: true},
 		}...)
 	}
 
-	loginGen := cmd.NewInputGenerator(&cmd.InputConfig{
+	loginGen := cli.NewInputGenerator(&cli.InputConfig{
 		Name:   "login",
 		Fields: loginFields,
 	})
 	loginGen.Generate()
 
-	registrationFields = append(registrationFields, []*cmd.InputField{
+	registrationFields = append(registrationFields, []*cli.InputField{
 		{Name: "email", Type: "string"},
 		{Name: "password", Type: "string"},
 		{Name: "password_confirmation", Type: "string"},
 	}...)
 
-	registrationGen := cmd.NewInputGenerator(&cmd.InputConfig{
+	registrationGen := cli.NewInputGenerator(&cli.InputConfig{
 		Name:   "registration",
 		Fields: registrationFields,
 	})
@@ -322,33 +321,33 @@ func createInputFiles(fields []*Field, hasOrg bool) {
 
 func createFormFiles(fields []*Field, flavor string, hasOrg bool) {
 	createFormDir(flavor)
-	registrationFields := []*cmd.FormField{}
+	registrationFields := []*cli.FormField{}
 	for _, f := range fields {
-		registrationFields = append(registrationFields, &cmd.FormField{
+		registrationFields = append(registrationFields, &cli.FormField{
 			Name:    f.FieldName,
 			Type:    f.FieldType,
 			Choices: f.Choices,
 		})
 		if f.IsPassword {
-			registrationFields = append(registrationFields, &cmd.FormField{Name: "password_confirmation", Type: "text"})
+			registrationFields = append(registrationFields, &cli.FormField{Name: "password_confirmation", Type: "text"})
 		}
 	}
 
-	loginFields := []*cmd.FormField{
+	loginFields := []*cli.FormField{
 		{Name: "email", Type: "text"},
 		{Name: "password", Type: "text"},
 	}
 
 	if hasOrg {
-		loginFields = append(loginFields, &cmd.FormField{Name: "org_username", Type: "text"})
-		registrationFields = append(registrationFields, []*cmd.FormField{
+		loginFields = append(loginFields, &cli.FormField{Name: "org_username", Type: "text"})
+		registrationFields = append(registrationFields, []*cli.FormField{
 			{Name: "org_name", Type: "text"},
 			{Name: "org_email", Type: "text"},
 			{Name: "org_username", Type: "text"},
 		}...)
 	}
 
-	loginForm := cmd.NewFormGenerator(&cmd.FormConfig{
+	loginForm := cli.NewFormGenerator(&cli.FormConfig{
 		Name:   "login",
 		Flavor: flavor,
 		Fields: loginFields,
@@ -357,7 +356,7 @@ func createFormFiles(fields []*Field, flavor string, hasOrg bool) {
 
 	loginForm.Generate()
 
-	regForm := cmd.NewFormGenerator(&cmd.FormConfig{
+	regForm := cli.NewFormGenerator(&cli.FormConfig{
 		Name:   "register",
 		Flavor: flavor,
 		Fields: registrationFields,

@@ -63,7 +63,7 @@ type Plugin interface {
 	RouteMiddlewares() map[string]Middleware
 	Routes() []*Route
 	Webhooks() []string
-	// Generators() []cmd.Generator
+	// Generators() []cli.Generator
 }
 
 type AppHooks struct {

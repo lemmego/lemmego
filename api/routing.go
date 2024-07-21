@@ -24,129 +24,14 @@ type Handler func(c *Context) error
 
 type Middleware func(next Handler) Handler
 
-type HTTPRouter interface {
-	http.Handler
-
-	// Use appends one or more middlewares onto the HTTPRouter stack.
-	Use(middlewares ...func(http.Handler) http.Handler)
-
-	// With adds inline middlewares for an endpoint handler.
-	With(middlewares ...func(http.Handler) http.Handler) HTTPRouter
-
-	// Group adds a new inline-HTTPRouter along the current routing
-	// path, with a fresh middleware stack for the inline-HTTPRouter.
-	Group(fn func(r HTTPRouter)) HTTPRouter
-
-	// Route mounts a sub-HTTPRouter along a `pattern`` string.
-	Route(pattern string, fn func(r HTTPRouter)) HTTPRouter
-
-	// Mount attaches another http.Handler along ./pattern/*
-	Mount(pattern string, h http.Handler)
-
-	// Handle and HandleFunc adds routes for `pattern` that matches
-	// all HTTP methods.
-	Handle(pattern string, h http.Handler)
-	HandleFunc(pattern string, h http.HandlerFunc)
-
-	// Method and MethodFunc adds routes for `pattern` that matches
-	// the `method` HTTP method.
-	Method(method, pattern string, h http.Handler)
-	MethodFunc(method, pattern string, h http.HandlerFunc)
-
-	// HTTP-method routing along `pattern`
-	Connect(pattern string, h http.HandlerFunc)
-	Delete(pattern string, h http.HandlerFunc)
-	Get(pattern string, h http.HandlerFunc)
-	Head(pattern string, h http.HandlerFunc)
-	Options(pattern string, h http.HandlerFunc)
-	Patch(pattern string, h http.HandlerFunc)
-	Post(pattern string, h http.HandlerFunc)
-	Put(pattern string, h http.HandlerFunc)
-	Trace(pattern string, h http.HandlerFunc)
-
-	// NotFound defines a handler to respond whenever a route could
-	// not be found.
-	NotFound(h http.HandlerFunc)
-
-	// MethodNotAllowed defines a handler to respond whenever a method is
-	// not allowed.
-	MethodNotAllowed(h http.HandlerFunc)
-
-	BaseRouter() interface{}
-}
-
-// Routes interface adds two methods for router traversal, which is also
-// used by the `docgen` subpackage to generation documentation for Routers.
-//type Routes interface {
-//	// Routes returns the routing tree in an easily traversable structure.
-//	Routes() []Route
-//
-//	// Middlewares returns the list of middlewares in use by the router.
-//	Middlewares() Middlewares
-//
-//	// Match searches the routing tree for a handler that matches
-//	// the method/path - similar to routing a http request, but without
-//	// executing the handler thereafter.
-//	Match(rctx *Context, method, path string) bool
-//}
-
-// Middlewares type is a slice of standard middleware handlers with methods
-// to compose middleware chains and http.Handler's.
-//type Middlewares []func(http.Handler) http.Handler
-
-type router struct {
-	HTTPRouter
-}
-
-func NewDefaultRouter() HTTPRouter {
-	return &router{}
-}
-
-func (r *router) Get(pattern string, handler http.HandlerFunc) {
-	http.HandleFunc("GET "+pattern, handler)
-}
-
-func (r *router) Post(pattern string, handler http.HandlerFunc) {
-	http.HandleFunc("POST "+pattern, handler)
-}
-
-func (r *router) With(middlewares ...func(http.Handler) http.Handler) HTTPRouter {
-	return &router{}
-}
-
-type chiRouter struct {
-	chi.Router
-}
-
-func NewChiRouter() HTTPRouter {
-	return &chiRouter{chi.NewRouter()}
-}
-
-// Implement the methods of your HTTPRouter interface that need special handling
-func (r *chiRouter) With(middlewares ...func(http.Handler) http.Handler) HTTPRouter {
-	return &chiRouter{r.Router.With(middlewares...)}
-}
-
-func (r *chiRouter) Group(fn func(r HTTPRouter)) HTTPRouter {
-	return &chiRouter{r.Router.Group(func(chiR chi.Router) {
-		fn(&chiRouter{chiR})
-	})}
-}
-
-func (r *chiRouter) Route(pattern string, fn func(r HTTPRouter)) HTTPRouter {
-	return &chiRouter{r.Router.Route(pattern, func(chiR chi.Router) {
-		fn(&chiRouter{chiR})
-	})}
-}
-
-func (r *chiRouter) BaseRouter() interface{} {
-	return r
+func NewChiRouter() chi.Router {
+	return chi.NewRouter()
 }
 
 type RouteRegistrarFunc func(r *Router)
 
 type Router struct {
-	HTTPRouter
+	chi.Router
 	routeRegistrar   RouteRegistrarFunc
 	currentGroup     *RouteGroup
 	routeMiddlewares map[string]Middleware
@@ -156,7 +41,7 @@ type Router struct {
 }
 
 // NewRouter creates a new HTTPRouter-based router
-func NewRouter(router HTTPRouter) *Router {
+func NewRouter(router chi.Router) *Router {
 	return &Router{router, nil, nil, nil, nil, nil, ""}
 }
 
@@ -319,7 +204,7 @@ func (hr *Router) Group(prefix string, fn func(r *Router)) *RouteGroup {
 	hr.currentGroup = newGroup
 
 	subRouter := &Router{
-		HTTPRouter:     hr.HTTPRouter,
+		Router:         hr.Router,
 		routeRegistrar: hr.routeRegistrar,
 		currentGroup:   newGroup,
 	}
@@ -397,69 +282,6 @@ func (r *Route) UseBefore(middleware ...Middleware) *Route {
 func (r *Route) UseAfter(middleware ...Middleware) *Route {
 	r.AfterMiddleware = append(r.AfterMiddleware, middleware...)
 	return r
-}
-
-//func NewRoute(method string, path string, handler Handler, middlewares ...Middleware) *Route {
-//	return &Route{
-//		Method:      method,
-//		Path:        path,
-//		Middlewares: middlewares,
-//		Handler:     handler,
-//	}
-//}
-
-//	func Input(inputStruct any, opts ...core.Option) Middleware {
-//		co, err := httpin.New(inputStruct, opts...)
-//
-//		if err != nil {
-//			panic(err)
-//		}
-//
-//		return func(next http.Handler) http.Handler {
-//			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//				// Create a context (you might need to adjust this based on your actual Context creation logic)
-//				ctx := &Context{
-//					responseWriter: w,
-//					request:        r,
-//					// Initialize other fields as necessary
-//				}
-//
-//				input, err := co.Decode(r)
-//				if err != nil {
-//					co.GetErrorHandler()(w, r, err)
-//					return
-//				}
-//
-//				ctx.Set(InKey, input)
-//
-//				// Create a new request with the context
-//				r = r.WithContext(context.WithValue(r.Context(), InKey, ctx))
-//
-//				// Call the next handler
-//				next.ServeHTTP(w, r)
-//			})
-//		}
-//	}
-
-func Input(inputStruct any, opts ...core.Option) Middleware {
-	co, err := httpin.New(inputStruct, opts...)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return func(next Handler) Handler {
-		return func(ctx *Context) error {
-			input, err := co.Decode(ctx.Request())
-			if err != nil {
-				co.GetErrorHandler()(ctx.ResponseWriter(), ctx.Request(), err)
-				return nil
-			}
-
-			ctx.Set(InKey, input)
-			return next(ctx)
-		}
-	}
 }
 
 func adaptMiddleware(app *App, m Middleware) func(http.Handler) http.Handler {
@@ -587,5 +409,68 @@ func vite(manifestPath, buildDir string) func(path string) (string, error) {
 			return path.Join(buildDir, val.File), nil
 		}
 		return "", fmt.Errorf("asset %q not found", p)
+	}
+}
+
+//func NewRoute(method string, path string, handler Handler, middlewares ...Middleware) *Route {
+//	return &Route{
+//		Method:      method,
+//		Path:        path,
+//		Middlewares: middlewares,
+//		Handler:     handler,
+//	}
+//}
+
+//	func Input(inputStruct any, opts ...core.Option) Middleware {
+//		co, err := httpin.New(inputStruct, opts...)
+//
+//		if err != nil {
+//			panic(err)
+//		}
+//
+//		return func(next http.Handler) http.Handler {
+//			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//				// Create a context (you might need to adjust this based on your actual Context creation logic)
+//				ctx := &Context{
+//					responseWriter: w,
+//					request:        r,
+//					// Initialize other fields as necessary
+//				}
+//
+//				input, err := co.Decode(r)
+//				if err != nil {
+//					co.GetErrorHandler()(w, r, err)
+//					return
+//				}
+//
+//				ctx.Set(InKey, input)
+//
+//				// Create a new request with the context
+//				r = r.WithContext(context.WithValue(r.Context(), InKey, ctx))
+//
+//				// Call the next handler
+//				next.ServeHTTP(w, r)
+//			})
+//		}
+//	}
+
+func Input(inputStruct any, opts ...core.Option) Middleware {
+	co, err := httpin.New(inputStruct, opts...)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return func(next Handler) Handler {
+		return func(ctx *Context) error {
+			input, err := co.Decode(ctx.Request())
+			if err != nil {
+				co.GetErrorHandler()(ctx.ResponseWriter(), ctx.Request(), err)
+				return nil
+			}
+
+			ctx.Set(InKey, input)
+			return next(ctx)
+		}
 	}
 }

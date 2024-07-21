@@ -1,4 +1,4 @@
-package cmd
+package cli
 
 import (
 	"bytes"
@@ -75,6 +75,25 @@ type Generator interface {
 	Generate() error
 }
 
+type PackagePathGetter interface {
+	GetPackagePath() string
+}
+
+type StubGetter interface {
+	GetStub() string
+}
+
+type Commander interface {
+	Command() *cobra.Command
+}
+
+type CommandGenerator interface {
+	Generator
+	PackagePathGetter
+	StubGetter
+	Commander
+}
+
 func ParseTemplate(tmplData map[string]interface{}, fileContents string, funcMap template.FuncMap) (string, error) {
 	var out bytes.Buffer
 	tx := template.New("template")
@@ -93,9 +112,10 @@ func ParseTemplate(tmplData map[string]interface{}, fileContents string, funcMap
 
 // genCmd represents the generator command
 var genCmd = &cobra.Command{
-	Use:   "g",
-	Short: "Generate code",
-	Long:  `Generate code`,
+	Use:     "gen",
+	Aliases: []string{"g"},
+	Short:   "Generate code",
+	Long:    `Generate code`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("An argument must be provided to the gen command (e.g. model, input, migration, handlers, etc.)")
 	},

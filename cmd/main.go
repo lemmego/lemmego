@@ -1,13 +1,13 @@
 package main
 
 import (
-	baseCmd "lemmego/api/cmd"
+	"lemmego/api/cli"
 	"lemmego/internal/plugins/auth/cmd"
 )
 
 func main() {
-	baseCmd.RootCmd.AddCommand(cmd.AuthCmd)
-	err := baseCmd.Execute()
+	cli.RootCmd.AddCommand(cmd.AuthCmd)
+	err := cli.Execute()
 	if err != nil {
 		panic(err)
 	}

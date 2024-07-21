@@ -1,9 +1,8 @@
-package cmd
+package cli
 
 import (
 	_ "embed"
 	"fmt"
-	"lemmego/api/cmder"
 	"lemmego/api/fsys"
 	"slices"
 	"strings"
@@ -78,10 +77,6 @@ func (ig *InputGenerator) Generate() error {
 		"Fields":      ig.fields,
 	}
 
-	//for _, v := range ig.GetReplacables() {
-	//	tmplData[v.Placeholder] = v.Value
-	//}
-
 	output, err := ParseTemplate(tmplData, ig.GetStub(), commonFuncs)
 
 	if err != nil {
@@ -97,6 +92,10 @@ func (ig *InputGenerator) Generate() error {
 	return nil
 }
 
+func (ig *InputGenerator) Command() *cobra.Command {
+	return inputCmd
+}
+
 var inputCmd = &cobra.Command{
 	Use:   "input",
 	Short: "Generate a request input",
@@ -110,7 +109,7 @@ var inputCmd = &cobra.Command{
 				huh.NewInput().
 					Title("Enter the input name in snake_case").
 					Value(&inputName).
-					Validate(cmder.SnakeCase),
+					Validate(SnakeCase),
 			),
 		)
 		err := nameForm.Run()
@@ -127,7 +126,7 @@ var inputCmd = &cobra.Command{
 				huh.NewGroup(
 					huh.NewInput().
 						Title("Enter the field name in snake_case").
-						Validate(cmder.SnakeCaseEmptyAllowed).
+						Validate(SnakeCaseEmptyAllowed).
 						Value(&fieldName),
 				),
 			)

@@ -1,8 +1,9 @@
-package cmder
+package cli
 
 import (
 	"errors"
 	"fmt"
+	"lemmego/api/cmder"
 	"slices"
 	"strings"
 )
@@ -29,40 +30,6 @@ var SnakeCase = func(input string) error {
 	return nil
 }
 
-var NotIn = func(ignoreList []string, message string, validators ...ValidateFunc) ValidateFunc {
-	return func(input string) error {
-		if slices.Contains(ignoreList, strings.ToLower(input)) {
-			if message == "" {
-				return errors.New(fmt.Sprintf("input must not contain %s", strings.Join(ignoreList, ",")))
-			}
-			return errors.New(message)
-		}
-		for _, v := range validators {
-			if err := v(input); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
-
-var In = func(allowList []string, message string, validators ...ValidateFunc) ValidateFunc {
-	return func(input string) error {
-		if slices.Contains(allowList, strings.ToLower(input)) {
-			if message == "" {
-				return errors.New(fmt.Sprintf("input must contain %s", strings.Join(allowList, ",")))
-			}
-			return errors.New(message)
-		}
-		for _, v := range validators {
-			if err := v(input); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
-
 var SnakeCaseEmptyAllowed = func(input string) error {
 	if len(input) == 0 {
 		return nil
@@ -83,4 +50,38 @@ var SnakeCaseEmptyAllowed = func(input string) error {
 		}
 	}
 	return nil
+}
+
+var NotIn = func(ignoreList []string, message string, validators ...cmder.ValidateFunc) cmder.ValidateFunc {
+	return func(input string) error {
+		if slices.Contains(ignoreList, strings.ToLower(input)) {
+			if message == "" {
+				return errors.New(fmt.Sprintf("input must not contain %s", strings.Join(ignoreList, ",")))
+			}
+			return errors.New(message)
+		}
+		for _, v := range validators {
+			if err := v(input); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+var In = func(allowList []string, message string, validators ...cmder.ValidateFunc) cmder.ValidateFunc {
+	return func(input string) error {
+		if slices.Contains(allowList, strings.ToLower(input)) {
+			if message == "" {
+				return errors.New(fmt.Sprintf("input must contain %s", strings.Join(allowList, ",")))
+			}
+			return errors.New(message)
+		}
+		for _, v := range validators {
+			if err := v(input); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }

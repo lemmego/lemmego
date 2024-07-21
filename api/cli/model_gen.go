@@ -1,15 +1,13 @@
-package cmd
+package cli
 
 import (
 	_ "embed"
 	"fmt"
-	"lemmego/api/cmder"
 	"lemmego/api/fsys"
 	"slices"
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 )
 
@@ -105,27 +103,6 @@ func NewModelGenerator(mc *ModelConfig) *ModelGenerator {
 	return &ModelGenerator{mc.Name, mc.Fields}
 }
 
-func (mg *ModelGenerator) GetReplacables() []*Replacable {
-	var fieldLines string
-	for index, f := range mg.fields {
-		tb := NewDBTagBuilder(nil, "gorm")
-		if f.Required {
-			tb.Add(TagNotNull, "")
-		}
-		if f.Unique {
-			tb.Add(TagUnique, "")
-		}
-		fieldLines += fmt.Sprintf("\t%s %s `json:\"%s\" %s`", strcase.ToCamel(f.Name), f.Type, f.Name, tb.Build())
-		if index < len(mg.fields)-1 {
-			fieldLines += "\n"
-		}
-	}
-	return []*Replacable{
-		{Placeholder: "ModelName", Value: strcase.ToCamel(mg.name)},
-		{Placeholder: "Fields", Value: fieldLines},
-	}
-}
-
 func (mg *ModelGenerator) GetPackagePath() string {
 	return "internal/models"
 }
@@ -173,6 +150,10 @@ func (mg *ModelGenerator) Generate() error {
 	return nil
 }
 
+func (mg *ModelGenerator) Command() *cobra.Command {
+	return modelCmd
+}
+
 var modelCmd = &cobra.Command{
 	Use:   "model",
 	Short: "Generate a db model",
@@ -186,7 +167,7 @@ var modelCmd = &cobra.Command{
 				huh.NewInput().
 					Title("Enter the model name in snake_case and singular form").
 					Value(&modelName).
-					Validate(cmder.SnakeCase),
+					Validate(SnakeCase),
 			),
 		)
 		err := nameForm.Run()
@@ -204,9 +185,9 @@ var modelCmd = &cobra.Command{
 				huh.NewGroup(
 					huh.NewInput().
 						Title("Enter the field name in snake_case").
-						Validate(cmder.SnakeCaseEmptyAllowed).
+						Validate(SnakeCaseEmptyAllowed).
 						Validate(
-							cmder.NotIn(
+							NotIn(
 								[]string{"id", "created_at", "updated_at", "deleted_at"},
 								"This field will be provided for you",
 							),

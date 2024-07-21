@@ -1,4 +1,4 @@
-package cmd
+package cli
 
 import (
 	_ "embed"
@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
-	"lemmego/api/cmder"
 	"lemmego/api/fsys"
 	"strings"
 )
@@ -133,7 +132,7 @@ var formCmd = &cobra.Command{
 				huh.NewInput().
 					Title("Enter the resource name in snake_case").
 					Value(&templName).
-					Validate(cmder.SnakeCase),
+					Validate(SnakeCase),
 				huh.NewInput().
 					Title("Enter the route where the form should be submitted (e.g. /login)").
 					Value(&route),
@@ -154,7 +153,7 @@ var formCmd = &cobra.Command{
 				huh.NewGroup(
 					huh.NewInput().
 						Title("Enter the field name in snake_case").
-						Validate(cmder.SnakeCaseEmptyAllowed).
+						Validate(SnakeCaseEmptyAllowed).
 						Value(&fieldName),
 				),
 			)
