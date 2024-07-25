@@ -5,8 +5,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
-	"github.com/golobby/container/v3"
-	inertia "github.com/romsar/gonertia"
 	"lemmego/api/db"
 	"lemmego/api/fsys"
 	"lemmego/api/logger"
@@ -17,11 +15,13 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/golobby/container/v3"
+	inertia "github.com/romsar/gonertia"
+
 	"lemmego/api/req"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
-	"github.com/invopop/validation"
 )
 
 func init() {
@@ -50,20 +50,6 @@ type R struct {
 	Message      *AlertMessage
 	Payload      M
 	RedirectTo   string
-}
-
-type ValidationRule struct {
-	validation.RuleFunc
-}
-
-func (r *ValidationRule) StringEquals(str string) validation.RuleFunc {
-	return func(value interface{}) error {
-		s, _ := value.(string)
-		if s != str {
-			return errors.New("unexpected string")
-		}
-		return nil
-	}
 }
 
 // SetCookie sets a cookie on the response writer
@@ -134,10 +120,6 @@ func (c *Context) SetInput(inputStruct any) error {
 
 func (c *Context) GetInput() any {
 	return c.Get(InKey)
-}
-
-func (c *Context) Rule() *ValidationRule {
-	return &ValidationRule{}
 }
 
 func (c *Context) Respond(status int, r *R) error {
