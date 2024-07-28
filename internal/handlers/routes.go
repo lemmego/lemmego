@@ -5,7 +5,13 @@ import (
 	"lemmego/api"
 )
 
-func Register(r *api.Router) {
+func Routes(r *api.Router) {
+	//r.Get("/", func(c *api.Context) error {
+	//	return c.Send(200, []byte(c.Query("code")))
+	//})
+	r.Get("/oauth/clients/create", OauthClientCreateHandler)
+	r.Post("/oauth/clients", OauthClientStoreHandler)
+	r.Get("/oauth/authorize", AuthorizeIndexHandler)
 	r.Post("/register", RegistrationStoreHandler)
 	r.Group("/api", func(r *api.Router) {
 		r.Group("/v1", func(r *api.Router) {
@@ -31,10 +37,5 @@ func Register(r *api.Router) {
 			fmt.Println("Executing api middleware")
 			return next(c)
 		}
-	})
-
-	r.Get("/error", func(c *api.Context) error {
-		err := c.Pop("error").(string)
-		return c.HTML(500, "<html> <body> <pre>"+err+"</body> </html>")
 	})
 }

@@ -14,7 +14,7 @@ func (i *{{.InputName | toCamel}}Input) Validate() error {
 	v := vee.New()
     {{- range .Fields}}
         {{- if .Required}}
-    v.Required("{{.Name | toSnake}}", i.{{.Name | toCamel}})
+    v.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Required()
         {{- end}}
     {{- end}}
 	return v.Validate()

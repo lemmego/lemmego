@@ -1,13 +1,12 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ggicci/httpin"
 	"github.com/ggicci/httpin/core"
-	"github.com/go-chi/chi/v5"
-	"github.com/golobby/container/v3"
 	inertia "github.com/romsar/gonertia"
 	"lemmego/api/logger"
 	"lemmego/api/vee"
@@ -15,154 +14,135 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"slices"
 	"sync"
 )
 
-const InKey = "input"
+const HTTPInKey = "input"
 
 type Handler func(c *Context) error
 
 type Middleware func(next Handler) Handler
 
-func NewChiRouter() chi.Router {
-	return chi.NewRouter()
-}
+type HTTPMiddleware func(http.Handler) http.Handler
 
 type RouteRegistrarFunc func(r *Router)
 
+type InertiaFlashProvider struct {
+	errors map[string]inertia.ValidationErrors
+}
+
+func NewInertiaFlashProvider() *InertiaFlashProvider {
+	return &InertiaFlashProvider{errors: make(map[string]inertia.ValidationErrors)}
+}
+
+func (p *InertiaFlashProvider) FlashErrors(ctx context.Context, errors inertia.ValidationErrors) error {
+	if sessionID, ok := ctx.Value("sessionID").(string); ok {
+		p.errors[sessionID] = errors
+	}
+	return nil
+}
+
+func (p *InertiaFlashProvider) GetErrors(ctx context.Context) (inertia.ValidationErrors, error) {
+	var inertiaErrors inertia.ValidationErrors
+	if sessionID, ok := ctx.Value("sessionID").(string); ok {
+		inertiaErrors = p.errors[sessionID]
+		p.errors[sessionID] = nil
+	}
+	return inertiaErrors, nil
+}
+
 type Router struct {
-	chi.Router
-	routeRegistrar   RouteRegistrarFunc
-	currentGroup     *RouteGroup
-	routeMiddlewares map[string]Middleware
-	httpMiddlewares  []Middleware
 	routes           []*Route
+	routeMiddlewares map[string]Middleware
+	httpMiddlewares  []HTTPMiddleware
+	currentGroup     *RouteGroup
 	basePrefix       string
+	mux              *http.ServeMux
 }
 
 // NewRouter creates a new HTTPRouter-based router
-func NewRouter(router chi.Router) *Router {
-	return &Router{router, nil, nil, nil, nil, nil, ""}
+func NewRouter() *Router {
+	return &Router{
+		routes:           []*Route{},
+		routeMiddlewares: make(map[string]Middleware),
+		httpMiddlewares:  []HTTPMiddleware{},
+		mux:              http.NewServeMux(),
+	}
+}
+
+func (r *Router) HasRoute(method string, pattern string) bool {
+	return slices.ContainsFunc(r.routes, func(route *Route) bool {
+		return route.Method == method && route.Path == pattern
+	})
 }
 
 func (r *Router) setRouteMiddleware(middlewares map[string]Middleware) {
 	r.routeMiddlewares = middlewares
 }
 
-func (hr *Router) Get(pattern string, handler Handler) *Route {
-	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
+func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var handler http.Handler = r.mux
+	for i := len(r.httpMiddlewares) - 1; i >= 0; i-- {
+		handler = r.httpMiddlewares[i](handler)
 	}
-	route := &Route{Method: http.MethodGet, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
-	}
-	hr.routes = append(hr.routes, route)
-	return route
+	handler.ServeHTTP(w, req)
 }
 
-func (hr *Router) Post(pattern string, handler Handler) *Route {
-	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
-	}
-	route := &Route{Method: http.MethodPost, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
-	}
-	hr.routes = append(hr.routes, route)
-	return route
+func (r *Router) Handle(pattern string, handler http.Handler) {
+	r.mux.Handle(pattern, handler)
 }
 
-func (hr *Router) Put(pattern string, handler Handler) *Route {
-	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
-	}
-	route := &Route{Method: http.MethodPut, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
-	}
-	hr.routes = append(hr.routes, route)
-	return route
+func (r *Router) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	r.mux.HandleFunc(pattern, handler)
 }
 
-func (hr *Router) Patch(pattern string, handler Handler) *Route {
-	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
-	}
-	route := &Route{Method: http.MethodPatch, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
-	}
-	hr.routes = append(hr.routes, route)
-	return route
+func (r *Router) Get(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodGet, pattern, handler)
 }
 
-func (hr *Router) Delete(pattern string, handler Handler) *Route {
-	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
-	}
-	route := &Route{Method: http.MethodDelete, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
-	}
-	hr.routes = append(hr.routes, route)
-	return route
+func (r *Router) Post(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodPost, pattern, handler)
 }
 
-func (hr *Router) Connect(pattern string, handler Handler) *Route {
-	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
-	}
-	route := &Route{Method: http.MethodConnect, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
-	}
-	hr.routes = append(hr.routes, route)
-	return route
+func (r *Router) Put(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodPut, pattern, handler)
 }
 
-func (hr *Router) Head(pattern string, handler Handler) *Route {
-	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
-	}
-	route := &Route{Method: http.MethodHead, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
-	}
-	hr.routes = append(hr.routes, route)
-	return route
+func (r *Router) Patch(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodPatch, pattern, handler)
 }
 
-func (hr *Router) Options(pattern string, handler Handler) *Route {
-	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
-	}
-	route := &Route{Method: http.MethodOptions, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
-	}
-	hr.routes = append(hr.routes, route)
-	return route
+func (r *Router) Delete(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodDelete, pattern, handler)
 }
 
-func (hr *Router) Trace(pattern string, handler Handler) *Route {
+func (r *Router) Connect(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodConnect, pattern, handler)
+}
+
+func (r *Router) Head(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodHead, pattern, handler)
+}
+
+func (r *Router) Options(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodOptions, pattern, handler)
+}
+
+func (r *Router) Trace(pattern string, handler Handler) *Route {
+	return r.addRoute(http.MethodTrace, pattern, handler)
+}
+
+func (r *Router) addRoute(method, pattern string, handler Handler) *Route {
 	fullPath := pattern
-	if hr.currentGroup != nil {
-		fullPath = path.Join(hr.currentGroup.prefix, pattern)
+	if r.currentGroup != nil {
+		fullPath = path.Join(r.currentGroup.prefix, pattern)
 	}
-	route := &Route{Method: http.MethodTrace, Path: fullPath, Handler: handler}
-	if hr.currentGroup != nil {
-		hr.currentGroup.routes = append(hr.currentGroup.routes, route)
+	route := &Route{Method: method, Path: fullPath, Handler: handler}
+	if r.currentGroup != nil {
+		r.currentGroup.routes = append(r.currentGroup.routes, route)
 	}
-	hr.routes = append(hr.routes, route)
+	r.routes = append(r.routes, route)
 	return route
 }
 
@@ -172,6 +152,11 @@ type RouteGroup struct {
 	beforeMiddleware []Middleware
 	afterMiddleware  []Middleware
 	routes           []*Route
+}
+
+// Use adds one or more standard net/http middleware to the router
+func (r *Router) Use(middlewares ...HTTPMiddleware) {
+	r.httpMiddlewares = append(r.httpMiddlewares, middlewares...)
 }
 
 func (rg *RouteGroup) UseBefore(middlewares ...Middleware) *RouteGroup {
@@ -191,8 +176,8 @@ func (rg *RouteGroup) UseAfter(middlewares ...Middleware) *RouteGroup {
 }
 
 // Group method for App
-func (hr *Router) Group(prefix string, fn func(r *Router)) *RouteGroup {
-	previousGroup := hr.currentGroup
+func (r *Router) Group(prefix string, fn func(r *Router)) *RouteGroup {
+	previousGroup := r.currentGroup
 	newGroup := &RouteGroup{
 		prefix: prefix,
 	}
@@ -201,62 +186,53 @@ func (hr *Router) Group(prefix string, fn func(r *Router)) *RouteGroup {
 		newGroup.prefix = path.Join(previousGroup.prefix, newGroup.prefix)
 	}
 
-	hr.currentGroup = newGroup
+	r.currentGroup = newGroup
 
-	subRouter := &Router{
-		Router:         hr.Router,
-		routeRegistrar: hr.routeRegistrar,
-		currentGroup:   newGroup,
-	}
+	fn(r)
 
-	fn(subRouter)
-
-	newGroup.routes = subRouter.routes
-	hr.routes = append(hr.routes, subRouter.routes...)
-
-	hr.currentGroup = previousGroup
+	r.currentGroup = previousGroup
 
 	return newGroup
 }
 
-func (hr *Router) registerMiddlewares(app *App) {
+func (r *Router) registerMiddlewares(app *App) {
 	for _, plugin := range app.plugins {
-		hr.httpMiddlewares = append(hr.httpMiddlewares, plugin.Middlewares()...)
-	}
-	for _, mw := range hr.httpMiddlewares {
-		hr.Use(adaptMiddleware(app, mw))
+		for _, mw := range plugin.Middlewares() {
+			r.Use(mw)
+		}
 	}
 }
 
-func (hr *Router) registerRoutes(app *App) {
+func (r *Router) registerRoutes(app *App) {
 	for _, plugin := range app.plugins {
 		for _, route := range plugin.Routes() {
-			hr.routes = append(hr.routes, route)
+			if !r.HasRoute(route.Method, route.Path) {
+				r.routes = append(r.routes, route)
+			}
 		}
 	}
-	hr.routeRegistrar(hr)
 
-	for _, route := range hr.routes {
+	for _, route := range r.routes {
 		handler := route.Handler
 
 		// Apply group middlewares
-		if hr.currentGroup != nil {
-			for i := len(hr.currentGroup.beforeMiddleware) - 1; i >= 0; i-- {
-				handler = hr.currentGroup.beforeMiddleware[i](handler)
+		if r.currentGroup != nil {
+			for i := len(r.currentGroup.beforeMiddleware) - 1; i >= 0; i-- {
+				handler = r.currentGroup.beforeMiddleware[i](handler)
 			}
-			for i := len(hr.currentGroup.afterMiddleware) - 1; i >= 0; i-- {
+			for i := len(r.currentGroup.afterMiddleware) - 1; i >= 0; i-- {
 				nextHandler := handler
 				handler = func(c *Context) error {
 					err := nextHandler(c)
 					if err != nil {
 						return err
 					}
-					return hr.currentGroup.afterMiddleware[i](func(*Context) error { return nil })(c)
+					return r.currentGroup.afterMiddleware[i](func(*Context) error { return nil })(c)
 				}
 			}
 		}
 
-		hr.MethodFunc(route.Method, route.Path, makeHandlerFunc(app, &Route{
+		r.mux.HandleFunc(route.Method+" "+route.Path, makeHandlerFunc(app, &Route{
 			Method:           route.Method,
 			Path:             route.Path,
 			Handler:          handler,
@@ -284,35 +260,33 @@ func (r *Route) UseAfter(middleware ...Middleware) *Route {
 	return r
 }
 
-func adaptMiddleware(app *App, m Middleware) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Create a custom Handler that wraps the next http.Handler
-			customNext := Handler(func(c *Context) error {
-				next.ServeHTTP(w, r)
-				return nil
-			})
-
-			// Apply the custom middleware
-			wrappedHandler := m(customNext)
-
-			// Create a new Context (you'll need to adjust this based on your Context structure)
-			ctx := &Context{sync.Mutex{}, app, container.New(), r, w}
-
-			// Call the wrapped handler
-			if err := wrappedHandler(ctx); err != nil {
-				// Handle error (you might want to adjust this based on your error handling strategy)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+func AdaptMiddleware(app *App, m Middleware) Middleware {
+	return func(next Handler) Handler {
+		return func(c *Context) error {
+			wrappedNext := func(c *Context) error {
+				return next(c)
 			}
-		})
+
+			wrappedHandler := m(wrappedNext)
+
+			return wrappedHandler(c)
+		}
 	}
 }
 
 func makeHandlerFunc(app *App, route *Route) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := &Context{sync.Mutex{}, app, container.New(), r, w}
-		if !app.isContextReady {
-			app.isContextReady = true
+		//app.Reset()
+		token := app.Session().Token(r.Context())
+		if token != "" {
+			r = r.WithContext(context.WithValue(r.Context(), "sessionID", token))
+			log.Println("Current SessionID: ", token)
+		}
+		ctx := &Context{
+			Mutex:          sync.Mutex{},
+			app:            app,
+			request:        r,
+			responseWriter: w,
 		}
 
 		chain := route.Handler
@@ -337,23 +311,8 @@ func makeHandlerFunc(app *App, route *Route) http.HandlerFunc {
 
 		if err := chain(ctx); err != nil {
 			logger.V().Error(err.Error())
-			// Check if the error is validation errors, if so
-			// return 422 according to the UI preference.
 			if errors.As(err, &vee.Errors{}) {
-				if !ctx.WantsJSON() {
-					ctx.WithErrors(err.(vee.Errors)).Back(http.StatusFound)
-					return
-				}
-				err := ctx.JSON(http.StatusUnprocessableEntity, M{"errors": err})
-				if err != nil {
-					ctx.Error(http.StatusInternalServerError, err)
-				}
-				return
-			}
-
-			if !ctx.WantsJSON() {
-				ctx.WithError(err.Error()).
-					Redirect(http.StatusFound, "/error")
+				ctx.ValidationError(err)
 				return
 			}
 			ctx.Error(http.StatusInternalServerError, err)
@@ -373,9 +332,10 @@ func initInertia() *inertia.Inertia {
 
 	i, err := inertia.NewFromFile(
 		"resources/views/root.html",
-		// inertia.WithVersion("1.0"),
 		inertia.WithVersionFromFile(manifestPath),
 		inertia.WithSSR(),
+		//inertia.WithVersion("1.0"),
+		inertia.WithFlashProvider(NewInertiaFlashProvider()),
 	)
 
 	if err != nil {
@@ -443,10 +403,10 @@ func vite(manifestPath, buildDir string) func(path string) (string, error) {
 //					return
 //				}
 //
-//				ctx.Set(InKey, input)
+//				ctx.Set(HTTPInKey, input)
 //
 //				// Create a new request with the context
-//				r = r.WithContext(context.WithValue(r.Context(), InKey, ctx))
+//				r = r.WithContext(context.WithValue(r.Context(), HTTPInKey, ctx))
 //
 //				// Call the next handler
 //				next.ServeHTTP(w, r)
@@ -469,7 +429,7 @@ func Input(inputStruct any, opts ...core.Option) Middleware {
 				return nil
 			}
 
-			ctx.Set(InKey, input)
+			ctx.Set(HTTPInKey, input)
 			return next(ctx)
 		}
 	}

@@ -8,3 +8,7 @@ type ServiceProvider interface {
 type BaseServiceProvider struct {
 	App *App
 }
+
+func (p *BaseServiceProvider) Publishes() {
+	//
+}

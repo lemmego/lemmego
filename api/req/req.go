@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/romsar/gonertia"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/ggicci/httpin"
@@ -38,15 +40,6 @@ func (mr *malformedRequest) Error() string {
 func WantsJSON(r *http.Request) bool {
 	accept := r.Header.Get("Accept")
 	return strings.Contains(accept, "application/json")
-}
-
-func Validate(w http.ResponseWriter, r *http.Request, body Validator) error {
-	if WantsJSON(r) {
-		if err := DecodeJSONBody(w, r, body); err != nil {
-			return err
-		}
-	}
-	return body.Validate()
 }
 
 func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
@@ -108,23 +101,31 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 	return nil
 }
 
-func ParseInput[T any](r *http.Request, inputStruct T, opts ...core.Option) (T, error) {
+func ParseInput(ctx Ctx, inputStruct any, opts ...core.Option) error {
+	if WantsJSON(ctx.Request()) || gonertia.IsInertiaRequest(ctx.Request()) {
+		if err := DecodeJSONBody(ctx.ResponseWriter(), ctx.Request(), inputStruct); err != nil {
+			return err
+		}
+		return nil
+	}
 	co, err := httpin.New(inputStruct, opts...)
 
 	if err != nil {
-		return inputStruct, err
+		return err
 	}
 
-	input, err := co.Decode(r)
+	input, err := co.Decode(ctx.Request())
 	if err != nil {
-		return inputStruct, err
+		return err
 	}
 
-	return input.(T), nil
+	reflect.ValueOf(inputStruct).Elem().Set(reflect.ValueOf(input).Elem())
+
+	return nil
 }
 
 func In(ctx Ctx, inputStruct any, opts ...core.Option) error {
-	if WantsJSON(ctx.Request()) {
+	if WantsJSON(ctx.Request()) || gonertia.IsInertiaRequest(ctx.Request()) {
 		if err := DecodeJSONBody(ctx.ResponseWriter(), ctx.Request(), inputStruct); err != nil {
 			return err
 		}

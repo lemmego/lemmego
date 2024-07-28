@@ -7,13 +7,17 @@ toolchain go1.22.3
 require (
 	cloud.google.com/go/storage v1.40.0
 	github.com/a-h/templ v0.2.513
+	github.com/alexedwards/scs/redisstore v0.0.0-20240316134038-7e11d57e8885
 	github.com/charmbracelet/huh v0.4.2
+	github.com/davecgh/go-spew v1.1.1
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/httplog/v2 v2.0.11
+	github.com/gomodule/redigo v1.8.0
 	github.com/google/uuid v1.6.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/lemmego/migration v0.1.3
+	github.com/lucsky/cuid v1.2.1
 	github.com/spf13/cobra v1.5.0
 	gorm.io/gorm v1.25.10
 )
@@ -90,14 +94,13 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f
-	github.com/golobby/container/v3 v3.3.2
 	github.com/invopop/validation v0.3.0
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/manifoldco/promptui v0.9.0
-	github.com/romsar/gonertia v1.1.4
+	github.com/romsar/gonertia v1.2.2
 	golang.org/x/crypto v0.23.0
 	golang.org/x/oauth2 v0.18.0
 	golang.org/x/text v0.15.0

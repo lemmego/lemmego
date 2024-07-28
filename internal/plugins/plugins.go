@@ -59,7 +59,7 @@ func Load() api.PluginRegistry {
 	authPlugin := auth.New()
 	// authPlugin := auth.New(auth.WithUserCreator(func(c *api.Context, opts *auth.Options) (bool, validation.Errors) {
 	// 	input := &RegistrationInput{}
-	// 	if validated, err := c.ParseAndValidate(input); err != nil {
+	// 	if validated, err := c.Validate(input); err != nil {
 	// 		return false, err.(validation.Errors)
 	// 	} else {
 	// 		input = validated.(*RegistrationInput)

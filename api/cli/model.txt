@@ -12,10 +12,10 @@ type {{.ModelName | toCamel}} struct {
 {{- range .Fields}}
     {{- $gormTag := ""}}
     {{- if .Unique}}
-        {{- $gormTag = concat $gormTag "unique "}}
+        {{- $gormTag = concat $gormTag "unique"}}
     {{- end}}
     {{- if .Required}}
-        {{- $gormTag = concat $gormTag "not null"}}
+        {{- $gormTag = concat $gormTag " not null"}}
     {{- end}}
     {{- if eq $gormTag ""}}
     {{.Name | toCamel}} {{.Type}} `json:"{{.Name | toSnake}}"`

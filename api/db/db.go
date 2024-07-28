@@ -27,6 +27,10 @@ type DB struct {
 	*gorm.DB
 }
 
+type Model struct {
+	gorm.Model
+}
+
 func (db *DB) Close() error {
 	sqlDB, err := db.DB.DB()
 
@@ -40,7 +44,7 @@ func (db *DB) Close() error {
 	return nil
 }
 
-type DBConfig struct {
+type Config struct {
 	Driver   string
 	Host     string
 	Port     int
@@ -51,11 +55,11 @@ type DBConfig struct {
 
 type Connection struct {
 	forceCreateDb bool
-	config        *DBConfig
+	config        *Config
 	db            *DB
 }
 
-func NewConnection(dbc *DBConfig) *Connection {
+func NewConnection(dbc *Config) *Connection {
 	if dbc.Driver != "mysql" && dbc.Driver != "postgres" && dbc.Driver != "sqlite" {
 		panic("unsupported driver")
 	}

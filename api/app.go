@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"lemmego/api/fsys"
 	"lemmego/api/session"
-	// "lemmego/api/session"
 	"log"
 	"log/slog"
 	"net/http"
@@ -16,10 +15,10 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/golobby/container/v3"
+	"lemmego/api/db"
+
 	inertia "github.com/romsar/gonertia"
 	"github.com/spf13/cobra"
-	"lemmego/api/db"
 )
 
 type PluginID string
@@ -38,32 +37,29 @@ func (r PluginRegistry) Add(plugin Plugin) {
 
 type M map[string]any
 
-//type Middleware func(c *Context) func(next http.Handler) http.Handler
-
-//type Handler[T any] func(c T) error
-
-//type Middleware[T any] func(next Handler[T]) Handler[T]
-
-type AppConfig struct {
-	DbConfig    *db.DBConfig
-	AppName     string
-	AppPort     int
-	TemplateDir string
-}
-
 type Plugin interface {
-	Boot(a *App) error
+	Boot(a AppManager) error
 	InstallCommand() *cobra.Command
 	Commands() []*cobra.Command
 	Namespace() string
 	EventListeners() map[string]func()
-	Migrations() []string
-	Templates() map[string][]byte
-	Middlewares() []Middleware
+	PublishMigrations() map[string][]byte
+	PublishModels() map[string][]byte
+	PublishTemplates() map[string][]byte
+	Middlewares() []HTTPMiddleware
 	RouteMiddlewares() map[string]Middleware
 	Routes() []*Route
 	Webhooks() []string
-	// Generators() []cli.Generator
+}
+
+type AppManager interface {
+	Plugin(namespace string) Plugin
+	Router() *Router
+	Session() *session.Session
+	Inertia() *inertia.Inertia
+	DB() *db.DB
+	DbFunc(c context.Context, config *db.Config) (*db.DB, error)
+	FS() fsys.FS
 }
 
 type AppHooks struct {
@@ -72,32 +68,29 @@ type AppHooks struct {
 }
 
 type App struct {
-	isContextReady bool
-	mu             sync.Mutex
-	session        *session.Session
-	// config           *AppConfig
-	config   ConfigMap
-	plugins  PluginRegistry
-	services []ServiceProvider
-	//routeMiddlewares map[string]Middleware
-	//httpMiddlewares  []func(http.Handler) http.Handler
-	//routes           []*Route
-	hooks          *AppHooks
-	router         *Router
-	db             *db.DB
-	dbFunc         func(c context.Context, config *db.DBConfig) (*db.DB, error)
-	i              *inertia.Inertia
-	routeRegistrar RouteRegistrarFunc
-	currentGroup   *RouteGroup
-	fs             fsys.FS
+	//*container.Container
+	isContextReady   bool
+	mu               sync.Mutex
+	session          *session.Session
+	config           ConfigMap
+	plugins          PluginRegistry
+	serviceProviders []ServiceProvider
+	hooks            *AppHooks
+	router           *Router
+	db               *db.DB
+	dbFunc           func(c context.Context, config *db.Config) (*db.DB, error)
+	i                *inertia.Inertia
+	routeRegistrar   RouteRegistrarFunc
+	currentGroup     *RouteGroup
+	fs               fsys.FS
 }
 
 type Options struct {
-	container.Container
+	//*container.Container
 	*session.Session
 	Config           ConfigMap
 	Plugins          map[PluginID]Plugin
-	Providers        []ServiceProvider
+	ServiceProviders []ServiceProvider
 	routeMiddlewares map[string]Middleware
 	Hooks            *AppHooks
 	inertia          *inertia.Inertia
@@ -106,12 +99,18 @@ type Options struct {
 
 type OptFunc func(opts *Options)
 
+//func (app *App) Reset() {
+//	if app.Container != nil {
+//		app.Container.Clear()
+//	}
+//}
+
 func (app *App) Plugin(namespace string) Plugin {
 	return app.plugins.Find(namespace)
 }
 
 func (app *App) RegisterRoutes(fn RouteRegistrarFunc) {
-	app.router.routeRegistrar = fn
+	app.routeRegistrar = fn
 }
 
 func (app *App) Router() *Router {
@@ -130,7 +129,7 @@ func (app *App) DB() *db.DB {
 	return app.db
 }
 
-func (app *App) DbFunc(c context.Context, config *db.DBConfig) (*db.DB, error) {
+func (app *App) DbFunc(c context.Context, config *db.Config) (*db.DB, error) {
 	return app.dbFunc(c, config)
 }
 
@@ -144,7 +143,7 @@ func getDefaultConfig() ConfigMap {
 
 func defaultOptions() *Options {
 	return &Options{
-		container.New(),
+		//container.New(),
 		nil,
 		getDefaultConfig(),
 		nil,
@@ -164,7 +163,7 @@ func WithPlugins(plugins map[PluginID]Plugin) OptFunc {
 
 func WithProviders(providers []ServiceProvider) OptFunc {
 	return func(opts *Options) {
-		opts.Providers = providers
+		opts.ServiceProviders = providers
 	}
 }
 
@@ -198,11 +197,11 @@ func WithFS(fs fsys.FS) OptFunc {
 //	}
 //}
 
-func WithContainer(container container.Container) OptFunc {
-	return func(opts *Options) {
-		opts.Container = container
-	}
-}
+//func WithContainer(container *container.Container) OptFunc {
+//	return func(opts *Options) {
+//		opts.Container = container
+//	}
+//}
 
 func WithSession(sm *session.Session) OptFunc {
 	return func(opts *Options) {
@@ -212,7 +211,7 @@ func WithSession(sm *session.Session) OptFunc {
 
 func NewApp(optFuncs ...OptFunc) *App {
 	opts := defaultOptions()
-	hr := NewRouter(NewChiRouter())
+	router := NewRouter()
 
 	for _, optFunc := range optFuncs {
 		optFunc(opts)
@@ -237,7 +236,7 @@ func NewApp(optFuncs ...OptFunc) *App {
 
 	for _, plugin := range opts.Plugins {
 		// Copy template files listed in the Views() method to the app's template directory
-		for name, content := range plugin.Templates() {
+		for name, content := range plugin.PublishTemplates() {
 			filePath := filepath.Join(opts.Config.get("app.templateDir").(string), name)
 			if _, err := os.Stat(filePath); err != nil {
 				err := os.WriteFile(filePath, []byte(content), 0644)
@@ -260,19 +259,19 @@ func NewApp(optFuncs ...OptFunc) *App {
 		}
 	}
 
-	hr.setRouteMiddleware(routeMiddlewares)
+	router.setRouteMiddleware(routeMiddlewares)
 
 	app := &App{
-		// opts.Container,
-		isContextReady: false,
-		mu:             sync.Mutex{},
-		config:         opts.Config,
-		plugins:        opts.Plugins,
-		services:       opts.Providers,
-		hooks:          opts.Hooks,
-		router:         hr,
-		i:              opts.inertia,
-		fs:             opts.fs,
+		//Container:        opts.Container,
+		isContextReady:   false,
+		mu:               sync.Mutex{},
+		config:           opts.Config,
+		plugins:          opts.Plugins,
+		serviceProviders: opts.ServiceProviders,
+		hooks:            opts.Hooks,
+		router:           router,
+		i:                opts.inertia,
+		fs:               opts.fs,
 	}
 	return app
 }
@@ -281,8 +280,9 @@ func NewApp(optFuncs ...OptFunc) *App {
 // 	return app.container
 // }
 
-func (app *App) registerServices(services []ServiceProvider) {
-	for _, svc := range services {
+func (app *App) registerServiceProviders(serviceProviders []ServiceProvider) {
+	serviceProviders = append(serviceProviders, app.serviceProviders...)
+	for _, svc := range serviceProviders {
 		extendsBase := false
 		if reflect.TypeOf(svc).Kind() != reflect.Ptr {
 			panic("Service must be a pointer")
@@ -291,9 +291,9 @@ func (app *App) registerServices(services []ServiceProvider) {
 			panic("Service must be a struct")
 		}
 
-		// Iterate over all the fields of the struct and see if it extends BaseServiceProvider
+		// Iterate over all the fields of the struct and see if it extends *BaseServiceProvider
 		for i := 0; i < reflect.TypeOf(svc).Elem().NumField(); i++ {
-			if reflect.TypeOf(svc).Elem().Field(i).Type == reflect.TypeOf(BaseServiceProvider{}) {
+			if reflect.TypeOf(svc).Elem().Field(i).Type == reflect.PointerTo(reflect.TypeOf(BaseServiceProvider{})) {
 				extendsBase = true
 				break
 			}
@@ -307,13 +307,13 @@ func (app *App) registerServices(services []ServiceProvider) {
 		if reflect.TypeOf(svc).Implements(reflect.TypeOf((*ServiceProvider)(nil)).Elem()) {
 			slog.Info("Registering service: " + reflect.TypeOf(svc).Elem().Name())
 			svc.Register(app)
-			app.services = append(app.services, svc)
+			app.serviceProviders = append(app.serviceProviders, svc)
 		} else {
 			panic("Service must implement ServiceProvider interface")
 		}
 	}
 
-	for _, service := range services {
+	for _, service := range serviceProviders {
 		if reflect.TypeOf(service).Implements(reflect.TypeOf((*ServiceProvider)(nil)).Elem()) {
 			service.Boot()
 		}
@@ -321,7 +321,7 @@ func (app *App) registerServices(services []ServiceProvider) {
 }
 
 func (app *App) Run() {
-	app.registerServices([]ServiceProvider{
+	app.registerServiceProviders([]ServiceProvider{
 		&DatabaseServiceProvider{},
 		&SessionServiceProvider{},
 		&AuthServiceProvider{},
@@ -329,11 +329,16 @@ func (app *App) Run() {
 
 	app.router.registerMiddlewares(app)
 
+	// Call the route registrar function here
+	if app.routeRegistrar != nil {
+		app.routeRegistrar(app.router)
+	}
+
 	app.router.registerRoutes(app)
 
-	app.router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	app.router.Handle("GET /static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	app.router.Handle("/public/*", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
+	app.router.Handle("GET /public/*", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
 
 	for _, plugin := range app.plugins {
 		if err := plugin.Boot(app); err != nil {
@@ -357,17 +362,17 @@ func (app *App) HandleSignals() {
 	sig := <-signalChannel
 	switch sig {
 	case syscall.SIGINT, syscall.SIGTERM:
-		app.Shutdown()
+		app.shutDown()
 		os.Exit(0)
 	}
 }
 
-func (app *App) Shutdown() {
+func (app *App) shutDown() {
 	log.Println("Shutting down application...")
-	sessName := app.db.Name()
+	dbName := app.db.Name()
 	err := app.db.Close()
 	if err != nil {
 		log.Fatal("Error closing database connection:", err)
 	}
-	log.Println("Database connection", sessName, "closed.")
+	log.Println("Database connection", dbName, "closed.")
 }

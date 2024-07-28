@@ -18,12 +18,12 @@ type RegistrationInput struct {
 
 func (i *RegistrationInput) Validate() error {
 	v := vee.New()
-	v.Required("first_name", i.FirstName)
-	v.Required("last_name", i.LastName)
+	v.Field("first_name", i.FirstName).Required()
+	v.Field("last_name", i.LastName).Required()
 	//v.Required("logo", i.Logo)
-	v.Required("org_name", i.OrgName)
-	v.Required("org_email", i.OrgEmail)
-	v.Required("org_username", i.OrgUsername)
+	v.Field("org_name", i.OrgName).Required()
+	v.Field("org_email", i.OrgEmail).Required()
+	v.Field("org_username", i.OrgUsername).Required()
 
 	return v.Validate()
 }

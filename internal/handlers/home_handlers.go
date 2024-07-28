@@ -28,10 +28,8 @@ func IndexHomeHandler(ctx *api.Context) error {
 
 func StoreTestHandler(ctx *api.Context) error {
 	input := &TestInput{}
-	if validated, err := ctx.ParseAndValidate(input); err != nil {
-		return ctx.JSON(400, api.M{"errors": err})
-	} else {
-		input = validated.(*TestInput)
+	if err := ctx.Validate(input); err != nil {
+		return err
 	}
 
 	return ctx.JSON(200, api.M{"input": input})

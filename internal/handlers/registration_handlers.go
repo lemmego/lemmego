@@ -7,19 +7,10 @@ import (
 )
 
 func RegistrationStoreHandler(ctx *api.Context) error {
-	if body, err := ctx.ParseAndValidate(&inputs.RegistrationInput{}); err != nil {
-		fmt.Printf("%s", err.Error())
+	fmt.Println("RegistrationStoreHandler")
+	body := &inputs.RegistrationInput{}
+	if err := ctx.Validate(body); err != nil {
 		return err
-	} else {
-		input := body.(*inputs.RegistrationInput)
-		fmt.Println(input)
-		file, err := ctx.Upload("logo", "logos")
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(file.Name())
 	}
-
 	return nil
 }

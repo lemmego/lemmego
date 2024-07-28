@@ -1,7 +1,7 @@
 package api
 
 type AuthServiceProvider struct {
-	BaseServiceProvider
+	*BaseServiceProvider
 }
 
 func (provider *AuthServiceProvider) Register(app *App) {

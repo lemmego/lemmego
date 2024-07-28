@@ -21,14 +21,6 @@ import (
 
 type Errors map[string][]string
 
-func (v *Vee) Validate() error {
-	if v.IsValid() {
-		return nil
-	}
-
-	return v.Errors
-}
-
 func (e Errors) Error() string {
 	val, _ := json.Marshal(e)
 	return string(val)
@@ -52,429 +44,480 @@ func (v *Vee) IsValid() bool {
 	return len(v.Errors) == 0
 }
 
+func (v *Vee) Validate() error {
+	if v.IsValid() {
+		return nil
+	}
+	return v.Errors
+}
+
 func (v *Vee) ErrorsJSON() map[string][]string {
 	return v.Errors
 }
 
-// Required checks if the value is not empty
-func (v *Vee) Required(field string, value interface{}) bool {
-	if value == nil || value == "" {
-		v.AddError(field, "This field is required")
-		return false
+// Field creates a new Field instance for chaining validation rules
+func (v *Vee) Field(name string, value interface{}) *Field {
+	return &Field{
+		vee:   v,
+		name:  name,
+		value: value,
 	}
-	return true
+}
+
+type Field struct {
+	vee   *Vee
+	name  string
+	value interface{}
+}
+
+// Required checks if the value is not empty
+func (f *Field) Required() *Field {
+	if f.value == nil || f.value == "" {
+		f.vee.AddError(f.name, "This field is required")
+	}
+	return f
 }
 
 // Min checks if the value is greater than or equal to the minimum
-func (v *Vee) Min(field string, value int, min int) bool {
-	if value < min {
-		v.AddError(field, "This field must be at least "+strconv.Itoa(min))
-		return false
+func (f *Field) Min(min int) *Field {
+	if v, ok := f.value.(int); ok {
+		if v < min {
+			f.vee.AddError(f.name, "This field must be at least "+strconv.Itoa(min))
+		}
 	}
-	return true
+	return f
 }
 
 // Max checks if the value is less than or equal to the maximum
-func (v *Vee) Max(field string, value int, max int) bool {
-	if value > max {
-		v.AddError(field, "This field must not exceed "+strconv.Itoa(max))
-		return false
+func (f *Field) Max(max int) *Field {
+	if v, ok := f.value.(int); ok {
+		if v > max {
+			f.vee.AddError(f.name, "This field must not exceed "+strconv.Itoa(max))
+		}
 	}
-	return true
+	return f
 }
 
 // Between checks if the value is between min and max (inclusive)
-func (v *Vee) Between(field string, value int, min int, max int) bool {
-	if value < min || value > max {
-		v.AddError(field, "This field must be between "+strconv.Itoa(min)+" and "+strconv.Itoa(max))
-		return false
+func (f *Field) Between(min, max int) *Field {
+	if v, ok := f.value.(int); ok {
+		if v < min || v > max {
+			f.vee.AddError(f.name, fmt.Sprintf("This field must be between %d and %d", min, max))
+		}
 	}
-	return true
+	return f
 }
 
 // Email checks if the value is a valid email address
-func (v *Vee) Email(field string, value string) bool {
-	emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
-	if !emailRegex.MatchString(value) {
-		v.AddError(field, "This field must be a valid email address")
-		return false
+func (f *Field) Email() *Field {
+	if v, ok := f.value.(string); ok {
+		emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+		if !emailRegex.MatchString(v) {
+			f.vee.AddError(f.name, "This field must be a valid email address")
+		}
 	}
-	return true
+	return f
 }
 
 // Alpha checks if the value contains only alphabetic characters
-func (v *Vee) Alpha(field string, value string) bool {
-	for _, char := range value {
-		if !unicode.IsLetter(char) {
-			v.AddError(field, "This field must contain only alphabetic characters")
-			return false
-		}
-	}
-	return true
-}
-
-// Numeric checks if the value contains only numeric characters
-func (v *Vee) Numeric(field string, value string) bool {
-	for _, char := range value {
-		if !unicode.IsDigit(char) {
-			v.AddError(field, "This field must contain only numeric characters")
-			return false
-		}
-	}
-	return true
-}
-
-// AlphaNumeric checks if the value contains only alphanumeric characters
-func (v *Vee) AlphaNumeric(field string, value string) bool {
-	for _, char := range value {
-		if !unicode.IsLetter(char) && !unicode.IsDigit(char) {
-			v.AddError(field, "This field must contain only alphanumeric characters")
-			return false
-		}
-	}
-	return true
-}
-
-// Date checks if the value is a valid date in the specified format
-func (v *Vee) Date(field string, value string, layout string) bool {
-	_, err := time.Parse(layout, value)
-	if err != nil {
-		v.AddError(field, "This field must be a valid date in the format "+layout)
-		return false
-	}
-	return true
-}
-
-// In checks if the value is in the given slice of valid values
-func (v *Vee) In(field string, value string, validValues []string) bool {
-	for _, validValue := range validValues {
-		if value == validValue {
-			return true
-		}
-	}
-	v.AddError(field, "This field must be one of the following: "+strings.Join(validValues, ", "))
-	return false
-}
-
-// Regex checks if the value matches the given regular expression
-func (v *Vee) Regex(field string, value string, pattern string) bool {
-	regex, err := regexp.Compile(pattern)
-	if err != nil {
-		v.AddError(field, "Invalid regular expression pattern")
-		return false
-	}
-	if !regex.MatchString(value) {
-		v.AddError(field, "This field must match the pattern: "+pattern)
-		return false
-	}
-	return true
-}
-
-// URL checks if the value is a valid URL
-func (v *Vee) URL(field string, value string) bool {
-	_, err := url.ParseRequestURI(value)
-	if err != nil {
-		v.AddError(field, "This field must be a valid URL")
-		return false
-	}
-	return true
-}
-
-// IP checks if the value is a valid IP address (v4 or v6)
-func (v *Vee) IP(field string, value string) bool {
-	ip := net.ParseIP(value)
-	if ip == nil {
-		v.AddError(field, "This field must be a valid IP address")
-		return false
-	}
-	return true
-}
-
-// UUID checks if the value is a valid UUID
-func (v *Vee) UUID(field string, value string) bool {
-	_, err := uuid.Parse(value)
-	if err != nil {
-		v.AddError(field, "This field must be a valid UUID")
-		return false
-	}
-	return true
-}
-
-// Boolean checks if the value is a valid boolean
-func (v *Vee) Boolean(field string, value interface{}) bool {
-	switch value.(type) {
-	case bool:
-		return true
-	case string:
-		lowercaseValue := strings.ToLower(value.(string))
-		if lowercaseValue == "true" || lowercaseValue == "false" {
-			return true
-		}
-	case int:
-		intValue := value.(int)
-		if intValue == 0 || intValue == 1 {
-			return true
-		}
-	}
-	v.AddError(field, "This field must be a boolean value")
-	return false
-}
-
-// JSON checks if the value is a valid JSON string
-func (v *Vee) JSON(field string, value string) bool {
-	var js json.RawMessage
-	if json.Unmarshal([]byte(value), &js) != nil {
-		v.AddError(field, "This field must be a valid JSON string")
-		return false
-	}
-	return true
-}
-
-// AfterDate checks if the date is after the specified date
-func (v *Vee) AfterDate(field string, value time.Time, afterDate time.Time) bool {
-	if value.After(afterDate) {
-		return true
-	}
-	v.AddError(field, "This field must be a date after "+afterDate.String())
-	return false
-}
-
-// BeforeDate checks if the date is before the specified date
-func (v *Vee) BeforeDate(field string, value time.Time, beforeDate time.Time) bool {
-	if value.Before(beforeDate) {
-		return true
-	}
-	v.AddError(field, "This field must be a date before "+beforeDate.String())
-	return false
-}
-
-// StartsWith checks if the string starts with the specified substring
-func (v *Vee) StartsWith(field string, value string, prefix string) bool {
-	if strings.HasPrefix(value, prefix) {
-		return true
-	}
-	v.AddError(field, "This field must start with "+prefix)
-	return false
-}
-
-// EndsWith checks if the string ends with the specified substring
-func (v *Vee) EndsWith(field string, value string, suffix string) bool {
-	if strings.HasSuffix(value, suffix) {
-		return true
-	}
-	v.AddError(field, "This field must end with "+suffix)
-	return false
-}
-
-// Contains checks if the string contains the specified substring
-func (v *Vee) Contains(field string, value string, substring string) bool {
-	if strings.Contains(value, substring) {
-		return true
-	}
-	v.AddError(field, "This field must contain "+substring)
-	return false
-}
-
-// Dimensions checks if the image file has the specified dimensions
-func (v *Vee) Dimensions(field string, filepath string, width, height int) bool {
-	file, err := os.Open(filepath)
-	if err != nil {
-		v.AddError(field, "Unable to open the file")
-		return false
-	}
-	defer file.Close()
-
-	img, _, err := image.DecodeConfig(file)
-	if err != nil {
-		v.AddError(field, "Unable to decode the image")
-		return false
-	}
-
-	if img.Width != width || img.Height != height {
-		v.AddError(field, "Image dimensions must be "+strconv.Itoa(width)+"x"+strconv.Itoa(height))
-		return false
-	}
-	return true
-}
-
-// MimeTypes checks if the file has one of the specified MIME types
-func (v *Vee) MimeTypes(field string, filepath string, allowedTypes []string) bool {
-	file, err := os.Open(filepath)
-	if err != nil {
-		v.AddError(field, "Unable to open the file")
-		return false
-	}
-	defer file.Close()
-
-	buffer := make([]byte, 512)
-	_, err = file.Read(buffer)
-	if err != nil && err != io.EOF {
-		v.AddError(field, "Unable to read the file")
-		return false
-	}
-
-	mimeType := http.DetectContentType(buffer)
-
-	for _, allowedType := range allowedTypes {
-		if mimeType == allowedType {
-			return true
-		}
-	}
-
-	v.AddError(field, "File type must be one of: "+strings.Join(allowedTypes, ", "))
-	return false
-}
-
-// Timezone checks if the value is a valid timezone
-func (v *Vee) Timezone(field string, value string) bool {
-	_, err := time.LoadLocation(value)
-	if err != nil {
-		v.AddError(field, "Invalid timezone")
-		return false
-	}
-	return true
-}
-
-// ActiveURL checks if the URL is active and reachable
-func (v *Vee) ActiveURL(field string, value string) bool {
-	resp, err := http.Get(value)
-	if err != nil {
-		v.AddError(field, "The URL is not active or reachable")
-		return false
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		v.AddError(field, "The URL returned a non-OK status")
-		return false
-	}
-	return true
-}
-
-// AlphaDash checks if the string contains only alpha-numeric characters, dashes, or underscores
-func (v *Vee) AlphaDash(field string, value string) bool {
-	re := regexp.MustCompile("^[a-zA-Z0-9-_]+$")
-	if !re.MatchString(value) {
-		v.AddError(field, "This field may only contain alpha-numeric characters, dashes, and underscores")
-		return false
-	}
-	return true
-}
-
-// Ascii checks if the string contains only ASCII characters
-func (v *Vee) Ascii(field string, value string) bool {
-	for _, char := range value {
-		if char > unicode.MaxASCII {
-			v.AddError(field, "This field may only contain ASCII characters")
-			return false
-		}
-	}
-	return true
-}
-
-// MacAddress checks if the string is a valid MAC address
-func (v *Vee) MacAddress(field string, value string) bool {
-	_, err := net.ParseMAC(value)
-	if err != nil {
-		v.AddError(field, "This field must be a valid MAC address")
-		return false
-	}
-	return true
-}
-
-// ULID checks if the string is a valid ULID
-func (v *Vee) ULID(field string, value string) bool {
-	re := regexp.MustCompile("^[0-9A-HJKMNP-TV-Z]{26}$")
-	if !re.MatchString(value) {
-		v.AddError(field, "This field must be a valid ULID")
-		return false
-	}
-	return true
-}
-
-// Distinct checks if all elements in a slice are unique
-func (v *Vee) Distinct(field string, values []interface{}) bool {
-	seen := make(map[interface{}]bool)
-	for _, value := range values {
-		if seen[value] {
-			v.AddError(field, "This field must contain only unique values")
-			return false
-		}
-		seen[value] = true
-	}
-	return true
-}
-
-// Filled checks if the value is not empty (for strings, slices, maps, and pointers)
-func (v *Vee) Filled(field string, value interface{}) bool {
-	switch val := value.(type) {
-	case string:
-		if val == "" {
-			v.AddError(field, "This field must be filled")
-			return false
-		}
-	case []interface{}:
-		if len(val) == 0 {
-			v.AddError(field, "This field must be filled")
-			return false
-		}
-	case map[string]interface{}:
-		if len(val) == 0 {
-			v.AddError(field, "This field must be filled")
-			return false
-		}
-	case nil:
-		v.AddError(field, "This field must be filled")
-		return false
-	}
-	return true
-}
-
-// HexColor checks if the string is a valid hexadecimal color code
-func (v *Vee) HexColor(field string, value string) bool {
-	re := regexp.MustCompile("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
-	if !re.MatchString(value) {
-		v.AddError(field, "This field must be a valid hexadecimal color code")
-		return false
-	}
-	return true
-}
-
-// ValidationRule is a function type that defines a validation rule
-type ValidationRule func(field string, value interface{}, index int) bool
-
-// ForEach applies validation rules to each item in an array
-func (v *Vee) ForEach(field string, array interface{}, rules ...ValidationRule) bool {
-	// Get the value of the array
-	arrayValue := reflect.ValueOf(array)
-
-	// Check if it's a pointer, and if so, get the element it points to
-	if arrayValue.Kind() == reflect.Ptr {
-		arrayValue = arrayValue.Elem()
-	}
-
-	// Ensure we're dealing with a slice or array
-	if arrayValue.Kind() != reflect.Slice && arrayValue.Kind() != reflect.Array {
-		v.AddError(field, "This field must be an array or slice")
-		return false
-	}
-
-	// Flag to track if all validations passed
-	allValid := true
-
-	// Iterate over each item in the array
-	for i := 0; i < arrayValue.Len(); i++ {
-		item := arrayValue.Index(i).Interface()
-		itemField := fmt.Sprintf("%s.%d", field, i)
-
-		// Apply each validation rule to the item
-		for _, rule := range rules {
-			if !rule(itemField, item, i) {
-				allValid = false
-				// Note: We don't return false here so that we can collect all errors
+func (f *Field) Alpha() *Field {
+	if v, ok := f.value.(string); ok {
+		for _, char := range v {
+			if !unicode.IsLetter(char) {
+				f.vee.AddError(f.name, "This field must contain only alphabetic characters")
+				break
 			}
 		}
 	}
+	return f
+}
 
-	return allValid
+// Numeric checks if the value contains only numeric characters
+func (f *Field) Numeric() *Field {
+	if v, ok := f.value.(string); ok {
+		for _, char := range v {
+			if !unicode.IsDigit(char) {
+				f.vee.AddError(f.name, "This field must contain only numeric characters")
+				break
+			}
+		}
+	}
+	return f
+}
+
+// AlphaNumeric checks if the value contains only alphanumeric characters
+func (f *Field) AlphaNumeric() *Field {
+	if v, ok := f.value.(string); ok {
+		for _, char := range v {
+			if !unicode.IsLetter(char) && !unicode.IsDigit(char) {
+				f.vee.AddError(f.name, "This field must contain only alphanumeric characters")
+				break
+			}
+		}
+	}
+	return f
+}
+
+// Date checks if the value is a valid date in the specified format
+func (f *Field) Date(layout string) *Field {
+	if v, ok := f.value.(string); ok {
+		_, err := time.Parse(layout, v)
+		if err != nil {
+			f.vee.AddError(f.name, "This field must be a valid date in the format "+layout)
+		}
+	}
+	return f
+}
+
+// In checks if the value is in the given slice of valid values
+func (f *Field) In(validValues []string) *Field {
+	if v, ok := f.value.(string); ok {
+		for _, validValue := range validValues {
+			if v == validValue {
+				return f
+			}
+		}
+		f.vee.AddError(f.name, "This field must be one of the following: "+strings.Join(validValues, ", "))
+	}
+	return f
+}
+
+// Regex checks if the value matches the given regular expression
+func (f *Field) Regex(pattern string) *Field {
+	if v, ok := f.value.(string); ok {
+		regex, err := regexp.Compile(pattern)
+		if err != nil {
+			f.vee.AddError(f.name, "Invalid regular expression pattern")
+		} else if !regex.MatchString(v) {
+			f.vee.AddError(f.name, "This field must match the pattern: "+pattern)
+		}
+	}
+	return f
+}
+
+// URL checks if the value is a valid URL
+func (f *Field) URL() *Field {
+	if v, ok := f.value.(string); ok {
+		_, err := url.ParseRequestURI(v)
+		if err != nil {
+			f.vee.AddError(f.name, "This field must be a valid URL")
+		}
+	}
+	return f
+}
+
+// IP checks if the value is a valid IP address (v4 or v6)
+func (f *Field) IP() *Field {
+	if v, ok := f.value.(string); ok {
+		ip := net.ParseIP(v)
+		if ip == nil {
+			f.vee.AddError(f.name, "This field must be a valid IP address")
+		}
+	}
+	return f
+}
+
+// UUID checks if the value is a valid UUID
+func (f *Field) UUID() *Field {
+	if v, ok := f.value.(string); ok {
+		_, err := uuid.Parse(v)
+		if err != nil {
+			f.vee.AddError(f.name, "This field must be a valid UUID")
+		}
+	}
+	return f
+}
+
+// Boolean checks if the value is a valid boolean
+func (f *Field) Boolean() *Field {
+	switch f.value.(type) {
+	case bool:
+		return f
+	case string:
+		lowercaseValue := strings.ToLower(f.value.(string))
+		if lowercaseValue != "true" && lowercaseValue != "false" {
+			f.vee.AddError(f.name, "This field must be a boolean value")
+		}
+	case int:
+		intValue := f.value.(int)
+		if intValue != 0 && intValue != 1 {
+			f.vee.AddError(f.name, "This field must be a boolean value")
+		}
+	default:
+		f.vee.AddError(f.name, "This field must be a boolean value")
+	}
+	return f
+}
+
+// JSON checks if the value is a valid JSON string
+func (f *Field) JSON() *Field {
+	if v, ok := f.value.(string); ok {
+		var js json.RawMessage
+		if json.Unmarshal([]byte(v), &js) != nil {
+			f.vee.AddError(f.name, "This field must be a valid JSON string")
+		}
+	}
+	return f
+}
+
+// AfterDate checks if the date is after the specified date
+func (f *Field) AfterDate(afterDate time.Time) *Field {
+	if v, ok := f.value.(time.Time); ok {
+		if !v.After(afterDate) {
+			f.vee.AddError(f.name, "This field must be a date after "+afterDate.String())
+		}
+	}
+	return f
+}
+
+// BeforeDate checks if the date is before the specified date
+func (f *Field) BeforeDate(beforeDate time.Time) *Field {
+	if v, ok := f.value.(time.Time); ok {
+		if !v.Before(beforeDate) {
+			f.vee.AddError(f.name, "This field must be a date before "+beforeDate.String())
+		}
+	}
+	return f
+}
+
+// StartsWith checks if the string starts with the specified substring
+func (f *Field) StartsWith(prefix string) *Field {
+	if v, ok := f.value.(string); ok {
+		if !strings.HasPrefix(v, prefix) {
+			f.vee.AddError(f.name, "This field must start with "+prefix)
+		}
+	}
+	return f
+}
+
+// EndsWith checks if the string ends with the specified substring
+func (f *Field) EndsWith(suffix string) *Field {
+	if v, ok := f.value.(string); ok {
+		if !strings.HasSuffix(v, suffix) {
+			f.vee.AddError(f.name, "This field must end with "+suffix)
+		}
+	}
+	return f
+}
+
+// Contains checks if the string contains the specified substring
+func (f *Field) Contains(substring string) *Field {
+	if v, ok := f.value.(string); ok {
+		if !strings.Contains(v, substring) {
+			f.vee.AddError(f.name, "This field must contain "+substring)
+		}
+	}
+	return f
+}
+
+// Dimensions checks if the image file has the specified dimensions
+func (f *Field) Dimensions(width, height int) *Field {
+	if v, ok := f.value.(string); ok {
+		file, err := os.Open(v)
+		if err != nil {
+			f.vee.AddError(f.name, "Unable to open the file")
+			return f
+		}
+		defer file.Close()
+
+		img, _, err := image.DecodeConfig(file)
+		if err != nil {
+			f.vee.AddError(f.name, "Unable to decode the image")
+			return f
+		}
+
+		if img.Width != width || img.Height != height {
+			f.vee.AddError(f.name, fmt.Sprintf("Image dimensions must be %dx%d", width, height))
+		}
+	}
+	return f
+}
+
+// MimeTypes checks if the file has one of the specified MIME types
+func (f *Field) MimeTypes(allowedTypes []string) *Field {
+	if v, ok := f.value.(string); ok {
+		file, err := os.Open(v)
+		if err != nil {
+			f.vee.AddError(f.name, "Unable to open the file")
+			return f
+		}
+		defer file.Close()
+
+		buffer := make([]byte, 512)
+		_, err = file.Read(buffer)
+		if err != nil && err != io.EOF {
+			f.vee.AddError(f.name, "Unable to read the file")
+			return f
+		}
+
+		mimeType := http.DetectContentType(buffer)
+
+		for _, allowedType := range allowedTypes {
+			if mimeType == allowedType {
+				return f
+			}
+		}
+
+		f.vee.AddError(f.name, "File type must be one of: "+strings.Join(allowedTypes, ", "))
+	}
+	return f
+}
+
+// Timezone checks if the value is a valid timezone
+func (f *Field) Timezone() *Field {
+	if v, ok := f.value.(string); ok {
+		_, err := time.LoadLocation(v)
+		if err != nil {
+			f.vee.AddError(f.name, "Invalid timezone")
+		}
+	}
+	return f
+}
+
+// ActiveURL checks if the URL is active and reachable
+func (f *Field) ActiveURL() *Field {
+	if v, ok := f.value.(string); ok {
+		resp, err := http.Get(v)
+		if err != nil {
+			f.vee.AddError(f.name, "The URL is not active or reachable")
+			return f
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			f.vee.AddError(f.name, "The URL returned a non-OK status")
+		}
+	}
+	return f
+}
+
+// AlphaDash checks if the string contains only alpha-numeric characters, dashes, or underscores
+func (f *Field) AlphaDash() *Field {
+	if v, ok := f.value.(string); ok {
+		re := regexp.MustCompile("^[a-zA-Z0-9-_]+$")
+		if !re.MatchString(v) {
+			f.vee.AddError(f.name, "This field may only contain alpha-numeric characters, dashes, and underscores")
+		}
+	}
+	return f
+}
+
+// Ascii checks if the string contains only ASCII characters
+func (f *Field) Ascii() *Field {
+	if v, ok := f.value.(string); ok {
+		for _, char := range v {
+			if char > unicode.MaxASCII {
+				f.vee.AddError(f.name, "This field may only contain ASCII characters")
+				break
+			}
+		}
+	}
+	return f
+}
+
+// MacAddress checks if the string is a valid MAC address
+func (f *Field) MacAddress() *Field {
+	if v, ok := f.value.(string); ok {
+		_, err := net.ParseMAC(v)
+		if err != nil {
+			f.vee.AddError(f.name, "This field must be a valid MAC address")
+		}
+	}
+	return f
+}
+
+// ULID checks if the string is a valid ULID
+func (f *Field) ULID() *Field {
+	if v, ok := f.value.(string); ok {
+		re := regexp.MustCompile("^[0-9A-HJKMNP-TV-Z]{26}$")
+		if !re.MatchString(v) {
+			f.vee.AddError(f.name, "This field must be a valid ULID")
+		}
+	}
+	return f
+}
+
+// Distinct checks if all elements in a slice are unique
+func (f *Field) Distinct() *Field {
+	if slice, ok := f.value.([]interface{}); ok {
+		seen := make(map[interface{}]bool)
+		for _, value := range slice {
+			if seen[value] {
+				f.vee.AddError(f.name, "This field must contain only unique values")
+				break
+			}
+			seen[value] = true
+		}
+	}
+	return f
+}
+
+// Filled checks if the value is not empty (for strings, slices, maps, and pointers)
+func (f *Field) Filled() *Field {
+	switch val := f.value.(type) {
+	case string:
+		if val == "" {
+			f.vee.AddError(f.name, "This field must be filled")
+		}
+	case []interface{}:
+		if len(val) == 0 {
+			f.vee.AddError(f.name, "This field must be filled")
+		}
+	case map[string]interface{}:
+		if len(val) == 0 {
+			f.vee.AddError(f.name, "This field must be filled")
+		}
+	case nil:
+		f.vee.AddError(f.name, "This field must be filled")
+	}
+	return f
+}
+
+// HexColor checks if the string is a valid hexadecimal color code
+func (f *Field) HexColor() *Field {
+	if v, ok := f.value.(string); ok {
+		re := regexp.MustCompile("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
+		if !re.MatchString(v) {
+			f.vee.AddError(f.name, "This field must be a valid hexadecimal color code")
+		}
+	}
+	return f
+}
+
+// ForEach applies validation rules to each item in an array
+func (f *Field) ForEach(rules ...func(*Field) *Field) *Field {
+	slice := reflect.ValueOf(f.value)
+
+	if slice.Kind() == reflect.Ptr {
+		slice = slice.Elem()
+	}
+
+	if slice.Kind() != reflect.Slice && slice.Kind() != reflect.Array {
+		f.vee.AddError(f.name, "This field must be an array or slice")
+		return f
+	}
+
+	if slice.Len() == 0 {
+		f.vee.AddError(f.name, "This field cannot be empty")
+		return f
+	}
+
+	for i := 0; i < slice.Len(); i++ {
+		item := slice.Index(i).Interface()
+		itemField := f.vee.Field(fmt.Sprintf("%s.%d", f.name, i), item)
+
+		for _, rule := range rules {
+			rule(itemField)
+		}
+	}
+
+	return f
+}
+
+// Custom allows defining a custom validation rule
+func (f *Field) Custom(validateFunc func(interface{}) (bool, string)) *Field {
+	if isValid, errorMessage := validateFunc(f.value); !isValid {
+		f.vee.AddError(f.name, errorMessage)
+	}
+	return f
 }

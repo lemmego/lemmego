@@ -80,7 +80,7 @@ func (mg *MigrationGenerator) BumpVersion() *MigrationGenerator {
 }
 
 func (mg *MigrationGenerator) GetPackagePath() string {
-	return "cli/migrations"
+	return "cmd/migrations"
 }
 
 func (mg *MigrationGenerator) GetStub() string {

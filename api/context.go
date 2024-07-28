@@ -13,15 +13,14 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 
-	"github.com/golobby/container/v3"
 	inertia "github.com/romsar/gonertia"
 
 	"lemmego/api/req"
 
 	"github.com/a-h/templ"
-	"github.com/go-chi/chi/v5"
 )
 
 func init() {
@@ -29,12 +28,12 @@ func init() {
 	gob.Register(vee.Errors{})
 	gob.Register([]*AlertMessage{})
 	gob.Register(vee.Errors{})
+	gob.Register(map[string][]string{})
 }
 
 type Context struct {
 	sync.Mutex
-	app            *App
-	container      container.Container
+	app            AppManager
 	request        *http.Request
 	responseWriter http.ResponseWriter
 }
@@ -75,31 +74,29 @@ func (c *Context) Alert(typ string, message string) *AlertMessage {
 	return &AlertMessage{Type: typ, Body: message}
 }
 
-func (c *Context) ParseAndValidate(body req.Validator) (any, error) {
+func (c *Context) Validate(body req.Validator) error {
 	// return error if body is not a pointer
 	if reflect.ValueOf(body).Kind() != reflect.Ptr {
-		return nil, errors.New("body must be a pointer")
+		return errors.New("body must be a pointer")
 	}
 
-	input, err := c.ParseInput(body)
-
-	if err != nil {
-		return nil, err
+	if err := c.ParseInput(body); err != nil {
+		return err
 	}
 
-	if err := req.Validate(c.responseWriter, c.request, input.(req.Validator)); err != nil {
-		return nil, err
+	if err := body.Validate(); err != nil {
+		return err
 	}
 
-	return input, nil
+	return nil
 }
 
-func (c *Context) ParseInput(inputStruct any) (any, error) {
-	input, err := req.ParseInput(c.request, inputStruct)
+func (c *Context) ParseInput(inputStruct any) error {
+	err := req.ParseInput(c, inputStruct)
 	if err != nil {
-		return inputStruct, err
+		return err
 	}
-	return input, nil
+	return nil
 }
 
 func (c *Context) Input(inputStruct any) any {
@@ -107,7 +104,7 @@ func (c *Context) Input(inputStruct any) any {
 	if err != nil {
 		return nil
 	}
-	return c.Get(InKey)
+	return c.Get(HTTPInKey)
 }
 
 func (c *Context) SetInput(inputStruct any) error {
@@ -119,7 +116,7 @@ func (c *Context) SetInput(inputStruct any) error {
 }
 
 func (c *Context) GetInput() any {
-	return c.Get(InKey)
+	return c.Get(HTTPInKey)
 }
 
 func (c *Context) Respond(status int, r *R) error {
@@ -174,7 +171,7 @@ func (c *Context) Respond(status int, r *R) error {
 	return nil
 }
 
-func (c *Context) App() *App {
+func (c *Context) App() AppManager {
 	return c.app
 }
 
@@ -187,15 +184,23 @@ func (c *Context) ResponseWriter() http.ResponseWriter {
 }
 
 func (c *Context) FS() fsys.FS {
-	return c.app.fs
+	return c.app.FS()
 }
 
 func (c *Context) DB() *db.DB {
-	return c.app.db
+	c.app.DbFunc(c.request.Context(), nil)
+	return c.app.DB()
+	//dbm, err := c.app.Resolve((*db.DB)(nil))
+	//if err != nil {
+	//	log.Println(fmt.Errorf("db: %w", err))
+	//	return nil
+	//}
+	//
+	//return dbm.(*db.DB)
 }
 
 func (c *Context) I() *inertia.Inertia {
-	return c.app.i
+	return c.app.Inertia()
 }
 
 func (c *Context) Templ(component templ.Component) error {
@@ -217,7 +222,7 @@ func (c *Context) WantsJSON() bool {
 func (c *Context) JSON(status int, body M) error {
 	// TODO: Check if header is already sent
 	response, _ := json.Marshal(body)
-	c.responseWriter.Header().Set("Content-Type", "application/json")
+	c.responseWriter.Header().Set("content-Type", "application/json")
 	c.responseWriter.WriteHeader(status)
 	_, err := c.responseWriter.Write(response)
 	return err
@@ -231,7 +236,7 @@ func (c *Context) Send(status int, body []byte) error {
 }
 
 func (c *Context) AuthUser() interface{} {
-	return c.Pop("authUser")
+	return c.SessionPop("authUser")
 }
 
 func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
@@ -241,7 +246,7 @@ func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
 
 	vErrs := vee.Errors{}
 
-	if val, ok := c.Pop("errors").(vee.Errors); ok {
+	if val, ok := c.SessionPop("errors").(vee.Errors); ok {
 		vErrs = val
 	}
 
@@ -249,16 +254,16 @@ func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
 		data.ValidationErrors = vErrs
 	}
 
-	data.Messages = append(data.Messages, &AlertMessage{"success", c.PopString("success")})
-	data.Messages = append(data.Messages, &AlertMessage{"info", c.PopString("info")})
-	data.Messages = append(data.Messages, &AlertMessage{"warning", c.PopString("warning")})
-	data.Messages = append(data.Messages, &AlertMessage{"error", c.PopString("error")})
+	data.Messages = append(data.Messages, &AlertMessage{"success", c.SessionPopString("success")})
+	data.Messages = append(data.Messages, &AlertMessage{"info", c.SessionPopString("info")})
+	data.Messages = append(data.Messages, &AlertMessage{"warning", c.SessionPopString("warning")})
+	data.Messages = append(data.Messages, &AlertMessage{"error", c.SessionPopString("error")})
 
 	return data
 }
 
 func (c *Context) HTML(status int, body string) error {
-	c.responseWriter.Header().Set("Content-Type", "text/html")
+	c.responseWriter.Header().Set("content-type", "text/html")
 	c.responseWriter.WriteHeader(status)
 	_, err := c.responseWriter.Write([]byte(body))
 	return err
@@ -266,15 +271,32 @@ func (c *Context) HTML(status int, body string) error {
 
 func (c *Context) Render(status int, tmplPath string, data *TemplateData) error {
 	data = c.resolveTemplateData(data)
-	c.responseWriter.Header().Set("Content-Type", "text/html")
+	c.responseWriter.Header().Set("content-type", "text/html")
 	c.responseWriter.WriteHeader(status)
 	return RenderTemplate(c.responseWriter, tmplPath, data)
 }
 
 func (c *Context) Inertia(status int, filePath string, props map[string]any) error {
-	if c.app.i == nil {
+	if c.app.Inertia() == nil {
 		return errors.New("inertia not enabled")
 	}
+
+	if errs := c.SessionPop("errors"); errs != nil {
+		if props == nil {
+			props = map[string]any{}
+		}
+
+		props["errors"] = errs
+	}
+
+	if input := c.SessionPop("input"); input != nil {
+		if props == nil {
+			props = map[string]any{}
+		}
+
+		props["input"] = input
+	}
+
 	c.responseWriter.WriteHeader(status)
 	return c.App().Inertia().Render(c.ResponseWriter(), c.Request(), filePath, props)
 }
@@ -285,62 +307,97 @@ func (c *Context) Redirect(status int, url string) {
 }
 
 func (c *Context) WithErrors(errors vee.Errors) *Context {
-	if c.app.i != nil {
-		c.app.i.ShareProp("errors", errors)
-	}
-	return c.Put("errors", errors)
+	return c.SessionPut("errors", errors)
 }
 
 func (c *Context) WithSuccess(message string) *Context {
-	if c.app.i != nil {
-		c.app.i.ShareProp("success", message)
-	}
-	return c.Put("success", message)
+	return c.SessionPut("success", message)
 }
 
 func (c *Context) WithInfo(message string) *Context {
-	if c.app.i != nil {
-		c.app.i.ShareProp("info", message)
-	}
-	return c.Put("info", message)
+	return c.SessionPut("info", message)
 }
 
 func (c *Context) WithWarning(message string) *Context {
-	if c.app.i != nil {
-		c.app.i.ShareProp("warning", message)
-	}
-	return c.Put("warning", message)
+	return c.SessionPut("warning", message)
 }
 
 func (c *Context) WithError(message string) *Context {
-	if c.app.i != nil {
-		c.app.i.ShareProp("error", message)
-	}
-	return c.Put("error", message)
+	return c.SessionPut("error", message)
 }
 
 func (c *Context) WithData(data map[string]any) *Context {
-	c.PutFlash("data", data)
+	c.SessionPut("data", data)
+	return c
+}
+
+func (c *Context) WithInput() *Context {
+	body, err := c.Form()
+	if err == nil && body != nil {
+		c.SessionPut("input", body)
+		ctx := inertia.WithProp(c.request.Context(), "input", body)
+		c.SetRequest(c.request.WithContext(ctx))
+	}
 	return c
 }
 
 func (c *Context) Back(status int) {
-	if c.app.i != nil {
+	if c.app.Inertia() != nil {
 		c.App().Inertia().Back(c.ResponseWriter(), c.Request(), status)
 		return
 	}
-	c.Redirect(status, c.request.Referer())
+
+	c.Redirect(status, c.Referer())
 }
 
-func (c *Context) GetParam(key string) string {
-	return chi.URLParam(c.request, key)
+func (c *Context) Referer() string {
+	return c.request.Referer()
 }
 
-func (c *Context) GetQuery(key string) string {
+func (c *Context) HasMultiPartRequest() bool {
+	contentType := strings.ToLower(c.GetHeader("Content-Type"))
+	return contentType != "" && strings.HasPrefix(contentType, "multipart/")
+}
+
+func (c *Context) HasFormURLEncodedRequest() bool {
+	contentType := strings.ToLower(c.GetHeader("Content-Type"))
+	return contentType == "application/x-www-form-urlencoded"
+}
+
+func (c *Context) Param(key string) string {
+	return c.Request().PathValue(key)
+}
+
+func (c *Context) Query(key string) string {
 	return c.request.URL.Query().Get(key)
 }
 
-func (c *Context) GetBody() (map[string][]string, error) {
+func (c *Context) Form() (map[string][]string, error) {
+	if c.request.Form != nil {
+		return c.request.Form, nil
+	}
+
+	var err error
+
+	if c.HasMultiPartRequest() {
+		err = c.request.ParseMultipartForm(32 << 20)
+	}
+
+	if c.HasFormURLEncodedRequest() {
+		err = c.request.ParseForm()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return c.request.Form, nil
+}
+
+func (c *Context) Body() (map[string][]string, error) {
+	if c.request.Form != nil {
+		return c.request.Form, nil
+	}
+
 	if err := c.request.ParseForm(); err != nil {
 		return nil, err
 	}
@@ -376,34 +433,62 @@ func (c *Context) Set(key string, value interface{}) {
 	c.request = c.request.WithContext(context.WithValue(c.request.Context(), key, value))
 }
 
+func (c *Context) SetRequest(r *http.Request) {
+	c.Lock()
+	defer c.Unlock()
+	c.request = r
+}
+
 func (c *Context) Get(key string) any {
 	c.Lock()
 	defer c.Unlock()
 	return c.request.Context().Value(key)
 }
 
-func (c *Context) PutFlash(key string, value any) {
-	c.app.session.Put(c.Request().Context(), key, value)
-}
-
-func (c *Context) Put(key string, value any) *Context {
-	c.app.session.Put(c.Request().Context(), key, value)
+func (c *Context) SessionPut(key string, value any) *Context {
+	c.app.Session().Put(c.Request().Context(), key, value)
 	return c
 }
 
-func (c *Context) Pop(key string) any {
-	return c.app.session.Pop(c.Request().Context(), key)
+func (c *Context) SessionPop(key string) any {
+	return c.app.Session().Pop(c.Request().Context(), key)
 }
 
-func (c *Context) PopString(key string) string {
-	return c.app.session.PopString(c.Request().Context(), key)
+func (c *Context) SessionPopString(key string) string {
+	return c.app.Session().PopString(c.Request().Context(), key)
+}
+
+func (c *Context) SessionGet(key string) any {
+	return c.app.Session().Get(c.Request().Context(), key)
+}
+
+func (c *Context) SessionGetString(key string) string {
+	return c.app.Session().GetString(c.Request().Context(), key)
 }
 
 func (c *Context) Error(status int, err error) error {
 	if c.WantsJSON() {
 		return c.JSON(status, M{"message": err.Error()})
 	}
-	c.WithError(err.Error()).Back(http.StatusFound)
+	c.responseWriter.WriteHeader(status)
+	if _, e := c.responseWriter.Write([]byte(err.Error())); e != nil {
+		return err
+	}
+	return err
+}
+
+func (c *Context) ValidationError(err error) error {
+	var e vee.Errors
+
+	if !errors.As(err, &e) {
+		return c.Error(http.StatusInternalServerError, err)
+	}
+
+	if c.WantsJSON() || c.Referer() == "" {
+		return c.JSON(http.StatusUnprocessableEntity, M{"errors": err})
+	}
+
+	c.WithErrors(err.(vee.Errors)).WithInput().Back(http.StatusFound)
 	return nil
 }
 

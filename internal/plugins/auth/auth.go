@@ -288,7 +288,7 @@ func (p *AuthPlugin) InstallCommand() *cobra.Command {
 	return pluginCmd.GetInstallCommand(p)
 }
 
-func (p *AuthPlugin) Boot(app *api.App) error {
+func (p *AuthPlugin) Boot(app api.AppManager) error {
 	p.Opts.Session = app.Session()
 	p.Opts.DB = app.DB()
 	p.Opts.Router = app.Router()
@@ -299,11 +299,15 @@ func (p *AuthPlugin) EventListeners() map[string]func() {
 	return nil
 }
 
-func (p *AuthPlugin) Migrations() []string {
+func (p *AuthPlugin) PublishMigrations() map[string][]byte {
 	return nil
 }
 
-func (p *AuthPlugin) Templates() map[string][]byte {
+func (p *AuthPlugin) PublishModels() map[string][]byte {
+	return nil
+}
+
+func (p *AuthPlugin) PublishTemplates() map[string][]byte {
 	return nil
 	return map[string][]byte{
 		// "login.page.tmpl":    loginTmpl,
@@ -311,7 +315,7 @@ func (p *AuthPlugin) Templates() map[string][]byte {
 	}
 }
 
-func (p *AuthPlugin) Middlewares() []api.Middleware {
+func (p *AuthPlugin) Middlewares() []api.HTTPMiddleware {
 	return nil
 }
 

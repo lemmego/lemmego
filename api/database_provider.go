@@ -6,11 +6,11 @@ import (
 )
 
 type DatabaseServiceProvider struct {
-	BaseServiceProvider
+	*BaseServiceProvider
 }
 
 func (provider *DatabaseServiceProvider) Register(app *App) {
-	dbConfig := &db.DBConfig{
+	dbConfig := &db.Config{
 		Driver:   Config("db.driver").(string),
 		Host:     Config("db.host").(string),
 		Port:     Config("db.port").(int),
@@ -19,13 +19,17 @@ func (provider *DatabaseServiceProvider) Register(app *App) {
 		Password: Config("db.password").(string),
 	}
 
-	dbc, err := db.NewConnection(dbConfig).WithForceCreateDb().Open()
+	dbc, err := db.NewConnection(dbConfig).
+		// WithForceCreateDb(). // Force create db if not exists
+		Open()
 	if err != nil {
 		panic(err)
 	}
-
+	//app.Bind((*db.DB)(nil), func() *db.DB {
+	//	return dbc
+	//})
 	app.db = dbc
-	app.dbFunc = func(c context.Context, config *db.DBConfig) (*db.DB, error) {
+	app.dbFunc = func(c context.Context, config *db.Config) (*db.DB, error) {
 		if config == nil {
 			config = dbConfig
 		}
