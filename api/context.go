@@ -335,8 +335,6 @@ func (c *Context) WithInput() *Context {
 	body, err := c.Form()
 	if err == nil && body != nil {
 		c.SessionPut("input", body)
-		ctx := inertia.WithProp(c.request.Context(), "input", body)
-		c.SetRequest(c.request.WithContext(ctx))
 	}
 	return c
 }
