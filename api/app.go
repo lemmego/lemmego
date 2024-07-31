@@ -81,7 +81,6 @@ type App struct {
 	dbFunc           func(c context.Context, config *db.Config) (*db.DB, error)
 	i                *inertia.Inertia
 	routeRegistrar   RouteRegistrarFunc
-	currentGroup     *RouteGroup
 	fs               fsys.FS
 }
 

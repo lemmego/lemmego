@@ -56,7 +56,6 @@ type Router struct {
 	routes           []*Route
 	routeMiddlewares map[string]Middleware
 	httpMiddlewares  []HTTPMiddleware
-	currentGroup     *RouteGroup
 	basePrefix       string
 	mux              *http.ServeMux
 }
@@ -135,64 +134,14 @@ func (r *Router) Trace(pattern string, handler Handler) *Route {
 
 func (r *Router) addRoute(method, pattern string, handler Handler) *Route {
 	fullPath := pattern
-	if r.currentGroup != nil {
-		fullPath = path.Join(r.currentGroup.prefix, pattern)
-	}
 	route := &Route{Method: method, Path: fullPath, Handler: handler}
-	if r.currentGroup != nil {
-		r.currentGroup.routes = append(r.currentGroup.routes, route)
-	}
 	r.routes = append(r.routes, route)
 	return route
-}
-
-// RouteGroup represents a group of routes
-type RouteGroup struct {
-	prefix           string
-	beforeMiddleware []Middleware
-	afterMiddleware  []Middleware
-	routes           []*Route
 }
 
 // Use adds one or more standard net/http middleware to the router
 func (r *Router) Use(middlewares ...HTTPMiddleware) {
 	r.httpMiddlewares = append(r.httpMiddlewares, middlewares...)
-}
-
-func (rg *RouteGroup) UseBefore(middlewares ...Middleware) *RouteGroup {
-	rg.beforeMiddleware = append(rg.beforeMiddleware, middlewares...)
-	for _, route := range rg.routes {
-		route.BeforeMiddleware = append(middlewares, route.BeforeMiddleware...)
-	}
-	return rg
-}
-
-func (rg *RouteGroup) UseAfter(middlewares ...Middleware) *RouteGroup {
-	rg.afterMiddleware = append(rg.afterMiddleware, middlewares...)
-	for _, route := range rg.routes {
-		route.AfterMiddleware = append(route.AfterMiddleware, middlewares...)
-	}
-	return rg
-}
-
-// Group method for App
-func (r *Router) Group(prefix string, fn func(r *Router)) *RouteGroup {
-	previousGroup := r.currentGroup
-	newGroup := &RouteGroup{
-		prefix: prefix,
-	}
-
-	if previousGroup != nil {
-		newGroup.prefix = path.Join(previousGroup.prefix, newGroup.prefix)
-	}
-
-	r.currentGroup = newGroup
-
-	fn(r)
-
-	r.currentGroup = previousGroup
-
-	return newGroup
 }
 
 func (r *Router) registerMiddlewares(app *App) {
@@ -214,23 +163,6 @@ func (r *Router) registerRoutes(app *App) {
 
 	for _, route := range r.routes {
 		handler := route.Handler
-
-		// Apply group middlewares
-		if r.currentGroup != nil {
-			for i := len(r.currentGroup.beforeMiddleware) - 1; i >= 0; i-- {
-				handler = r.currentGroup.beforeMiddleware[i](handler)
-			}
-			for i := len(r.currentGroup.afterMiddleware) - 1; i >= 0; i-- {
-				nextHandler := handler
-				handler = func(c *Context) error {
-					err := nextHandler(c)
-					if err != nil {
-						return err
-					}
-					return r.currentGroup.afterMiddleware[i](func(*Context) error { return nil })(c)
-				}
-			}
-		}
 
 		r.mux.HandleFunc(route.Method+" "+route.Path, makeHandlerFunc(app, &Route{
 			Method:           route.Method,
@@ -258,20 +190,6 @@ func (r *Route) UseBefore(middleware ...Middleware) *Route {
 func (r *Route) UseAfter(middleware ...Middleware) *Route {
 	r.AfterMiddleware = append(r.AfterMiddleware, middleware...)
 	return r
-}
-
-func AdaptMiddleware(app *App, m Middleware) Middleware {
-	return func(next Handler) Handler {
-		return func(c *Context) error {
-			wrappedNext := func(c *Context) error {
-				return next(c)
-			}
-
-			wrappedHandler := m(wrappedNext)
-
-			return wrappedHandler(c)
-		}
-	}
 }
 
 func makeHandlerFunc(app *App, route *Route) http.HandlerFunc {
@@ -371,48 +289,6 @@ func vite(manifestPath, buildDir string) func(path string) (string, error) {
 		return "", fmt.Errorf("asset %q not found", p)
 	}
 }
-
-//func NewRoute(method string, path string, handler Handler, middlewares ...Middleware) *Route {
-//	return &Route{
-//		Method:      method,
-//		Path:        path,
-//		Middlewares: middlewares,
-//		Handler:     handler,
-//	}
-//}
-
-//	func Input(inputStruct any, opts ...core.Option) Middleware {
-//		co, err := httpin.New(inputStruct, opts...)
-//
-//		if err != nil {
-//			panic(err)
-//		}
-//
-//		return func(next http.Handler) http.Handler {
-//			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//				// Create a context (you might need to adjust this based on your actual Context creation logic)
-//				ctx := &Context{
-//					responseWriter: w,
-//					request:        r,
-//					// Initialize other fields as necessary
-//				}
-//
-//				input, err := co.Decode(r)
-//				if err != nil {
-//					co.GetErrorHandler()(w, r, err)
-//					return
-//				}
-//
-//				ctx.Set(HTTPInKey, input)
-//
-//				// Create a new request with the context
-//				r = r.WithContext(context.WithValue(r.Context(), HTTPInKey, ctx))
-//
-//				// Call the next handler
-//				next.ServeHTTP(w, r)
-//			})
-//		}
-//	}
 
 func Input(inputStruct any, opts ...core.Option) Middleware {
 	co, err := httpin.New(inputStruct, opts...)
