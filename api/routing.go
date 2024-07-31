@@ -52,22 +52,104 @@ func (p *InertiaFlashProvider) GetErrors(ctx context.Context) (inertia.Validatio
 	return inertiaErrors, nil
 }
 
+type Group struct {
+	router            *Router
+	prefix            string
+	beforeMiddlewares []Middleware
+	afterMiddlewares  []Middleware
+}
+
+func (g *Group) Group(prefix string) *Group {
+	return &Group{
+		router:            g.router,
+		prefix:            path.Join(g.prefix, prefix),
+		beforeMiddlewares: append([]Middleware{}, g.beforeMiddlewares...),
+		afterMiddlewares:  append([]Middleware{}, g.afterMiddlewares...),
+	}
+}
+
+func (g *Group) UseBefore(middleware ...Middleware) {
+	g.beforeMiddlewares = append(g.beforeMiddlewares, middleware...)
+}
+
+func (g *Group) UseAfter(middleware ...Middleware) {
+	g.afterMiddlewares = append(g.afterMiddlewares, middleware...)
+}
+
+func (g *Group) addRoute(method, pattern string, handler Handler) *Route {
+	fullPath := path.Join(g.prefix, pattern)
+	route := &Route{
+		Method:           method,
+		Path:             fullPath,
+		Handler:          handler,
+		router:           g.router,
+		BeforeMiddleware: append([]Middleware{}, g.beforeMiddlewares...),
+		AfterMiddleware:  append([]Middleware{}, g.afterMiddlewares...),
+	}
+	g.router.routes = append(g.router.routes, route)
+	log.Printf("Added route to group: %s %s, router: %p", method, fullPath, g.router)
+	return route
+}
+
+func (g *Group) Get(pattern string, handler Handler) *Route {
+	return g.addRoute(http.MethodGet, pattern, handler)
+}
+
+func (g *Group) Post(pattern string, handler Handler) *Route {
+	return g.addRoute(http.MethodPost, pattern, handler)
+}
+
+func (g *Group) Put(pattern string, handler Handler) *Route {
+	return g.addRoute(http.MethodPut, pattern, handler)
+}
+
+func (g *Group) Patch(pattern string, handler Handler) *Route {
+	return g.addRoute(http.MethodPatch, pattern, handler)
+}
+
+func (g *Group) Delete(pattern string, handler Handler) *Route {
+	return g.addRoute(http.MethodDelete, pattern, handler)
+}
+
 type Router struct {
-	routes           []*Route
-	routeMiddlewares map[string]Middleware
-	httpMiddlewares  []HTTPMiddleware
-	basePrefix       string
-	mux              *http.ServeMux
+	routes            []*Route
+	routeMiddlewares  map[string]Middleware
+	httpMiddlewares   []HTTPMiddleware
+	basePrefix        string
+	mux               *http.ServeMux
+	beforeMiddlewares []Middleware
+	afterMiddlewares  []Middleware
 }
 
 // NewRouter creates a new HTTPRouter-based router
 func NewRouter() *Router {
 	return &Router{
-		routes:           []*Route{},
-		routeMiddlewares: make(map[string]Middleware),
-		httpMiddlewares:  []HTTPMiddleware{},
-		mux:              http.NewServeMux(),
+		routes:            []*Route{},
+		routeMiddlewares:  make(map[string]Middleware),
+		httpMiddlewares:   []HTTPMiddleware{},
+		mux:               http.NewServeMux(),
+		beforeMiddlewares: []Middleware{},
+		afterMiddlewares:  []Middleware{},
 	}
+}
+
+func (r *Router) Group(prefix string) *Group {
+	group := &Group{
+		router:            r,
+		prefix:            prefix,
+		beforeMiddlewares: []Middleware{},
+		afterMiddlewares:  []Middleware{},
+	}
+	log.Printf("Created group with prefix: %s, router: %p", prefix, r)
+	return group
+}
+
+func (r *Router) UseBefore(middleware ...Middleware) {
+	r.beforeMiddlewares = append(r.beforeMiddlewares, middleware...)
+}
+
+func (r *Router) UseAfter(middleware ...Middleware) {
+	r.afterMiddlewares = append(r.afterMiddlewares, middleware...)
 }
 
 func (r *Router) HasRoute(method string, pattern string) bool {
@@ -133,9 +215,17 @@ func (r *Router) Trace(pattern string, handler Handler) *Route {
 }
 
 func (r *Router) addRoute(method, pattern string, handler Handler) *Route {
-	fullPath := pattern
-	route := &Route{Method: method, Path: fullPath, Handler: handler}
+	fullPath := path.Join(r.basePrefix, pattern)
+	route := &Route{
+		Method:           method,
+		Path:             fullPath,
+		Handler:          handler,
+		router:           r,
+		BeforeMiddleware: []Middleware{},
+		AfterMiddleware:  []Middleware{},
+	}
 	r.routes = append(r.routes, route)
+	log.Printf("Added route: %s %s, router: %p", method, fullPath, r)
 	return route
 }
 
@@ -162,15 +252,19 @@ func (r *Router) registerRoutes(app *App) {
 	}
 
 	for _, route := range r.routes {
-		handler := route.Handler
-
-		r.mux.HandleFunc(route.Method+" "+route.Path, makeHandlerFunc(app, &Route{
-			Method:           route.Method,
-			Path:             route.Path,
-			Handler:          handler,
-			BeforeMiddleware: route.BeforeMiddleware,
-			AfterMiddleware:  route.AfterMiddleware,
-		}))
+		log.Printf("Registering route: %s %s, router: %p", route.Method, route.Path, route.router)
+		r.mux.HandleFunc(route.Method+" "+route.Path, func(w http.ResponseWriter, req *http.Request) {
+			makeHandlerFunc(app, route, r)(w, req)
+		})
+		//handler := route.Handler
+		//
+		//r.mux.HandleFunc(route.Method+" "+route.Path, makeHandlerFunc(app, &Route{
+		//	Method:           route.Method,
+		//	Path:             route.Path,
+		//	Handler:          handler,
+		//	BeforeMiddleware: route.BeforeMiddleware,
+		//	AfterMiddleware:  route.AfterMiddleware,
+		//}))
 	}
 }
 
@@ -180,6 +274,7 @@ type Route struct {
 	Handler          Handler
 	AfterMiddleware  []Middleware
 	BeforeMiddleware []Middleware
+	router           *Router
 }
 
 func (r *Route) UseBefore(middleware ...Middleware) *Route {
@@ -192,8 +287,15 @@ func (r *Route) UseAfter(middleware ...Middleware) *Route {
 	return r
 }
 
-func makeHandlerFunc(app *App, route *Route) http.HandlerFunc {
+func makeHandlerFunc(app *App, route *Route, router *Router) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Handling request for route: %s %s, router: %p", route.Method, route.Path, router)
+		if route.router == nil {
+			log.Printf("WARNING: route.router is nil for %s %s", route.Method, route.Path)
+			// Handle the error condition, maybe return a 500 Internal Server Error
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 		//app.Reset()
 		token := app.Session().Token(r.Context())
 		if token != "" {
@@ -208,8 +310,22 @@ func makeHandlerFunc(app *App, route *Route) http.HandlerFunc {
 		}
 
 		chain := route.Handler
+		log.Printf("Applying middlewares for route: %s %s", route.Method, route.Path)
 
-		// Apply after middlewares in reverse order
+		// Apply router-level after middlewares
+		for i := len(router.afterMiddlewares) - 1; i >= 0; i-- {
+			afterMiddleware := router.afterMiddlewares[i]
+			nextChain := chain
+			chain = func(c *Context) error {
+				err := nextChain(c)
+				if err != nil {
+					return err
+				}
+				return afterMiddleware(func(*Context) error { return nil })(c)
+			}
+		}
+
+		// Apply route-specific after middlewares
 		for i := len(route.AfterMiddleware) - 1; i >= 0; i-- {
 			afterMiddleware := route.AfterMiddleware[i]
 			nextChain := chain
@@ -222,9 +338,14 @@ func makeHandlerFunc(app *App, route *Route) http.HandlerFunc {
 			}
 		}
 
-		// Apply before middlewares
+		// Apply route-specific before middlewares
 		for i := len(route.BeforeMiddleware) - 1; i >= 0; i-- {
 			chain = route.BeforeMiddleware[i](chain)
+		}
+
+		// Apply router-level before middlewares
+		for i := len(route.router.beforeMiddlewares) - 1; i >= 0; i-- {
+			chain = route.router.beforeMiddlewares[i](chain)
 		}
 
 		if err := chain(ctx); err != nil {
