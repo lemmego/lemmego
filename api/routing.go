@@ -246,7 +246,9 @@ func (r *Router) registerRoutes(app *App) {
 	for _, plugin := range app.plugins {
 		for _, route := range plugin.Routes() {
 			if !r.HasRoute(route.Method, route.Path) {
-				r.routes = append(r.routes, route)
+				log.Println("Adding route for the", plugin.Namespace(), "plugin:", route.Method, route.Path)
+				r.addRoute(route.Method, route.Path, route.Handler)
+				//r.routes = append(r.routes, route)
 			}
 		}
 	}
@@ -256,15 +258,6 @@ func (r *Router) registerRoutes(app *App) {
 		r.mux.HandleFunc(route.Method+" "+route.Path, func(w http.ResponseWriter, req *http.Request) {
 			makeHandlerFunc(app, route, r)(w, req)
 		})
-		//handler := route.Handler
-		//
-		//r.mux.HandleFunc(route.Method+" "+route.Path, makeHandlerFunc(app, &Route{
-		//	Method:           route.Method,
-		//	Path:             route.Path,
-		//	Handler:          handler,
-		//	BeforeMiddleware: route.BeforeMiddleware,
-		//	AfterMiddleware:  route.AfterMiddleware,
-		//}))
 	}
 }
 

@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"fmt"
 	"lemmego/api"
 	"lemmego/internal/handlers"
 	"log/slog"
@@ -40,6 +41,14 @@ func (provider *RouteServiceProvider) Register(app *api.App) {
 			handler.ServeHTTP(w, r)
 			return
 		})
+	})
+
+	app.Router().UseBefore(func(next api.Handler) api.Handler {
+		return func(c *api.Context) error {
+			c.Set("foo", "bar")
+			fmt.Println("I execute for every route")
+			return next(c)
+		}
 	})
 
 	app.RegisterRoutes(func(r *api.Router) {

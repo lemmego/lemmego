@@ -404,14 +404,14 @@ func (p *AuthPlugin) storeLoginHandler() api.Handler {
 
 func (p *AuthPlugin) Routes() []*api.Route {
 	routes := []*api.Route{
-		&api.Route{
+		{
 			Method: http.MethodGet,
 			Path:   "/login",
 			Handler: func(c *api.Context) error {
 				return c.Inertia(200, "Forms/Login", nil)
 			},
 		},
-		&api.Route{
+		{
 			Method: http.MethodGet,
 			Path:   "/register",
 			Handler: func(c *api.Context) error {

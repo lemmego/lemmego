@@ -13,7 +13,7 @@ func Routes(r *api.Router) {
 	r.Post("/oauth/clients", OauthClientStoreHandler)
 	r.Get("/oauth/authorize", AuthorizeIndexHandler)
 	r.Post("/register", RegistrationStoreHandler)
-	//r.Get("/api/v1/test1", func(c *api.Context) error {
+	//r.Get("/api/v1Group/test1", func(c *api.Context) error {
 	//	fmt.Println("inside test1")
 	//	return c.Send(200, []byte("test1"))
 	//}).UseBefore(func(next api.Handler) api.Handler {
@@ -42,21 +42,27 @@ func Routes(r *api.Router) {
 		}
 	})
 
-	v1 := apiGroup.Group("/v1")
-	v1.UseBefore(func(next api.Handler) api.Handler {
+	apiGroup.Get("/test3", func(c *api.Context) error {
+		val := c.Get("foo").(string)
+		println(val)
+		return c.Send(200, []byte("test3"))
+	})
+
+	v1Group := apiGroup.Group("/v1")
+	v1Group.UseBefore(func(next api.Handler) api.Handler {
 		return func(c *api.Context) error {
-			fmt.Println("before v1")
+			fmt.Println("before v1Group")
 			return next(c)
 		}
 	})
-	v1.UseAfter(func(next api.Handler) api.Handler {
+	v1Group.UseAfter(func(next api.Handler) api.Handler {
 		return func(c *api.Context) error {
-			fmt.Println("after v1")
+			fmt.Println("after v1Group")
 			return next(c)
 		}
 	})
 
-	v1.Get("/test1", func(c *api.Context) error {
+	v1Group.Get("/test1", func(c *api.Context) error {
 		fmt.Println("inside test1")
 		return c.Send(200, []byte("test1"))
 	}).UseBefore(func(next api.Handler) api.Handler {
@@ -71,7 +77,7 @@ func Routes(r *api.Router) {
 		}
 	})
 
-	v1.Get("/test2", func(c *api.Context) error {
+	v1Group.Get("/test2", func(c *api.Context) error {
 		return c.Send(200, []byte("test2"))
 	})
 }
