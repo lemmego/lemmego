@@ -36,6 +36,9 @@ type Context struct {
 	app            AppManager
 	request        *http.Request
 	responseWriter http.ResponseWriter
+
+	handlers []Handler
+	index    int
 }
 
 type AlertMessage struct {
@@ -49,6 +52,14 @@ type R struct {
 	Message      *AlertMessage
 	Payload      M
 	RedirectTo   string
+}
+
+func (c *Context) Next() error {
+	c.index++
+	if c.index < len(c.handlers) {
+		return c.handlers[c.index](c)
+	}
+	return nil
 }
 
 // SetCookie sets a cookie on the response writer

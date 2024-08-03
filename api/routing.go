@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ggicci/httpin"
-	"github.com/ggicci/httpin/core"
-	inertia "github.com/romsar/gonertia"
 	"lemmego/api/logger"
 	"lemmego/api/vee"
 	"log"
@@ -16,6 +13,10 @@ import (
 	"path"
 	"slices"
 	"sync"
+
+	"github.com/ggicci/httpin"
+	"github.com/ggicci/httpin/core"
+	inertia "github.com/romsar/gonertia"
 )
 
 const HTTPInKey = "input"
@@ -53,103 +54,98 @@ func (p *InertiaFlashProvider) GetErrors(ctx context.Context) (inertia.Validatio
 }
 
 type Group struct {
-	router            *Router
-	prefix            string
-	beforeMiddlewares []Middleware
-	afterMiddlewares  []Middleware
+	router           *Router
+	prefix           string
+	beforeMiddleware []Handler
+	afterMiddleware  []Handler
 }
 
 func (g *Group) Group(prefix string) *Group {
 	return &Group{
-		router:            g.router,
-		prefix:            path.Join(g.prefix, prefix),
-		beforeMiddlewares: append([]Middleware{}, g.beforeMiddlewares...),
-		afterMiddlewares:  append([]Middleware{}, g.afterMiddlewares...),
+		router:           g.router,
+		prefix:           path.Join(g.prefix, prefix),
+		beforeMiddleware: append([]Handler{}, g.beforeMiddleware...),
+		afterMiddleware:  append([]Handler{}, g.afterMiddleware...),
 	}
 }
 
-func (g *Group) UseBefore(middleware ...Middleware) {
-	g.beforeMiddlewares = append(g.beforeMiddlewares, middleware...)
+func (g *Group) UseBefore(handlers ...Handler) {
+	g.beforeMiddleware = append(g.beforeMiddleware, handlers...)
 }
 
-func (g *Group) UseAfter(middleware ...Middleware) {
-	g.afterMiddlewares = append(g.afterMiddlewares, middleware...)
+func (g *Group) UseAfter(handlers ...Handler) {
+	g.afterMiddleware = append(handlers, g.afterMiddleware...)
 }
 
-func (g *Group) addRoute(method, pattern string, handler Handler) *Route {
+func (g *Group) addRoute(method, pattern string, handlers ...Handler) *Route {
 	fullPath := path.Join(g.prefix, pattern)
 	route := &Route{
 		Method:           method,
 		Path:             fullPath,
-		Handler:          handler,
+		Handlers:         handlers,
+		BeforeMiddleware: append(append([]Handler{}, g.router.beforeMiddleware...), g.beforeMiddleware...),
+		AfterMiddleware:  append(append([]Handler{}, g.afterMiddleware...), g.router.afterMiddleware...),
 		router:           g.router,
-		BeforeMiddleware: append([]Middleware{}, g.beforeMiddlewares...),
-		AfterMiddleware:  append([]Middleware{}, g.afterMiddlewares...),
 	}
 	g.router.routes = append(g.router.routes, route)
-	log.Printf("Added route to group: %s %s, router: %p", method, fullPath, g.router)
 	return route
 }
 
-func (g *Group) Get(pattern string, handler Handler) *Route {
-	return g.addRoute(http.MethodGet, pattern, handler)
+func (g *Group) Get(pattern string, handlers ...Handler) *Route {
+	return g.addRoute(http.MethodGet, pattern, handlers...)
 }
 
-func (g *Group) Post(pattern string, handler Handler) *Route {
-	return g.addRoute(http.MethodPost, pattern, handler)
+func (g *Group) Post(pattern string, handlers ...Handler) *Route {
+	return g.addRoute(http.MethodPost, pattern, handlers...)
 }
 
-func (g *Group) Put(pattern string, handler Handler) *Route {
-	return g.addRoute(http.MethodPut, pattern, handler)
+func (g *Group) Put(pattern string, handlers ...Handler) *Route {
+	return g.addRoute(http.MethodPut, pattern, handlers...)
 }
 
-func (g *Group) Patch(pattern string, handler Handler) *Route {
-	return g.addRoute(http.MethodPatch, pattern, handler)
+func (g *Group) Patch(pattern string, handlers ...Handler) *Route {
+	return g.addRoute(http.MethodPatch, pattern, handlers...)
 }
 
-func (g *Group) Delete(pattern string, handler Handler) *Route {
-	return g.addRoute(http.MethodDelete, pattern, handler)
+func (g *Group) Delete(pattern string, handlers ...Handler) *Route {
+	return g.addRoute(http.MethodDelete, pattern, handlers...)
 }
 
 type Router struct {
-	routes            []*Route
-	routeMiddlewares  map[string]Middleware
-	httpMiddlewares   []HTTPMiddleware
-	basePrefix        string
-	mux               *http.ServeMux
-	beforeMiddlewares []Middleware
-	afterMiddlewares  []Middleware
+	routes           []*Route
+	httpMiddlewares  []HTTPMiddleware
+	basePrefix       string
+	mux              *http.ServeMux
+	beforeMiddleware []Handler
+	afterMiddleware  []Handler
 }
 
 // NewRouter creates a new HTTPRouter-based router
 func NewRouter() *Router {
 	return &Router{
-		routes:            []*Route{},
-		routeMiddlewares:  make(map[string]Middleware),
-		httpMiddlewares:   []HTTPMiddleware{},
-		mux:               http.NewServeMux(),
-		beforeMiddlewares: []Middleware{},
-		afterMiddlewares:  []Middleware{},
+		routes:           []*Route{},
+		httpMiddlewares:  []HTTPMiddleware{},
+		mux:              http.NewServeMux(),
+		beforeMiddleware: []Handler{},
+		afterMiddleware:  []Handler{},
 	}
 }
 
 func (r *Router) Group(prefix string) *Group {
-	group := &Group{
-		router:            r,
-		prefix:            prefix,
-		beforeMiddlewares: []Middleware{},
-		afterMiddlewares:  []Middleware{},
+	return &Group{
+		router:           r,
+		prefix:           prefix,
+		beforeMiddleware: []Handler{},
+		afterMiddleware:  []Handler{},
 	}
-	log.Printf("Created group with prefix: %s, router: %p", prefix, r)
-	return group
 }
 
-func (r *Router) UseBefore(middleware ...Middleware) {
-	r.beforeMiddlewares = append(r.beforeMiddlewares, middleware...)
+func (r *Router) UseBefore(handlers ...Handler) {
+	r.beforeMiddleware = append(r.beforeMiddleware, handlers...)
 }
 
-func (r *Router) UseAfter(middleware ...Middleware) {
-	r.afterMiddlewares = append(r.afterMiddlewares, middleware...)
+func (r *Router) UseAfter(handlers ...Handler) {
+	r.afterMiddleware = append(handlers, r.afterMiddleware...)
 }
 
 func (r *Router) HasRoute(method string, pattern string) bool {
@@ -158,9 +154,9 @@ func (r *Router) HasRoute(method string, pattern string) bool {
 	})
 }
 
-func (r *Router) setRouteMiddleware(middlewares map[string]Middleware) {
-	r.routeMiddlewares = middlewares
-}
+//func (r *Router) setRouteMiddleware(middlewares map[string]Middleware) {
+//	r.routeMiddlewares = middlewares
+//}
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var handler http.Handler = r.mux
@@ -178,51 +174,51 @@ func (r *Router) HandleFunc(pattern string, handler func(http.ResponseWriter, *h
 	r.mux.HandleFunc(pattern, handler)
 }
 
-func (r *Router) Get(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodGet, pattern, handler)
+func (r *Router) Get(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodGet, pattern, handlers...)
 }
 
-func (r *Router) Post(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodPost, pattern, handler)
+func (r *Router) Post(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodPost, pattern, handlers...)
 }
 
-func (r *Router) Put(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodPut, pattern, handler)
+func (r *Router) Put(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodPut, pattern, handlers...)
 }
 
-func (r *Router) Patch(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodPatch, pattern, handler)
+func (r *Router) Patch(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodPatch, pattern, handlers...)
 }
 
-func (r *Router) Delete(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodDelete, pattern, handler)
+func (r *Router) Delete(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodDelete, pattern, handlers...)
 }
 
-func (r *Router) Connect(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodConnect, pattern, handler)
+func (r *Router) Connect(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodConnect, pattern, handlers...)
 }
 
-func (r *Router) Head(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodHead, pattern, handler)
+func (r *Router) Head(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodHead, pattern, handlers...)
 }
 
-func (r *Router) Options(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodOptions, pattern, handler)
+func (r *Router) Options(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodOptions, pattern, handlers...)
 }
 
-func (r *Router) Trace(pattern string, handler Handler) *Route {
-	return r.addRoute(http.MethodTrace, pattern, handler)
+func (r *Router) Trace(pattern string, handlers ...Handler) *Route {
+	return r.addRoute(http.MethodTrace, pattern, handlers...)
 }
 
-func (r *Router) addRoute(method, pattern string, handler Handler) *Route {
+func (r *Router) addRoute(method, pattern string, handlers ...Handler) *Route {
 	fullPath := path.Join(r.basePrefix, pattern)
 	route := &Route{
 		Method:           method,
 		Path:             fullPath,
-		Handler:          handler,
+		Handlers:         handlers,
+		BeforeMiddleware: r.beforeMiddleware,
+		AfterMiddleware:  r.afterMiddleware,
 		router:           r,
-		BeforeMiddleware: []Middleware{},
-		AfterMiddleware:  []Middleware{},
 	}
 	r.routes = append(r.routes, route)
 	log.Printf("Added route: %s %s, router: %p", method, fullPath, r)
@@ -247,7 +243,7 @@ func (r *Router) registerRoutes(app *App) {
 		for _, route := range plugin.Routes() {
 			if !r.HasRoute(route.Method, route.Path) {
 				log.Println("Adding route for the", plugin.Namespace(), "plugin:", route.Method, route.Path)
-				r.addRoute(route.Method, route.Path, route.Handler)
+				r.addRoute(route.Method, route.Path, route.Handlers...)
 				//r.routes = append(r.routes, route)
 			}
 		}
@@ -264,19 +260,19 @@ func (r *Router) registerRoutes(app *App) {
 type Route struct {
 	Method           string
 	Path             string
-	Handler          Handler
-	AfterMiddleware  []Middleware
-	BeforeMiddleware []Middleware
+	Handlers         []Handler
+	BeforeMiddleware []Handler
+	AfterMiddleware  []Handler
 	router           *Router
 }
 
-func (r *Route) UseBefore(middleware ...Middleware) *Route {
-	r.BeforeMiddleware = append(r.BeforeMiddleware, middleware...)
+func (r *Route) UseBefore(handlers ...Handler) *Route {
+	r.BeforeMiddleware = append(r.BeforeMiddleware, handlers...)
 	return r
 }
 
-func (r *Route) UseAfter(middleware ...Middleware) *Route {
-	r.AfterMiddleware = append(r.AfterMiddleware, middleware...)
+func (r *Route) UseAfter(handlers ...Handler) *Route {
+	r.AfterMiddleware = append(handlers, r.AfterMiddleware...)
 	return r
 }
 
@@ -285,63 +281,29 @@ func makeHandlerFunc(app *App, route *Route, router *Router) http.HandlerFunc {
 		log.Printf("Handling request for route: %s %s, router: %p", route.Method, route.Path, router)
 		if route.router == nil {
 			log.Printf("WARNING: route.router is nil for %s %s", route.Method, route.Path)
-			// Handle the error condition, maybe return a 500 Internal Server Error
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		//app.Reset()
+
 		token := app.Session().Token(r.Context())
 		if token != "" {
 			r = r.WithContext(context.WithValue(r.Context(), "sessionID", token))
 			log.Println("Current SessionID: ", token)
 		}
+
+		allHandlers := append(append([]Handler{}, route.BeforeMiddleware...), route.Handlers...)
+		allHandlers = append(allHandlers, route.AfterMiddleware...)
+
 		ctx := &Context{
 			Mutex:          sync.Mutex{},
 			app:            app,
 			request:        r,
 			responseWriter: w,
+			handlers:       allHandlers,
+			index:          -1,
 		}
 
-		chain := route.Handler
-		log.Printf("Applying middlewares for route: %s %s", route.Method, route.Path)
-
-		// Apply router-level after middlewares
-		for i := len(router.afterMiddlewares) - 1; i >= 0; i-- {
-			afterMiddleware := router.afterMiddlewares[i]
-			nextChain := chain
-			chain = func(c *Context) error {
-				err := nextChain(c)
-				if err != nil {
-					return err
-				}
-				return afterMiddleware(func(*Context) error { return nil })(c)
-			}
-		}
-
-		// Apply route-specific after middlewares
-		for i := len(route.AfterMiddleware) - 1; i >= 0; i-- {
-			afterMiddleware := route.AfterMiddleware[i]
-			nextChain := chain
-			chain = func(c *Context) error {
-				err := nextChain(c)
-				if err != nil {
-					return err
-				}
-				return afterMiddleware(func(*Context) error { return nil })(c)
-			}
-		}
-
-		// Apply route-specific before middlewares
-		for i := len(route.BeforeMiddleware) - 1; i >= 0; i-- {
-			chain = route.BeforeMiddleware[i](chain)
-		}
-
-		// Apply router-level before middlewares
-		for i := len(route.router.beforeMiddlewares) - 1; i >= 0; i-- {
-			chain = route.router.beforeMiddlewares[i](chain)
-		}
-
-		if err := chain(ctx); err != nil {
+		if err := ctx.Next(); err != nil {
 			logger.V().Error(err.Error())
 			if errors.As(err, &vee.Errors{}) {
 				ctx.ValidationError(err)

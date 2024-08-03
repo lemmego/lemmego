@@ -184,12 +184,12 @@ var modelCmd = &cobra.Command{
 			fieldNameForm := huh.NewForm(
 				huh.NewGroup(
 					huh.NewInput().
-						Title("Enter the field name in snake_case").
+						Title("Enter the field name in snake_case.\nThe following fields will be provided:\nid, created_at, updated_at, deleted_at").
 						Validate(SnakeCaseEmptyAllowed).
 						Validate(
 							NotIn(
 								[]string{"id", "created_at", "updated_at", "deleted_at"},
-								"This field will be provided for you",
+								"No need, this field will be provided",
 							),
 						).
 						Value(&fieldName),

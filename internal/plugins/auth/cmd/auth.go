@@ -70,7 +70,7 @@ var AuthCmd = &cobra.Command{
 			fieldNameForm := huh.NewForm(
 				huh.NewGroup(
 					huh.NewInput().
-						Title("Enter the field name in snake_case").
+						Title("Enter the field name in snake_case.\nThe following fields will be provided:\nid, email, password, org_name, org_email, org_username, created_at, updated_at, deleted_at").
 						Value(&fieldName).
 						Validate(cli.NotIn(
 							[]string{"id", "email", "password", "org_name", "org_email", "org_username", "created_at", "updated_at", "deleted_at"},

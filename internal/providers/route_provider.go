@@ -35,7 +35,7 @@ func (provider *RouteServiceProvider) Register(app *api.App) {
 		// SourceFieldName: "source",
 	})
 
-	// Routes global middleware
+	// net/http compatible global middleware
 	app.Router().Use(httplog.RequestLogger(logger), middleware.Recoverer, func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			handler.ServeHTTP(w, r)
@@ -43,12 +43,10 @@ func (provider *RouteServiceProvider) Register(app *api.App) {
 		})
 	})
 
-	app.Router().UseBefore(func(next api.Handler) api.Handler {
-		return func(c *api.Context) error {
-			c.Set("foo", "bar")
-			fmt.Println("I execute for every route")
-			return next(c)
-		}
+	// Global middleware
+	app.Router().UseBefore(func(c *api.Context) error {
+		fmt.Println("I execute before every route")
+		return c.Next()
 	})
 
 	app.RegisterRoutes(func(r *api.Router) {

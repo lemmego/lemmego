@@ -407,16 +407,16 @@ func (p *AuthPlugin) Routes() []*api.Route {
 		{
 			Method: http.MethodGet,
 			Path:   "/login",
-			Handler: func(c *api.Context) error {
+			Handlers: []api.Handler{func(c *api.Context) error {
 				return c.Inertia(200, "Forms/Login", nil)
-			},
+			}},
 		},
 		{
 			Method: http.MethodGet,
 			Path:   "/register",
-			Handler: func(c *api.Context) error {
+			Handlers: []api.Handler{func(c *api.Context) error {
 				return c.Inertia(200, "Forms/Register", nil)
-			},
+			}},
 		},
 	}
 

@@ -258,7 +258,7 @@ func NewApp(optFuncs ...OptFunc) *App {
 		}
 	}
 
-	router.setRouteMiddleware(routeMiddlewares)
+	//router.setRouteMiddleware(routeMiddlewares)
 
 	app := &App{
 		//Container:        opts.Container,
