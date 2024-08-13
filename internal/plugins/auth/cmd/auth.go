@@ -4,21 +4,21 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"lemmego/api"
-	"lemmego/api/cli"
-	"lemmego/api/fsys"
 	"os"
 	"slices"
 	"text/template"
 
+	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/cli"
+	"github.com/lemmego/lemmego/api/fsys"
+
 	_ "embed"
 
 	"github.com/charmbracelet/huh"
-	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 )
 
-var formFieldTypes = []string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "datetime", "image"}
+var formFieldTypes = []string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "datetime", "file"}
 
 var wd, _ = os.Getwd()
 
@@ -223,10 +223,16 @@ func createModelFiles(fields []*Field, hasOrg bool) {
 	userFields := []*cli.ModelField{}
 	if hasOrg {
 		generateOrgModel()
-		userFields = append(userFields, &cli.ModelField{
-			Name: "org_id",
-			Type: cli.UiDataTypeMap["integer"],
-		})
+		userFields = append(userFields, []*cli.ModelField{
+			{
+				Name: "org_id",
+				Type: cli.UiDataTypeMap["integer"],
+			},
+			{
+				Name: "org",
+				Type: "Org",
+			},
+		}...)
 	}
 	for _, f := range fields {
 		userFields = append(userFields, &cli.ModelField{
@@ -307,9 +313,9 @@ func createInputFiles(fields []*Field, hasOrg bool) {
 	loginGen.Generate()
 
 	registrationFields = append(registrationFields, []*cli.InputField{
-		{Name: "email", Type: "string"},
-		{Name: "password", Type: "string"},
-		{Name: "password_confirmation", Type: "string"},
+		{Name: "email", Type: "string", Required: true},
+		{Name: "password", Type: "string", Required: true},
+		{Name: "password_confirmation", Type: "string", Required: true},
 	}...)
 
 	registrationGen := cli.NewInputGenerator(&cli.InputConfig{
@@ -339,7 +345,7 @@ func createFormFiles(fields []*Field, flavor string, hasOrg bool) {
 	}
 
 	if hasOrg {
-		loginFields = append(loginFields, &cli.FormField{Name: "org_username", Type: "text"})
+		loginFields = append([]*cli.FormField{{Name: "org_username", Type: "text"}}, loginFields...)
 		registrationFields = append(registrationFields, []*cli.FormField{
 			{Name: "org_name", Type: "text"},
 			{Name: "org_email", Type: "text"},
@@ -402,17 +408,6 @@ func createModelDir() {
 		fmt.Println("Error creating models directory:", err.Error())
 		return
 	}
-}
-
-func createInputFieldsString(fields []Field) string {
-	var fieldsString string
-	for index, f := range fields {
-		fieldsString += fmt.Sprintf("\t%s string `json:\"%s\" in:\"form=%s\"`", strcase.ToCamel(f.FieldName), f.FieldName, f.FieldName)
-		if index < len(fields)-1 {
-			fieldsString += "\n"
-		}
-	}
-	return fieldsString
 }
 
 func parseTemplate(tmplData map[string]string, fileContents string) (string, error) {

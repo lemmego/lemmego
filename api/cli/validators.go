@@ -3,9 +3,10 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"lemmego/api/cmder"
 	"slices"
 	"strings"
+
+	"github.com/lemmego/lemmego/api/cmder"
 )
 
 var SnakeCase = func(input string) error {

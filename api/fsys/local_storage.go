@@ -2,11 +2,12 @@ package fsys
 
 import (
 	"io"
-	"lemmego/api/logger"
 	"mime/multipart"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/lemmego/lemmego/api/logger"
 )
 
 // LocalStorage is an implementation of StorageInterface for local file system.

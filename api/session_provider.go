@@ -2,9 +2,10 @@ package api
 
 import (
 	"fmt"
+
 	"github.com/alexedwards/scs/redisstore"
 	"github.com/gomodule/redigo/redis"
-	"lemmego/api/session"
+	"github.com/lemmego/lemmego/api/session"
 )
 
 type SessionServiceProvider struct {

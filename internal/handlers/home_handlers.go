@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"lemmego/api"
-	"lemmego/templates"
+	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/templates"
 )
 
 func IndexHomeHandler(ctx *api.Context) error {

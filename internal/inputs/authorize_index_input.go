@@ -1,7 +1,7 @@
 package inputs
 
 import (
-	"lemmego/api/vee"
+	"github.com/lemmego/lemmego/api/vee"
 )
 
 type AuthorizeIndexInput struct {

@@ -1,4 +1,4 @@
-module lemmego
+module github.com/lemmego/lemmego
 
 go 1.22
 
@@ -9,7 +9,6 @@ require (
 	github.com/a-h/templ v0.2.513
 	github.com/alexedwards/scs/redisstore v0.0.0-20240316134038-7e11d57e8885
 	github.com/charmbracelet/huh v0.4.2
-	github.com/davecgh/go-spew v1.1.1
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/httplog/v2 v2.0.11
@@ -100,7 +99,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/manifoldco/promptui v0.9.0
-	github.com/romsar/gonertia v1.2.2
+	github.com/romsar/gonertia v1.3.0
 	golang.org/x/crypto v0.23.0
 	golang.org/x/oauth2 v0.18.0
 	golang.org/x/text v0.15.0

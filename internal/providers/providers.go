@@ -1,6 +1,6 @@
 package providers
 
-import "lemmego/api"
+import "github.com/lemmego/lemmego/api"
 
 func Load() []api.ServiceProvider {
 	return []api.ServiceProvider{

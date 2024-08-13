@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"lemmego/api"
-	"lemmego/internal/inputs"
+	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/internal/inputs"
 )
 
 func AuthorizeIndexHandler(ctx *api.Context) error {

@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"lemmego/api"
-	"lemmego/api/db"
-	"lemmego/api/session"
-	"lemmego/api/vee"
-	pluginCmd "lemmego/internal/plugins/auth/cmd"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/db"
+	"github.com/lemmego/lemmego/api/session"
+	"github.com/lemmego/lemmego/api/vee"
+	pluginCmd "github.com/lemmego/lemmego/internal/plugins/auth/cmd"
 
 	"dario.cat/mergo"
 
@@ -408,7 +409,12 @@ func (p *AuthPlugin) Routes() []*api.Route {
 			Method: http.MethodGet,
 			Path:   "/login",
 			Handlers: []api.Handler{func(c *api.Context) error {
-				return c.Inertia(200, "Forms/Login", nil)
+				props := map[string]any{}
+				message := c.PopSessionString("message")
+				if message != "" {
+					props["message"] = message
+				}
+				return c.Inertia(200, "Forms/Login", props)
 			}},
 		},
 		{

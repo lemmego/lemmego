@@ -78,6 +78,14 @@ func (f *Field) Required() *Field {
 	return f
 }
 
+// Equals checks if the value is equal to the provided value
+func (f *Field) Equals(value interface{}) *Field {
+	if f.value != value {
+		f.vee.AddError(f.name, "This field must match with the provided value")
+	}
+	return f
+}
+
 // Min checks if the value is greater than or equal to the minimum
 func (f *Field) Min(min int) *Field {
 	if v, ok := f.value.(int); ok {

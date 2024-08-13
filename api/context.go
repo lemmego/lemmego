@@ -5,10 +5,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
-	"lemmego/api/db"
-	"lemmego/api/fsys"
-	"lemmego/api/logger"
-	"lemmego/api/vee"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -16,9 +12,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/lemmego/lemmego/api/db"
+	"github.com/lemmego/lemmego/api/fsys"
+	"github.com/lemmego/lemmego/api/logger"
+	"github.com/lemmego/lemmego/api/vee"
+
 	inertia "github.com/romsar/gonertia"
 
-	"lemmego/api/req"
+	"github.com/lemmego/lemmego/api/req"
 
 	"github.com/a-h/templ"
 )
@@ -247,7 +248,7 @@ func (c *Context) Send(status int, body []byte) error {
 }
 
 func (c *Context) AuthUser() interface{} {
-	return c.SessionPop("authUser")
+	return c.PopSession("authUser")
 }
 
 func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
@@ -257,7 +258,7 @@ func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
 
 	vErrs := vee.Errors{}
 
-	if val, ok := c.SessionPop("errors").(vee.Errors); ok {
+	if val, ok := c.PopSession("errors").(vee.Errors); ok {
 		vErrs = val
 	}
 
@@ -265,10 +266,10 @@ func (c *Context) resolveTemplateData(data *TemplateData) *TemplateData {
 		data.ValidationErrors = vErrs
 	}
 
-	data.Messages = append(data.Messages, &AlertMessage{"success", c.SessionPopString("success")})
-	data.Messages = append(data.Messages, &AlertMessage{"info", c.SessionPopString("info")})
-	data.Messages = append(data.Messages, &AlertMessage{"warning", c.SessionPopString("warning")})
-	data.Messages = append(data.Messages, &AlertMessage{"error", c.SessionPopString("error")})
+	data.Messages = append(data.Messages, &AlertMessage{"success", c.PopSessionString("success")})
+	data.Messages = append(data.Messages, &AlertMessage{"info", c.PopSessionString("info")})
+	data.Messages = append(data.Messages, &AlertMessage{"warning", c.PopSessionString("warning")})
+	data.Messages = append(data.Messages, &AlertMessage{"error", c.PopSessionString("error")})
 
 	return data
 }
@@ -292,7 +293,7 @@ func (c *Context) Inertia(status int, filePath string, props map[string]any) err
 		return errors.New("inertia not enabled")
 	}
 
-	if errs := c.SessionPop("errors"); errs != nil {
+	if errs := c.PopSession("errors"); errs != nil {
 		if props == nil {
 			props = map[string]any{}
 		}
@@ -300,7 +301,7 @@ func (c *Context) Inertia(status int, filePath string, props map[string]any) err
 		props["errors"] = errs
 	}
 
-	if input := c.SessionPop("input"); input != nil {
+	if input := c.PopSession("input"); input != nil {
 		if props == nil {
 			props = map[string]any{}
 		}
@@ -312,40 +313,49 @@ func (c *Context) Inertia(status int, filePath string, props map[string]any) err
 	return c.App().Inertia().Render(c.ResponseWriter(), c.Request(), filePath, props)
 }
 
-func (c *Context) Redirect(status int, url string) {
+func (c *Context) Redirect(status int, url string) error {
+	if c.I() != nil {
+		c.I().Redirect(c.ResponseWriter(), c.Request(), url)
+		return nil
+	}
+
 	c.responseWriter.Header().Set("Location", url)
 	c.responseWriter.WriteHeader(status)
+	return nil
+}
+
+func (c *Context) With(key string, message string) *Context {
+	return c.PutSession(key, message)
 }
 
 func (c *Context) WithErrors(errors vee.Errors) *Context {
-	return c.SessionPut("errors", errors)
+	return c.PutSession("errors", errors)
 }
 
 func (c *Context) WithSuccess(message string) *Context {
-	return c.SessionPut("success", message)
+	return c.PutSession("success", message)
 }
 
 func (c *Context) WithInfo(message string) *Context {
-	return c.SessionPut("info", message)
+	return c.PutSession("info", message)
 }
 
 func (c *Context) WithWarning(message string) *Context {
-	return c.SessionPut("warning", message)
+	return c.PutSession("warning", message)
 }
 
 func (c *Context) WithError(message string) *Context {
-	return c.SessionPut("error", message)
+	return c.PutSession("error", message)
 }
 
 func (c *Context) WithData(data map[string]any) *Context {
-	c.SessionPut("data", data)
-	return c
+	return c.PutSession("data", data)
 }
 
 func (c *Context) WithInput() *Context {
 	body, err := c.Form()
 	if err == nil && body != nil {
-		c.SessionPut("input", body)
+		c.PutSession("input", body)
 	}
 	return c
 }
@@ -414,26 +424,40 @@ func (c *Context) Body() (map[string][]string, error) {
 }
 
 func (c *Context) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
+	if file, _, err := c.request.FormFile(key); file != nil && err == nil {
+		return c.request.FormFile(key)
+	}
+
 	if err := c.request.ParseMultipartForm(32 << 20); err != nil {
 		return nil, nil, err
 	}
 	return c.request.FormFile(key)
 }
 
-func (c *Context) Upload(key string, dir string) (*os.File, error) {
-	file, header, err := c.FormFile(key)
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			logger.V().Info("Form file could not be closed", "Error:", err)
-		}
-	}()
+func (c *Context) HasFile(key string) bool {
+	_, _, err := c.request.FormFile(key)
+	return err == nil
+}
 
-	if err != nil {
-		return nil, err
+func (c *Context) Upload(key string, dir string) (*os.File, error) {
+	if c.HasFile(key) {
+		file, header, err := c.FormFile(key)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			err := file.Close()
+			if err != nil {
+				logger.V().Info("Form file could not be closed", "Error:", err)
+			}
+		}()
+
+		return c.FS().Upload(file, header, dir)
 	}
 
-	return c.FS().Upload(file, header, dir)
+	return nil, nil
 }
 
 func (c *Context) Set(key string, value interface{}) {
@@ -454,24 +478,24 @@ func (c *Context) Get(key string) any {
 	return c.request.Context().Value(key)
 }
 
-func (c *Context) SessionPut(key string, value any) *Context {
+func (c *Context) PutSession(key string, value any) *Context {
 	c.app.Session().Put(c.Request().Context(), key, value)
 	return c
 }
 
-func (c *Context) SessionPop(key string) any {
+func (c *Context) PopSession(key string) any {
 	return c.app.Session().Pop(c.Request().Context(), key)
 }
 
-func (c *Context) SessionPopString(key string) string {
+func (c *Context) PopSessionString(key string) string {
 	return c.app.Session().PopString(c.Request().Context(), key)
 }
 
-func (c *Context) SessionGet(key string) any {
+func (c *Context) GetSession(key string) any {
 	return c.app.Session().Get(c.Request().Context(), key)
 }
 
-func (c *Context) SessionGetString(key string) string {
+func (c *Context) GetSessionString(key string) string {
 	return c.app.Session().GetString(c.Request().Context(), key)
 }
 

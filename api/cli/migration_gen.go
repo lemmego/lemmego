@@ -3,11 +3,12 @@ package cli
 import (
 	_ "embed"
 	"fmt"
-	"lemmego/api/fsys"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lemmego/lemmego/api/fsys"
 
 	"github.com/charmbracelet/huh"
 	"github.com/gertd/go-pluralize"

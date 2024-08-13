@@ -3,9 +3,10 @@ package cli
 import (
 	_ "embed"
 	"fmt"
-	"lemmego/api/fsys"
 	"slices"
 	"strings"
+
+	"github.com/lemmego/lemmego/api/fsys"
 
 	"github.com/charmbracelet/huh"
 	"github.com/iancoleman/strcase"

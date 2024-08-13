@@ -1,7 +1,7 @@
 package config
 
 import (
-	"lemmego/api"
+	"github.com/lemmego/lemmego/api"
 )
 
 func init() {

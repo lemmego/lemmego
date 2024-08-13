@@ -3,13 +3,14 @@ package cli
 import (
 	"bytes"
 	"errors"
-	"github.com/iancoleman/strcase"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"html/template"
 	"log"
 	"reflect"
 	"strings"
+
+	"github.com/iancoleman/strcase"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/spf13/cobra"
 )
@@ -25,7 +26,7 @@ var UiDataTypeMap = map[string]string{
 	"dropdown": reflect.String.String(),
 	"date":     "time.Time",
 	"time":     "time.Time",
-	"image":    reflect.String.String(),
+	"file":     reflect.String.String(),
 }
 
 var UiDbTypeMap = map[string]string{
@@ -39,10 +40,14 @@ var UiDbTypeMap = map[string]string{
 	"dropdown": "string",
 	"date":     "dateTime",
 	"time":     "time",
-	"image":    "string",
+	"file":     "string",
 }
 
 var commonFuncs = template.FuncMap{
+	"contains":  strings.Contains,
+	"hasSuffix": strings.HasSuffix,
+	"join":      strings.Join,
+
 	"toTitle": func(str string) string {
 		caser := cases.Title(language.English)
 		return caser.String(str)
@@ -59,11 +64,9 @@ var commonFuncs = template.FuncMap{
 	"toSpaceDelimited": func(str string) string {
 		return strcase.ToDelimited(str, ' ')
 	},
-	"contains": strings.Contains,
 	"concat": func(str string, strs ...string) string {
 		return str + strings.Join(strs, "")
 	},
-	"join": strings.Join,
 }
 
 type Replacable struct {

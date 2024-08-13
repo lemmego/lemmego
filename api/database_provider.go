@@ -2,7 +2,8 @@ package api
 
 import (
 	"context"
-	"lemmego/api/db"
+
+	"github.com/lemmego/lemmego/api/db"
 )
 
 type DatabaseServiceProvider struct {

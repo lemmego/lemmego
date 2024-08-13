@@ -1,8 +1,8 @@
 package main
 
 import (
-	"lemmego/api/cli"
-	"lemmego/internal/plugins/auth/cmd"
+	"github.com/lemmego/lemmego/api/cli"
+	"github.com/lemmego/lemmego/internal/plugins/auth/cmd"
 )
 
 func main() {

@@ -3,10 +3,12 @@ package cli
 import (
 	_ "embed"
 	"fmt"
+
 	"github.com/charmbracelet/huh"
 
-	"lemmego/api/fsys"
 	"strings"
+
+	"github.com/lemmego/lemmego/api/fsys"
 
 	"github.com/spf13/cobra"
 )

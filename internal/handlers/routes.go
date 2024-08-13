@@ -2,7 +2,8 @@ package handlers
 
 import (
 	"fmt"
-	"lemmego/api"
+
+	"github.com/lemmego/lemmego/api"
 )
 
 func Routes(r *api.Router) {

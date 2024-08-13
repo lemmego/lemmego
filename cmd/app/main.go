@@ -1,11 +1,12 @@
 package main
 
 import (
-	"lemmego/api"
-	_ "lemmego/internal/config"
-	"lemmego/internal/plugins"
-	"lemmego/internal/providers"
 	"log/slog"
+
+	"github.com/lemmego/lemmego/api"
+	_ "github.com/lemmego/lemmego/internal/config"
+	"github.com/lemmego/lemmego/internal/plugins"
+	"github.com/lemmego/lemmego/internal/providers"
 )
 
 func main() {

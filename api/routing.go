@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"lemmego/api/logger"
-	"lemmego/api/vee"
 	"log"
 	"net/http"
 	"os"
 	"path"
 	"slices"
 	"sync"
+
+	"github.com/lemmego/lemmego/api/logger"
+	"github.com/lemmego/lemmego/api/vee"
 
 	"github.com/ggicci/httpin"
 	"github.com/ggicci/httpin/core"

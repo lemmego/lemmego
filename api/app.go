@@ -3,8 +3,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"lemmego/api/fsys"
-	"lemmego/api/session"
 	"log"
 	"log/slog"
 	"net/http"
@@ -15,7 +13,10 @@ import (
 	"sync"
 	"syscall"
 
-	"lemmego/api/db"
+	"github.com/lemmego/lemmego/api/fsys"
+	"github.com/lemmego/lemmego/api/session"
+
+	"github.com/lemmego/lemmego/api/db"
 
 	inertia "github.com/romsar/gonertia"
 	"github.com/spf13/cobra"

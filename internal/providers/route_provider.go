@@ -2,10 +2,11 @@ package providers
 
 import (
 	"fmt"
-	"lemmego/api"
-	"lemmego/internal/handlers"
 	"log/slog"
 	"net/http"
+
+	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/internal/handlers"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog/v2"
@@ -53,7 +54,7 @@ func (provider *RouteServiceProvider) Register(app *api.App) {
 		handlers.Routes(r)
 
 		r.Get("/error", func(c *api.Context) error {
-			err := c.SessionPop("error").(string)
+			err := c.PopSession("error").(string)
 			return c.HTML(500, "<html><body><code>"+err+"</code></body></html>")
 		})
 	})

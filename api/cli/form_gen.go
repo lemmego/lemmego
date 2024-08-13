@@ -3,11 +3,12 @@ package cli
 import (
 	_ "embed"
 	"fmt"
+	"strings"
+
 	"github.com/charmbracelet/huh"
 	"github.com/iancoleman/strcase"
+	"github.com/lemmego/lemmego/api/fsys"
 	"github.com/spf13/cobra"
-	"lemmego/api/fsys"
-	"strings"
 )
 
 //go:embed templ_form.txt

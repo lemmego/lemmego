@@ -1,21 +1,21 @@
 package {{.PackageName}}
 
 import (
-	"time"
-	"database/sql"
-
-	"gorm.io/gorm"
+	"github.com/lemmego/lemmego/api/db"
 )
 
 type {{.ModelName | toCamel}} struct {
-	gorm.Model
+	db.Model
 {{- range .Fields}}
     {{- $gormTag := ""}}
     {{- if .Unique}}
         {{- $gormTag = concat $gormTag "unique"}}
     {{- end}}
+    {{- if and .Unique .Required}}
+        {{- $gormTag = concat $gormTag " "}}
+    {{- end}}
     {{- if .Required}}
-        {{- $gormTag = concat $gormTag " not null"}}
+        {{- $gormTag = concat $gormTag "not null"}}
     {{- end}}
     {{- if eq $gormTag ""}}
     {{.Name | toCamel}} {{.Type}} `json:"{{.Name | toSnake}}"`

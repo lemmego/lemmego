@@ -2,9 +2,10 @@ package api
 
 import (
 	"html/template"
-	"lemmego/api/vee"
 	"net/http"
 	"path/filepath"
+
+	"github.com/lemmego/lemmego/api/vee"
 )
 
 type TemplateData struct {

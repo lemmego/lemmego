@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/internal/inputs"
+	"github.com/lemmego/lemmego/internal/models"
 	"github.com/lucsky/cuid"
-	"lemmego/api"
-	"lemmego/internal/inputs"
-	"lemmego/internal/models"
 )
 
 func OauthClientIndexHandler(ctx *api.Context) error {
