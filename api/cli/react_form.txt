@@ -13,8 +13,12 @@ const {{.Name}}: React.FC = () => {
   {{- end}}
   });
 
-  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files.length > 0) {
+  function handleInput(
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) {
+    if ("files" in e.target && e.target.files && e.target.files.length > 0) {
       setData(e.target.name, e.target.files[0]);
       return;
     }
@@ -102,7 +106,7 @@ const {{.Name}}: React.FC = () => {
 						{{- end}}
 						{{- if eq .Type "file"}}
 						<label htmlFor="{{.Name | toSnake}}" className="label-primary">{{.Name | toSpaceDelimited | toTitle}}</label>
-						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="file" value={data.{{.Name | toSnake}}} onChange={handleInput}/>
+						<input id="{{.Name | toSnake}}" name="{{.Name | toSnake}}" type="file" onChange={handleInput}/>
 						{{- end}}
 						{errors.{{.Name | toSnake}} && <p className="text-xs text-red-500">{errors.{{.Name | toSnake}}.join(', ')}</p>}
 					</div>

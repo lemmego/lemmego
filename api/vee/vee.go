@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
+	"github.com/lemmego/lemmego/api/db"
 )
 
 type Errors map[string][]string
@@ -70,9 +72,20 @@ type Field struct {
 	value interface{}
 }
 
+func (f *Field) Value() interface{} {
+	return f.value
+}
+
+func (f *Field) Name() string {
+	return f.name
+}
+
 // Required checks if the value is not empty
 func (f *Field) Required() *Field {
-	if f.value == nil || f.value == "" {
+	if f.value == nil || f.value == "" || (reflect.ValueOf(f.value).Kind() == reflect.Ptr && reflect.ValueOf(f.value).IsNil()) {
+		if f.name == "avatar" || f.name == "org_logo" {
+			log.Println("Adding error for file")
+		}
 		f.vee.AddError(f.name, "This field is required")
 	}
 	return f
@@ -492,6 +505,17 @@ func (f *Field) HexColor() *Field {
 	return f
 }
 
+func (f *Field) Unique(db *db.DB, table string, column string) *Field {
+	var count int64
+	db.Table(table).Where(fmt.Sprintf("%s = ?", column), f.value).Count(&count)
+
+	if count > 0 {
+		f.vee.AddError(f.name, "This field must be unique")
+	}
+
+	return f
+}
+
 // ForEach applies validation rules to each item in an array
 func (f *Field) ForEach(rules ...func(*Field) *Field) *Field {
 	slice := reflect.ValueOf(f.value)
@@ -523,7 +547,7 @@ func (f *Field) ForEach(rules ...func(*Field) *Field) *Field {
 }
 
 // Custom allows defining a custom validation rule
-func (f *Field) Custom(validateFunc func(interface{}) (bool, string)) *Field {
+func (f *Field) Custom(validateFunc func(v interface{}) (bool, string)) *Field {
 	if isValid, errorMessage := validateFunc(f.value); !isValid {
 		f.vee.AddError(f.name, errorMessage)
 	}

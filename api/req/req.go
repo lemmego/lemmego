@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/romsar/gonertia"
 	"io"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/romsar/gonertia"
 
 	"github.com/ggicci/httpin"
 	"github.com/ggicci/httpin/core"
@@ -101,8 +102,12 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 	return nil
 }
 
+func HasFormData(r *http.Request) bool {
+	return strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data")
+}
+
 func ParseInput(ctx Ctx, inputStruct any, opts ...core.Option) error {
-	if WantsJSON(ctx.Request()) || gonertia.IsInertiaRequest(ctx.Request()) {
+	if !HasFormData(ctx.Request()) && (WantsJSON(ctx.Request()) || gonertia.IsInertiaRequest(ctx.Request())) {
 		if err := DecodeJSONBody(ctx.ResponseWriter(), ctx.Request(), inputStruct); err != nil {
 			return err
 		}

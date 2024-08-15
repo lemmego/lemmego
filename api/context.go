@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -107,6 +108,13 @@ func (c *Context) ParseInput(inputStruct any) error {
 	err := req.ParseInput(c, inputStruct)
 	if err != nil {
 		return err
+	}
+
+	v := reflect.ValueOf(inputStruct).Elem()
+
+	nameField := v.FieldByName("AppManager")
+	if nameField.IsValid() && nameField.CanSet() {
+		nameField.Set(reflect.ValueOf(c.App()))
 	}
 	return nil
 }
@@ -444,7 +452,7 @@ func (c *Context) Upload(key string, dir string) (*os.File, error) {
 		file, header, err := c.FormFile(key)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not get form file: %w", err)
 		}
 
 		defer func() {

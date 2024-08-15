@@ -7,18 +7,19 @@ import (
 
 func init() {
   migration.GetMigrator().AddMigration(&migration.Migration{
-    Version: "20240813211709",
-    Up:      mig_20240813211709_create_orgs_table_up,
-    Down:    mig_20240813211709_create_orgs_table_down,
+    Version: "20240814152547",
+    Up:      mig_20240814152547_create_orgs_table_up,
+    Down:    mig_20240814152547_create_orgs_table_down,
   })
 }
 
-func mig_20240813211709_create_orgs_table_up(tx *sql.Tx) error {
+func mig_20240814152547_create_orgs_table_up(tx *sql.Tx) error {
   schema := migration.Create("orgs", func(t *migration.Table) {
     t.BigIncrements("id").Primary()
     t.String("org_username", 255).Unique()
     t.String("org_name", 255)
-    t.String("org_email", 255).Unique()
+    t.String("org_email", 255)
+    t.String("org_logo", 255)
     t.DateTime("created_at", 0).Nullable()
     t.DateTime("updated_at", 0).Nullable()
     t.DateTime("deleted_at", 0).Nullable()
@@ -31,7 +32,7 @@ func mig_20240813211709_create_orgs_table_up(tx *sql.Tx) error {
   return nil
 }
 
-func mig_20240813211709_create_orgs_table_down(tx *sql.Tx) error {
+func mig_20240814152547_create_orgs_table_down(tx *sql.Tx) error {
   schema := migration.Drop("orgs").Build()
 
   if _, err := tx.Exec(schema); err != nil {

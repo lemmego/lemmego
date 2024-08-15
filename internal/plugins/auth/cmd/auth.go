@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"slices"
 	"text/template"
 
 	"github.com/lemmego/lemmego/api"
@@ -20,16 +19,32 @@ import (
 
 var formFieldTypes = []string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "datetime", "file"}
 
+var userFields = []string{"first_name", "last_name", "username", "bio", "phone", "avatar"}
+var requiredUserFields = []string{"email", "password"}
+var orgFields = []string{"org_name", "org_email", "org_logo"}
+var requiredOrgFields = []string{"org_username"}
 var wd, _ = os.Getwd()
 
 type Field struct {
-	FieldName  string
-	FieldType  string // text, textarea, number, boolean, radio, checkbox, dropdown, date, time, image
-	IsUsername bool
-	IsPassword bool
-	IsUnique   bool
-	IsRequired bool
-	Choices    []string
+	Name     string
+	Type     string
+	Required bool
+	Unique   bool
+}
+
+var uf = []*Field{
+	{Name: "email", Type: "string", Required: true, Unique: true},
+	{Name: "password", Type: "string", Required: true, Unique: false},
+	{Name: "username", Type: "string", Required: true, Unique: false},
+	{Name: "first_name", Type: "string", Required: true, Unique: false},
+	{Name: "last_name", Type: "string", Required: true, Unique: false},
+	{Name: "bio", Type: "string", Required: true, Unique: false},
+	{Name: "phone", Type: "string", Required: true, Unique: false},
+	{Name: "avatar", Type: "string", Required: true, Unique: false},
+}
+
+var of = []*Field{
+	{Name: "avatar", Type: "string", Required: true, Unique: false},
 }
 
 var AuthCmd = &cobra.Command{
@@ -39,9 +54,11 @@ var AuthCmd = &cobra.Command{
 
 	Run: func(cmd *cobra.Command, args []string) {
 		selectedFrontend := ""
-		username, password := "email", "password"
-		fields := []*Field{}
+		// username, password := "email", "password"
 		hasOrg := false
+
+		selectedUserFields := []string{}
+		selectedOrgFields := []string{}
 
 		orgForm := huh.NewForm(
 			huh.NewGroup(
@@ -61,109 +78,42 @@ var AuthCmd = &cobra.Command{
 			return
 		}
 
-		for {
-			var fieldName, fieldType string
-			const required = "Required"
-			const unique = "Unique"
-			selectedAttrs := []string{}
-			choices := []string{}
-			fieldNameForm := huh.NewForm(
-				huh.NewGroup(
-					huh.NewInput().
-						Title("Enter the field name in snake_case.\nThe following fields will be provided:\nid, email, password, org_name, org_email, org_username, created_at, updated_at, deleted_at").
-						Value(&fieldName).
-						Validate(cli.NotIn(
-							[]string{"id", "email", "password", "org_name", "org_email", "org_username", "created_at", "updated_at", "deleted_at"},
-							"No need to add this field, it will be provided.",
-							cli.SnakeCaseEmptyAllowed,
-						)),
-				),
-			)
+		userFieldSelectionForm := huh.NewForm(
+			huh.NewGroup(
+				huh.NewMultiSelect[string]().
+					Title("Select the fields for the user entity").
+					Options(huh.NewOptions(userFields...)...).
+					Value(&selectedUserFields),
+			),
+		)
 
-			err = fieldNameForm.Run()
-			if err != nil {
-				fmt.Println("Error:", err.Error())
-				return
-			}
-
-			if fieldName == "" {
-				break
-			}
-
-			fieldTypeForm := huh.NewForm(
-				huh.NewGroup(
-					huh.NewSelect[string]().
-						Title("Select the field type").
-						Options(huh.NewOptions(formFieldTypes...)...).
-						Value(&fieldType),
-				),
-			)
-
-			err = fieldTypeForm.Run()
-			if err != nil {
-				fmt.Println("Error:", err.Error())
-				return
-			}
-
-			if fieldType == "radio" || fieldType == "checkbox" || fieldType == "dropdown" {
-
-				for {
-					var choice string
-					choicesForm := huh.NewForm(
-						huh.NewGroup(
-							huh.NewInput().
-								Title(fmt.Sprintf("Add new choice for %s %s (Press enter to finish)", fieldName, fieldType)).
-								Value(&choice),
-						),
-					)
-
-					err = choicesForm.Run()
-					if err != nil {
-						fmt.Println(err)
-						return
-					}
-
-					if choice == "" {
-						break
-					}
-					choices = append(choices, choice)
-				}
-			}
-
-			selectedAttrsForm := huh.NewForm(
-				huh.NewGroup(
-					huh.NewMultiSelect[string]().
-						Title("Press x to select the attributes").
-						Options(huh.NewOptions(required, unique)...).
-						Value(&selectedAttrs),
-				),
-			)
-			err = selectedAttrsForm.Run()
-			if err != nil {
-				return
-			}
-
-			fields = append(fields, &Field{
-				FieldName:  fieldName,
-				FieldType:  fieldType,
-				Choices:    choices,
-				IsRequired: slices.Contains(selectedAttrs, required),
-				IsUnique:   slices.Contains(selectedAttrs, unique),
-			})
+		err = userFieldSelectionForm.Run()
+		if err != nil {
+			fmt.Println("Error:", err.Error())
+			return
 		}
 
-		fields = append(fields, &Field{FieldName: username, FieldType: "text", IsUsername: true, IsRequired: true, IsUnique: true})
-		fields = append(fields, &Field{FieldName: password, FieldType: "text", IsPassword: true, IsRequired: true})
+		if hasOrg {
+			orgFieldSelectionForm := huh.NewForm(
+				huh.NewGroup(
+					huh.NewMultiSelect[string]().
+						Title("Select the fields for the org entity").
+						Options(huh.NewOptions(orgFields...)...).
+						Value(&selectedOrgFields),
+				),
+			)
 
-		//if hasOrg {
-		//	fields = append(fields, &Field{FieldName: "org_username", FieldType: "text", IsRequired: true, IsUnique: true})
-		//	fields = append(fields, &Field{FieldName: "org_name", FieldType: "text", IsRequired: true, IsUnique: false})
-		//}
+			err = orgFieldSelectionForm.Run()
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+				return
+			}
+		}
 
-		createInputFiles(fields, hasOrg)
-		createMigrationFiles(fields, hasOrg)
-		createModelFiles(fields, hasOrg)
-		createFormFiles(fields, selectedFrontend, hasOrg)
+		createMigrationFiles(selectedUserFields, selectedOrgFields)
+		createModelFiles(selectedUserFields, selectedOrgFields)
+		createInputFiles(selectedUserFields, selectedOrgFields)
+		createFormFiles(selectedFrontend, selectedUserFields, selectedOrgFields)
 	},
 }
 
@@ -171,38 +121,80 @@ func GetInstallCommand(p api.Plugin) *cobra.Command {
 	return AuthCmd
 }
 
-func generateOrgMigration() {
-	orgFields := []*cli.MigrationField{
-		{Name: "id", Type: "bigIncrements", Primary: true},
-		{Name: "org_username", Type: "string", Unique: true},
-		{Name: "org_name", Type: "string"},
-		{Name: "org_email", Type: "string", Unique: true},
-	}
+func generateOrgMigration(oFields []*cli.MigrationField) {
 	om := cli.NewMigrationGenerator(&cli.MigrationConfig{
 		TableName:  "orgs",
-		Fields:     orgFields,
+		Fields:     oFields,
 		Timestamps: true,
 	})
 	om.Generate()
 }
 
-func generateUserMigration(userFields []*cli.MigrationField) {
-	um := cli.NewMigrationGenerator(&cli.MigrationConfig{
-		TableName:      "users",
-		Fields:         userFields,
-		Timestamps:     true,
-		PrimaryColumns: []string{"id", "org_id"},
-	})
+func generateUserMigration(userFields []*cli.MigrationField, hasOrg bool) {
+	config := &cli.MigrationConfig{
+		TableName:  "users",
+		Fields:     userFields,
+		Timestamps: true,
+	}
+	if hasOrg {
+		config.PrimaryColumns = []string{"id", "org_id"}
+	} else {
+		config.PrimaryColumns = []string{"id"}
+	}
+	um := cli.NewMigrationGenerator(config)
 	um.BumpVersion().Generate()
 }
 
-func generateOrgModel() {
-	orgFields := []*cli.ModelField{
-		{Name: "org_username", Type: "string", Unique: true},
-		{Name: "org_name", Type: "string"},
-		{Name: "org_email", Type: "string", Unique: true},
+func createMigrationFiles(userFields []string, orgFields []string) {
+	hasOrg := len(orgFields) > 0
+	uFields := []*cli.MigrationField{
+		{Name: "id", Type: "bigIncrements"},
+		{Name: "email", Type: "string", Unique: true},
+		{Name: "password", Type: "text"},
 	}
 
+	for _, f := range userFields {
+		field := &cli.MigrationField{Name: f, Type: "string"}
+		if f == "username" || f == "email" {
+			field.Unique = true
+		}
+		if f == "bio" {
+			field.Nullable = true
+			field.Type = "text"
+		}
+		uFields = append(uFields, field)
+	}
+
+	if hasOrg {
+		oFields := []*cli.MigrationField{
+			{Name: "id", Type: "bigIncrements", Primary: true},
+			{Name: "org_username", Type: "string", Unique: true},
+		}
+
+		for _, f := range orgFields {
+			field := &cli.MigrationField{Name: f, Type: "string"}
+			if f == "username" || f == "email" {
+				field.Unique = true
+			}
+			if f == "bio" {
+				field.Nullable = true
+				field.Type = "text"
+			}
+			oFields = append(oFields, field)
+		}
+		generateOrgMigration(oFields)
+
+		uFields = append(uFields, &cli.MigrationField{
+			Name:               "org_id",
+			Type:               "bigIncrements",
+			ForeignConstrained: true,
+		})
+	}
+
+	generateUserMigration(uFields, hasOrg)
+}
+
+func generateOrgModel(orgFields []*cli.ModelField) {
 	om := cli.NewModelGenerator(&cli.ModelConfig{
 		Name:   "org",
 		Fields: orgFields,
@@ -218,92 +210,89 @@ func generateUserModel(userFields []*cli.ModelField) {
 	um.Generate()
 }
 
-func createModelFiles(fields []*Field, hasOrg bool) {
+func createModelFiles(userFields []string, orgFields []string) {
 	createModelDir()
-	userFields := []*cli.ModelField{}
-	if hasOrg {
-		generateOrgModel()
-		userFields = append(userFields, []*cli.ModelField{
-			{
-				Name: "org_id",
-				Type: cli.UiDataTypeMap["integer"],
-			},
-			{
-				Name: "org",
-				Type: "Org",
-			},
-		}...)
+	uFields := []*cli.ModelField{
+		{Name: "email", Type: "string", Unique: true},
+		{Name: "password", Type: "string"},
 	}
-	for _, f := range fields {
-		userFields = append(userFields, &cli.ModelField{
-			Name:     f.FieldName,
-			Type:     cli.UiDataTypeMap[f.FieldType],
-			Required: f.IsRequired,
-			Unique:   f.IsUnique,
-		})
-	}
-	generateUserModel(userFields)
-}
 
-func createMigrationFiles(fields []*Field, hasOrg bool) {
-	userFields := []*cli.MigrationField{
-		{Name: "id", Type: "bigIncrements"},
-	}
-	uniqueColumns := []string{}
-	for _, v := range fields {
-		if v.IsUnique {
-			uniqueColumns = append(uniqueColumns, v.FieldName)
+	if len(orgFields) > 0 {
+		oFields := []*cli.ModelField{
+			{Name: "org_username", Type: "string", Unique: true},
 		}
-	}
-	if hasOrg {
-		generateOrgMigration()
-		userFields = append(userFields, &cli.MigrationField{
-			Name:               "org_id",
-			Type:               "bigIncrements",
-			ForeignConstrained: true,
+		for _, f := range orgFields {
+			field := &cli.ModelField{Name: f, Type: "string"}
+			if f == "org_email" {
+				field.Unique = true
+			}
+			field.Required = true
+			oFields = append(oFields, field)
+		}
+
+		uFields = append(uFields, &cli.ModelField{
+			Name: "org_id", Type: "uint", Required: true,
 		})
+		generateOrgModel(oFields)
 	}
 
-	for _, v := range fields {
-		userFields = append(userFields, &cli.MigrationField{
-			Name:     v.FieldName,
-			Type:     cli.UiDbTypeMap[v.FieldType],
-			Nullable: !v.IsRequired,
-			Unique:   v.IsUnique,
-		})
+	for _, f := range userFields {
+		field := &cli.ModelField{Name: f, Type: "string"}
+		if f == "username" || f == "email" {
+			field.Required = true
+			field.Unique = true
+		}
+		uFields = append(uFields, field)
 	}
-	generateUserMigration(userFields)
+	generateUserModel(uFields)
+
 }
 
-func createInputFiles(fields []*Field, hasOrg bool) {
+func createInputFiles(userFields []string, orgFields []string) {
 	createInputDir()
-	loginFields := []*cli.InputField{}
-	registrationFields := []*cli.InputField{}
-	for _, f := range fields {
-		if f.IsUsername || f.IsPassword {
-			loginFields = append(loginFields, &cli.InputField{
-				Name:     f.FieldName,
-				Type:     cli.UiDataTypeMap[f.FieldType],
-				Required: f.IsRequired,
-				Unique:   f.IsUnique,
-			})
-		} else {
-			registrationFields = append(registrationFields, &cli.InputField{
-				Name:     f.FieldName,
-				Type:     cli.UiDataTypeMap[f.FieldType],
-				Required: f.IsRequired,
-				Unique:   f.IsUnique,
-			})
-		}
+	loginFields := []*cli.InputField{
+		{Name: "email", Type: "string", Required: true},
+		{Name: "password", Type: "string", Required: true},
 	}
 
-	if hasOrg {
-		loginFields = append(loginFields, &cli.InputField{Name: "org_username", Type: "string", Required: true})
-		registrationFields = append(registrationFields, []*cli.InputField{
-			{Name: "org_name", Type: "string", Required: true},
-			{Name: "org_email", Type: "string", Required: true},
-			{Name: "org_username", Type: "string", Required: true},
-		}...)
+	registrationFields := []*cli.InputField{
+		{Name: "email", Type: "string", Required: true, Unique: true, Table: "users"},
+		{Name: "password", Type: "string", Required: true},
+		{Name: "password_confirmation", Type: "string", Required: true},
+	}
+
+	for _, f := range userFields {
+		registrationFields = append(registrationFields, &cli.InputField{
+			Name:     f,
+			Type:     "string",
+			Required: true,
+		})
+	}
+
+	if len(orgFields) > 0 {
+		for _, f := range orgFields {
+			field := &cli.InputField{
+				Name:     f,
+				Type:     "string",
+				Required: true,
+			}
+
+			if f == "org_email" {
+				field.Unique = true
+				field.Table = "orgs"
+			}
+
+			registrationFields = append(registrationFields, field)
+		}
+		orgUsernameField := &cli.InputField{
+			Name:     "org_username",
+			Type:     "string",
+			Required: true,
+			Unique:   true,
+			Table:    "orgs",
+		}
+		loginFields = append(loginFields, orgUsernameField)
+		registrationFields = append(registrationFields, orgUsernameField)
 	}
 
 	loginGen := cli.NewInputGenerator(&cli.InputConfig{
@@ -312,12 +301,6 @@ func createInputFiles(fields []*Field, hasOrg bool) {
 	})
 	loginGen.Generate()
 
-	registrationFields = append(registrationFields, []*cli.InputField{
-		{Name: "email", Type: "string", Required: true},
-		{Name: "password", Type: "string", Required: true},
-		{Name: "password_confirmation", Type: "string", Required: true},
-	}...)
-
 	registrationGen := cli.NewInputGenerator(&cli.InputConfig{
 		Name:   "registration",
 		Fields: registrationFields,
@@ -325,32 +308,41 @@ func createInputFiles(fields []*Field, hasOrg bool) {
 	registrationGen.Generate()
 }
 
-func createFormFiles(fields []*Field, flavor string, hasOrg bool) {
+func createFormFiles(flavor string, userFields []string, orgFields []string) {
 	createFormDir(flavor)
-	registrationFields := []*cli.FormField{}
-	for _, f := range fields {
-		registrationFields = append(registrationFields, &cli.FormField{
-			Name:    f.FieldName,
-			Type:    f.FieldType,
-			Choices: f.Choices,
-		})
-		if f.IsPassword {
-			registrationFields = append(registrationFields, &cli.FormField{Name: "password_confirmation", Type: "text"})
-		}
-	}
-
 	loginFields := []*cli.FormField{
 		{Name: "email", Type: "text"},
 		{Name: "password", Type: "text"},
 	}
+	registrationFields := []*cli.FormField{}
 
-	if hasOrg {
+	for _, f := range userFields {
+		field := &cli.FormField{Name: f, Type: "text"}
+		if f == "avatar" {
+			field.Type = "file"
+		}
+		if f == "bio" {
+			field.Type = "textarea"
+		}
+		registrationFields = append(registrationFields, field)
+	}
+
+	registrationFields = append(registrationFields, []*cli.FormField{
+		{Name: "email", Type: "text"},
+		{Name: "password", Type: "text"},
+		{Name: "password_confirmation", Type: "text"},
+	}...)
+
+	if len(orgFields) > 0 {
 		loginFields = append([]*cli.FormField{{Name: "org_username", Type: "text"}}, loginFields...)
-		registrationFields = append(registrationFields, []*cli.FormField{
-			{Name: "org_name", Type: "text"},
-			{Name: "org_email", Type: "text"},
-			{Name: "org_username", Type: "text"},
-		}...)
+		registrationFields = append(registrationFields, &cli.FormField{Name: "org_username", Type: "text"})
+		for _, f := range orgFields {
+			field := &cli.FormField{Name: f, Type: "text"}
+			if f == "org_logo" {
+				field.Type = "file"
+			}
+			registrationFields = append(registrationFields, field)
+		}
 	}
 
 	loginForm := cli.NewFormGenerator(&cli.FormConfig{

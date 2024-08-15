@@ -9,7 +9,6 @@ import (
 	"github.com/lemmego/lemmego/api/fsys"
 
 	"github.com/charmbracelet/huh"
-	"github.com/iancoleman/strcase"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +24,7 @@ type InputField struct {
 	Type     string
 	Required bool
 	Unique   bool
+	Table    string
 }
 
 type InputConfig struct {
@@ -39,20 +39,6 @@ type InputGenerator struct {
 
 func NewInputGenerator(mc *InputConfig) *InputGenerator {
 	return &InputGenerator{mc.Name, mc.Fields}
-}
-
-func (ig *InputGenerator) GetReplacables() []*Replacable {
-	var fieldLines string
-	for index, f := range ig.fields {
-		fieldLines += fmt.Sprintf("\t%s %s `json:\"%s\" in:\"form=%s\"`", strcase.ToCamel(f.Name), f.Type, f.Name, f.Name)
-		if index < len(ig.fields)-1 {
-			fieldLines += "\n"
-		}
-	}
-	return []*Replacable{
-		{Placeholder: "InputName", Value: strcase.ToCamel(ig.name)},
-		{Placeholder: "Fields", Value: fieldLines},
-	}
 }
 
 func (ig *InputGenerator) GetPackagePath() string {

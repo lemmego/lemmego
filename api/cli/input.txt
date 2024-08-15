@@ -1,10 +1,12 @@
 package {{.PackageName}}
 
 import (
+    "github.com/lemmego/lemmego/api"
     "github.com/lemmego/lemmego/api/vee"
 )
 
 type {{.InputName | toCamel}}Input struct {
+    api.AppManager
 {{- range .Fields}}
     {{.Name | toCamel}} {{.Type}} `json:"{{.Name | toSnake}}" in:"form={{.Name | toSnake}}"`
 {{- end}}
@@ -13,8 +15,12 @@ type {{.InputName | toCamel}}Input struct {
 func (i *{{.InputName | toCamel}}Input) Validate() error {
 	v := vee.New()
     {{- range .Fields}}
-        {{- if .Required}}
+        {{- if and .Required .Unique}}
+    v.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Required().Unique(i.DB(), "{{.Table}}", "{{.Name | toSnake}}")
+        {{- else if .Required}}
     v.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Required()
+        {{- else if .Unique}}
+    v.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Unique(i.DB(), "{{.Table}}", "{{.Name | toSnake}}")
         {{- end}}
     {{- end}}
 	return v.Validate()

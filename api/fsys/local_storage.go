@@ -1,6 +1,7 @@
 package fsys
 
 import (
+	"fmt"
 	"io"
 	"mime/multipart"
 	"os"
@@ -108,25 +109,26 @@ func (ls *LocalStorage) GetUrl(path string) (string, error) {
 }
 
 func (ls *LocalStorage) Open(path string) (*os.File, error) {
-	return os.Open(path)
+	fullPath := ls.RootDirectory + "/" + path
+	return os.Open(fullPath)
 }
 
 func (ls *LocalStorage) Upload(file multipart.File, header *multipart.FileHeader, dir string) (*os.File, error) {
 	if exists, _ := ls.Exists(dir); !exists {
 		err := ls.CreateDirectory(dir)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not create directory: %w", err)
 		}
 	}
 
 	data, _ := io.ReadAll(file)
 	err := ls.Write(path.Join(dir, header.Filename), data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not write file: %w", err)
 	}
 
 	if storedFile, err := ls.Open(path.Join(dir, header.Filename)); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not open file: %w", err)
 	} else {
 		defer func() {
 			err := storedFile.Close()
