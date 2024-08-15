@@ -1,4 +1,4 @@
-package api
+package config
 
 type ConfigMap map[string]interface{}
 

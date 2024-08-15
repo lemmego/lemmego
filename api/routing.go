@@ -12,6 +12,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/lemmego/lemmego/api/config"
 	"github.com/lemmego/lemmego/api/logger"
 	"github.com/lemmego/lemmego/api/vee"
 
@@ -338,7 +339,7 @@ func initInertia() *inertia.Inertia {
 	}
 
 	i.ShareTemplateFunc("vite", vite(manifestPath, "/public/build/"))
-	i.ShareTemplateData("env", Config("app.env").(string))
+	i.ShareTemplateData("env", config.Config("app.env").(string))
 
 	return i
 }

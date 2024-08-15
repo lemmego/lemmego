@@ -5,6 +5,7 @@ import (
 
 	"github.com/alexedwards/scs/redisstore"
 	"github.com/gomodule/redigo/redis"
+	"github.com/lemmego/lemmego/api/config"
 	"github.com/lemmego/lemmego/api/session"
 )
 
@@ -17,7 +18,7 @@ func (provider *SessionServiceProvider) Register(app *App) {
 	pool := &redis.Pool{
 		MaxIdle: 10,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", fmt.Sprintf("%s:%d", Config("db.redisHost"), Config("db.redisPort")))
+			return redis.Dial("tcp", fmt.Sprintf("%s:%d", config.Config("db.redisHost"), config.Config("db.redisPort")))
 		},
 	}
 	//sm := session.NewSession(session.NewFileStore(""))

@@ -13,6 +13,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/lemmego/lemmego/api/config"
 	"github.com/lemmego/lemmego/api/fsys"
 	"github.com/lemmego/lemmego/api/session"
 
@@ -73,7 +74,7 @@ type App struct {
 	isContextReady   bool
 	mu               sync.Mutex
 	session          *session.Session
-	config           ConfigMap
+	config           config.ConfigMap
 	plugins          PluginRegistry
 	serviceProviders []ServiceProvider
 	hooks            *AppHooks
@@ -88,7 +89,7 @@ type App struct {
 type Options struct {
 	//*container.Container
 	*session.Session
-	Config           ConfigMap
+	Config           config.ConfigMap
 	Plugins          map[PluginID]Plugin
 	ServiceProviders []ServiceProvider
 	routeMiddlewares map[string]Middleware
@@ -137,8 +138,8 @@ func (app *App) FS() fsys.FS {
 	return app.fs
 }
 
-func getDefaultConfig() ConfigMap {
-	return ConfMap()
+func getDefaultConfig() config.ConfigMap {
+	return config.ConfMap()
 }
 
 func defaultOptions() *Options {
@@ -237,7 +238,7 @@ func NewApp(optFuncs ...OptFunc) *App {
 	for _, plugin := range opts.Plugins {
 		// Copy template files listed in the Views() method to the app's template directory
 		for name, content := range plugin.PublishTemplates() {
-			filePath := filepath.Join(opts.Config.get("app.templateDir").(string), name)
+			filePath := filepath.Join(config.Config("app.templateDir").(string), name)
 			if _, err := os.Stat(filePath); err != nil {
 				err := os.WriteFile(filePath, []byte(content), 0644)
 				if err != nil {
@@ -346,8 +347,8 @@ func (app *App) Run() {
 		}
 	}
 
-	slog.Info(fmt.Sprintf("%s is running on port %d...", app.config.get("app.name"), app.config.get("app.port")))
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", app.config.get("app.port")), app.session.LoadAndSave(app.router)); err != nil {
+	slog.Info(fmt.Sprintf("%s is running on port %d...", config.Config("app.name"), config.Config("app.port")))
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Config("app.port")), app.session.LoadAndSave(app.router)); err != nil {
 		panic(err)
 	}
 }

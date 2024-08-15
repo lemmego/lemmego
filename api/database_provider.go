@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/lemmego/lemmego/api/config"
 	"github.com/lemmego/lemmego/api/db"
 )
 
@@ -12,12 +13,12 @@ type DatabaseServiceProvider struct {
 
 func (provider *DatabaseServiceProvider) Register(app *App) {
 	dbConfig := &db.Config{
-		Driver:   Config("db.driver").(string),
-		Host:     Config("db.host").(string),
-		Port:     Config("db.port").(int),
-		Database: Config("db.database").(string),
-		User:     Config("db.username").(string),
-		Password: Config("db.password").(string),
+		Driver:   config.Config("db.driver").(string),
+		Host:     config.Config("db.host").(string),
+		Port:     config.Config("db.port").(int),
+		Database: config.Config("db.database").(string),
+		User:     config.Config("db.username").(string),
+		Password: config.Config("db.password").(string),
 	}
 
 	dbc, err := db.NewConnection(dbConfig).
