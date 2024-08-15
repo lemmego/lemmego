@@ -3,10 +3,10 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 )
 
-func Routes(r *api.Router) {
+func Routes(r *app.Router) {
 	//r.Get("/", func(c *api.Context) error {
 	//	return c.Send(200, []byte(c.Query("code")))
 	//})
@@ -32,44 +32,44 @@ func Routes(r *api.Router) {
 
 	apiGroup := r.Group("/api")
 
-	apiGroup.UseBefore(func(c *api.Context) error {
+	apiGroup.UseBefore(func(c *app.Context) error {
 		fmt.Println("before api")
 		return c.Next()
 	})
 
-	apiGroup.UseAfter(func(c *api.Context) error {
+	apiGroup.UseAfter(func(c *app.Context) error {
 		fmt.Println("after api")
 		return c.Next()
 	})
 
-	apiGroup.Get("/test3", func(c *api.Context) error {
+	apiGroup.Get("/test3", func(c *app.Context) error {
 		c.Send(200, []byte("test3"))
 		return c.Next()
 	})
 
 	v1Group := apiGroup.Group("/v1")
-	v1Group.UseBefore(func(c *api.Context) error {
+	v1Group.UseBefore(func(c *app.Context) error {
 		fmt.Println("before v1")
 		return c.Next()
 	})
-	v1Group.UseAfter(func(c *api.Context) error {
+	v1Group.UseAfter(func(c *app.Context) error {
 		fmt.Println("after v1")
 		return c.Next()
 	})
 
-	v1Group.Get("/test1", func(c *api.Context) error {
+	v1Group.Get("/test1", func(c *app.Context) error {
 		fmt.Println("inside test1")
 		c.Send(200, []byte("test1"))
 		return c.Next()
 	})
 
-	v1Group.Get("/test2", func(c *api.Context) error {
+	v1Group.Get("/test2", func(c *app.Context) error {
 		c.Send(200, []byte("test2"))
 		return c.Next()
-	}).UseBefore(func(c *api.Context) error {
+	}).UseBefore(func(c *app.Context) error {
 		println("before test2")
 		return c.Next()
-	}).UseAfter(func(c *api.Context) error {
+	}).UseAfter(func(c *app.Context) error {
 		fmt.Println("after test2")
 		return c.Next()
 	})

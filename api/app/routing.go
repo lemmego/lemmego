@@ -1,4 +1,4 @@
-package api
+package app
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 
 	"github.com/lemmego/lemmego/api/config"
 	"github.com/lemmego/lemmego/api/logger"
-	"github.com/lemmego/lemmego/api/vee"
+	"github.com/lemmego/lemmego/api/shared"
 
 	"github.com/ggicci/httpin"
 	"github.com/ggicci/httpin/core"
@@ -307,7 +307,7 @@ func makeHandlerFunc(app *App, route *Route, router *Router) http.HandlerFunc {
 
 		if err := ctx.Next(); err != nil {
 			logger.V().Error(err.Error())
-			if errors.As(err, &vee.Errors{}) {
+			if errors.As(err, &shared.ValidationErrors{}) {
 				ctx.ValidationError(err)
 				return
 			}

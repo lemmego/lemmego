@@ -3,7 +3,7 @@ package main
 import (
 	"log/slog"
 
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/config"
 	_ "github.com/lemmego/lemmego/internal/config"
 	"github.com/lemmego/lemmego/internal/plugins"
@@ -20,11 +20,11 @@ func main() {
 	pluginCollection := plugins.Load()
 
 	// Create application
-	app := api.NewApp(
-		api.WithProviders(providerCollection),
-		api.WithPlugins(pluginCollection),
-		api.WithInertia(nil),
-		api.WithFS(nil),
+	app := app.NewApp(
+		app.WithProviders(providerCollection),
+		app.WithPlugins(pluginCollection),
+		app.WithInertia(nil),
+		app.WithFS(nil),
 	)
 
 	// Handle signals

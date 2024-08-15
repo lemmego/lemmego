@@ -1,12 +1,14 @@
 package providers
 
-import "github.com/lemmego/lemmego/api"
+import (
+	"github.com/lemmego/lemmego/api/app"
+)
 
 type GithubServiceProvider struct {
-	api.BaseServiceProvider
+	app.BaseServiceProvider
 }
 
-func (provider *GithubServiceProvider) Register(app *api.App) {
+func (provider *GithubServiceProvider) Register(app *app.App) {
 	// TODO: Implement
 }
 

@@ -1,9 +1,9 @@
 package providers
 
-import "github.com/lemmego/lemmego/api"
+import "github.com/lemmego/lemmego/api/app"
 
-func Load() []api.ServiceProvider {
-	return []api.ServiceProvider{
+func Load() []app.ServiceProvider {
+	return []app.ServiceProvider{
 		&RouteServiceProvider{},
 	}
 }

@@ -1,25 +1,25 @@
 package handlers
 
 import (
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
 	"github.com/lucsky/cuid"
 )
 
-func OauthClientIndexHandler(ctx *api.Context) error {
+func OauthClientIndexHandler(ctx *app.Context) error {
 	return nil
 }
 
-func OauthClientCreateHandler(ctx *api.Context) error {
+func OauthClientCreateHandler(ctx *app.Context) error {
 	return ctx.Inertia(200, "Forms/OauthClient", nil)
 }
 
-func OauthClientShowHandler(ctx *api.Context) error {
+func OauthClientShowHandler(ctx *app.Context) error {
 	return nil
 }
 
-func OauthClientStoreHandler(ctx *api.Context) error {
+func OauthClientStoreHandler(ctx *app.Context) error {
 	body := &inputs.OauthClientInput{}
 	if err := ctx.Validate(body); err != nil {
 		return err
@@ -36,17 +36,17 @@ func OauthClientStoreHandler(ctx *api.Context) error {
 		return err
 	}
 
-	return ctx.JSON(201, api.M{"message": "Client Created", "data": client})
+	return ctx.JSON(201, app.M{"message": "Client Created", "data": client})
 }
 
-func OauthClientEditHandler(ctx *api.Context) error {
+func OauthClientEditHandler(ctx *app.Context) error {
 	return nil
 }
 
-func OauthClientUpdateHandler(ctx *api.Context) error {
+func OauthClientUpdateHandler(ctx *app.Context) error {
 	return nil
 }
 
-func OauthClientDeleteHandler(ctx *api.Context) error {
+func OauthClientDeleteHandler(ctx *app.Context) error {
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/cli"
 	"github.com/lemmego/lemmego/api/fsys"
 
@@ -117,7 +117,7 @@ var AuthCmd = &cobra.Command{
 	},
 }
 
-func GetInstallCommand(p api.Plugin) *cobra.Command {
+func GetInstallCommand(p app.Plugin) *cobra.Command {
 	return AuthCmd
 }
 

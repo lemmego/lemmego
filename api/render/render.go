@@ -1,12 +1,17 @@
-package api
+package render
 
 import (
 	"html/template"
 	"net/http"
 	"path/filepath"
 
-	"github.com/lemmego/lemmego/api/vee"
+	"github.com/lemmego/lemmego/api/shared"
 )
+
+type AlertMessage struct {
+	Type string // success, error, warning, info, debug
+	Body string
+}
 
 type TemplateData struct {
 	StringMap        map[string]string
@@ -16,7 +21,7 @@ type TemplateData struct {
 	FuncMap          template.FuncMap
 	Data             map[string]any
 	CSRFToken        string
-	ValidationErrors vee.Errors
+	ValidationErrors shared.ValidationErrors
 	Messages         []*AlertMessage
 }
 

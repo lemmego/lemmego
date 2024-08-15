@@ -1,4 +1,4 @@
-package api
+package app
 
 type StorageServiceProvider struct {
 	BaseServiceProvider

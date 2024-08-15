@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/internal/inputs"
 )
 
-func AuthorizeIndexHandler(ctx *api.Context) error {
+func AuthorizeIndexHandler(ctx *app.Context) error {
 	input := &inputs.AuthorizeIndexInput{}
 	if err := ctx.Validate(input); err != nil {
 		return err
@@ -13,26 +13,26 @@ func AuthorizeIndexHandler(ctx *api.Context) error {
 	return ctx.Inertia(200, "Forms/OauthAuthorize", nil)
 }
 
-func AuthorizeCreateHandler(ctx *api.Context) error {
+func AuthorizeCreateHandler(ctx *app.Context) error {
 	return nil
 }
 
-func AuthorizeShowHandler(ctx *api.Context) error {
+func AuthorizeShowHandler(ctx *app.Context) error {
 	return nil
 }
 
-func AuthorizeStoreHandler(ctx *api.Context) error {
+func AuthorizeStoreHandler(ctx *app.Context) error {
 	return nil
 }
 
-func AuthorizeEditHandler(ctx *api.Context) error {
+func AuthorizeEditHandler(ctx *app.Context) error {
 	return nil
 }
 
-func AuthorizeUpdateHandler(ctx *api.Context) error {
+func AuthorizeUpdateHandler(ctx *app.Context) error {
 	return nil
 }
 
-func AuthorizeDeleteHandler(ctx *api.Context) error {
+func AuthorizeDeleteHandler(ctx *app.Context) error {
 	return nil
 }

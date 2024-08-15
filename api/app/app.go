@@ -1,4 +1,4 @@
-package api
+package app
 
 import (
 	"context"
@@ -56,6 +56,7 @@ type Plugin interface {
 
 type AppManager interface {
 	Plugin(namespace string) Plugin
+	Plugins() PluginRegistry
 	Router() *Router
 	Session() *session.Session
 	Inertia() *inertia.Inertia
@@ -110,6 +111,10 @@ func (app *App) Plugin(namespace string) Plugin {
 	return app.plugins.Find(namespace)
 }
 
+func (app *App) Plugins() PluginRegistry {
+	return app.plugins
+}
+
 func (app *App) RegisterRoutes(fn RouteRegistrarFunc) {
 	app.routeRegistrar = fn
 }
@@ -122,6 +127,10 @@ func (app *App) Session() *session.Session {
 	return app.session
 }
 
+func (app *App) SetSession(session *session.Session) {
+	app.session = session
+}
+
 func (app *App) Inertia() *inertia.Inertia {
 	return app.i
 }
@@ -132,6 +141,14 @@ func (app *App) DB() *db.DB {
 
 func (app *App) DbFunc(c context.Context, config *db.Config) (*db.DB, error) {
 	return app.dbFunc(c, config)
+}
+
+func (app *App) SetDB(db *db.DB) {
+	app.db = db
+}
+
+func (app *App) SetDbFunc(dbFunc func(c context.Context, config *db.Config) (*db.DB, error)) {
+	app.dbFunc = dbFunc
 }
 
 func (app *App) FS() fsys.FS {
@@ -212,7 +229,6 @@ func WithSession(sm *session.Session) OptFunc {
 
 func NewApp(optFuncs ...OptFunc) *App {
 	opts := defaultOptions()
-	router := NewRouter()
 
 	for _, optFunc := range optFuncs {
 		optFunc(opts)
@@ -262,6 +278,8 @@ func NewApp(optFuncs ...OptFunc) *App {
 
 	//router.setRouteMiddleware(routeMiddlewares)
 
+	inertia := opts.inertia
+	router := NewRouter()
 	app := &App{
 		//Container:        opts.Container,
 		isContextReady:   false,
@@ -271,7 +289,7 @@ func NewApp(optFuncs ...OptFunc) *App {
 		serviceProviders: opts.ServiceProviders,
 		hooks:            opts.Hooks,
 		router:           router,
-		i:                opts.inertia,
+		i:                inertia,
 		fs:               opts.fs,
 	}
 	return app

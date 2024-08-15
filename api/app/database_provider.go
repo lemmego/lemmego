@@ -1,4 +1,4 @@
-package api
+package app
 
 import (
 	"context"
@@ -30,15 +30,15 @@ func (provider *DatabaseServiceProvider) Register(app *App) {
 	//app.Bind((*db.DB)(nil), func() *db.DB {
 	//	return dbc
 	//})
-	app.db = dbc
-	app.dbFunc = func(c context.Context, config *db.Config) (*db.DB, error) {
+	app.SetDB(dbc)
+	app.SetDbFunc(func(c context.Context, config *db.Config) (*db.DB, error) {
 		if config == nil {
 			config = dbConfig
 		}
 		return db.NewConnection(config).
 			// WithForceCreateDb(). // Force create db if not exists
 			Open()
-	}
+	})
 }
 
 func (provider *DatabaseServiceProvider) Boot() {

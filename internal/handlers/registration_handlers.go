@@ -3,12 +3,12 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
 )
 
-func RegistrationStoreHandler(ctx *api.Context) error {
+func RegistrationStoreHandler(ctx *app.Context) error {
 	body := &inputs.RegistrationInput{}
 	if err := ctx.Validate(body); err != nil {
 		return err

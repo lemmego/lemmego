@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/internal/handlers"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -13,10 +13,10 @@ import (
 )
 
 type RouteServiceProvider struct {
-	*api.BaseServiceProvider
+	*app.BaseServiceProvider
 }
 
-func (provider *RouteServiceProvider) Register(app *api.App) {
+func (provider *RouteServiceProvider) Register(a *app.App) {
 	logger := httplog.NewLogger("lemmego", httplog.Options{
 		// JSON:             true,
 		LogLevel:         slog.LevelDebug,
@@ -37,7 +37,7 @@ func (provider *RouteServiceProvider) Register(app *api.App) {
 	})
 
 	// net/http compatible global middleware
-	app.Router().Use(httplog.RequestLogger(logger), middleware.Recoverer, func(handler http.Handler) http.Handler {
+	a.Router().Use(httplog.RequestLogger(logger), middleware.Recoverer, func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			handler.ServeHTTP(w, r)
 			return
@@ -45,15 +45,15 @@ func (provider *RouteServiceProvider) Register(app *api.App) {
 	})
 
 	// Global middleware
-	app.Router().UseBefore(func(c *api.Context) error {
+	a.Router().UseBefore(func(c *app.Context) error {
 		fmt.Println("I execute before every route")
 		return c.Next()
 	})
 
-	app.RegisterRoutes(func(r *api.Router) {
+	a.RegisterRoutes(func(r *app.Router) {
 		handlers.Routes(r)
 
-		r.Get("/error", func(c *api.Context) error {
+		r.Get("/error", func(c *app.Context) error {
 			err := c.PopSession("error").(string)
 			return c.HTML(500, "<html><body><code>"+err+"</code></body></html>")
 		})

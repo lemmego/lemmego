@@ -5,15 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/db"
 	"github.com/lemmego/lemmego/api/session"
-	"github.com/lemmego/lemmego/api/vee"
 	pluginCmd "github.com/lemmego/lemmego/internal/plugins/auth/cmd"
 
 	"dario.cat/mergo"
@@ -61,34 +59,15 @@ type Credentials struct {
 // 	Password  string `json:"password"`
 // }
 
-type ResolveUserFunc func(c *api.Context, opts *Options) (*AuthUser, *Credentials, vee.Errors)
-type CreateUserFunc func(c *api.Context, opts *Options) (bool, vee.Errors)
-
-type CustomHandlerFunc func(opts *Options) *CustomHandlers
-
-type CustomHandlers struct {
-	ShowLogin             api.Handler
-	ShowLoginEndpoint     string
-	ShowRegister          api.Handler
-	ShowRegisterEndpoint  string
-	StoreLogin            api.Handler
-	StoreLoginEndpoint    string
-	StoreRegister         api.Handler
-	StoreRegisterEndpoint string
-}
-
 type Options struct {
-	Router            *api.Router
+	Router            *app.Router
 	DB                *db.DB
 	DBFunc            func() db.DB
 	Session           *session.Session
 	TokenConfig       *TokenConfig
-	ResolveUser       ResolveUserFunc
-	CreateUser        CreateUserFunc
 	GoogleOAuthConfig *oauth2.Config
 	CustomViewMap     map[string]string
 	HomeRoute         string
-	CustomHandlers    *CustomHandlers
 }
 
 type AuthPlugin struct {
@@ -249,11 +228,11 @@ func (authn *AuthPlugin) Check(r *http.Request) error {
 }
 
 // Guard the route with the auth middleware
-func (authn *AuthPlugin) Guard(next api.Handler) api.Handler {
-	return func(c *api.Context) error {
+func (authn *AuthPlugin) Guard(next app.Handler) app.Handler {
+	return func(c *app.Context) error {
 		if err := authn.Check(c.Request()); err != nil {
-			return c.Respond(http.StatusUnauthorized, &api.R{
-				Payload:    api.M{"message": "Unauthorized"},
+			return c.Respond(http.StatusUnauthorized, &app.R{
+				Payload:    app.M{"message": "Unauthorized"},
 				RedirectTo: "/login",
 			})
 		} else {
@@ -264,11 +243,11 @@ func (authn *AuthPlugin) Guard(next api.Handler) api.Handler {
 }
 
 // Disallow authenticated users from accessing a route
-func (authn *AuthPlugin) Guest(next api.Handler) api.Handler {
-	return func(c *api.Context) error {
+func (authn *AuthPlugin) Guest(next app.Handler) app.Handler {
+	return func(c *app.Context) error {
 		if err := authn.Check(c.Request()); err == nil {
-			return c.Respond(http.StatusUnauthorized, &api.R{
-				Payload:    api.M{"message": "Unauthorized"},
+			return c.Respond(http.StatusUnauthorized, &app.R{
+				Payload:    app.M{"message": "Unauthorized"},
 				RedirectTo: "/",
 			})
 		} else {
@@ -289,7 +268,7 @@ func (p *AuthPlugin) InstallCommand() *cobra.Command {
 	return pluginCmd.GetInstallCommand(p)
 }
 
-func (p *AuthPlugin) Boot(app api.AppManager) error {
+func (p *AuthPlugin) Boot(app app.AppManager) error {
 	p.Opts.Session = app.Session()
 	p.Opts.DB = app.DB()
 	p.Opts.Router = app.Router()
@@ -316,99 +295,60 @@ func (p *AuthPlugin) PublishTemplates() map[string][]byte {
 	}
 }
 
-func (p *AuthPlugin) Middlewares() []api.HTTPMiddleware {
+func (p *AuthPlugin) Middlewares() []app.HTTPMiddleware {
 	return nil
 }
 
-func (p *AuthPlugin) RouteMiddlewares() map[string]api.Middleware {
-	return map[string]api.Middleware{
+func (p *AuthPlugin) RouteMiddlewares() map[string]app.Middleware {
+	return map[string]app.Middleware{
 		"auth": p.Guard,
 	}
 }
 
-func (p *AuthPlugin) indexLoginPageHandler() api.Handler {
-	return func(c *api.Context) error {
-		return c.Render(200, "login.page.tmpl", nil)
-	}
+func (p *AuthPlugin) storeLoginHandler() app.Handler {
+	// return func(c *app.Context) error {
+	// 	token, err := p.Login(c.Request().Context(), aUser, creds.Username, creds.Password)
+
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		payload := app.M{"message": "Login failed."}
+	// 		if errors.Is(err, ErrInvalidCreds) {
+	// 			payload["message"] = "Invalid credentials"
+	// 		}
+
+	// 		if errors.Is(err, ErrUserNotFound) {
+	// 			payload["message"] = "User not found"
+	// 		}
+
+	// 		return c.Respond(http.StatusBadRequest, &app.R{
+	// 			Message:    c.Alert("error", payload["message"].(string)),
+	// 			RedirectTo: "/login",
+	// 			Payload:    payload,
+	// 		})
+	// 	}
+
+	// 	payload := app.M{"message": "Login successful."}
+
+	// 	if token != "" {
+	// 		c.SetCookie("jwt", token, 60*60*24*7, "/", "", false, true)
+	// 		payload["token"] = token
+	// 	}
+
+	// 	return c.Respond(http.StatusOK, &app.R{
+	// 		Message:    c.Alert("success", "Login successful."),
+	// 		Payload:    payload,
+	// 		RedirectTo: p.Opts.HomeRoute,
+	// 	})
+	// }
+	return nil
 }
 
-func (p *AuthPlugin) indexRegisterPageHandler() api.Handler {
-	return func(c *api.Context) error {
-		return c.Render(200, "register.page.tmpl", nil)
-	}
-}
-
-func (p *AuthPlugin) storeRegisterHandler() api.Handler {
-	return func(c *api.Context) error {
-		ok, errs := p.Opts.CreateUser(c, p.Opts)
-
-		if errs != nil {
-			return errs
-		}
-
-		if ok {
-			return c.Respond(http.StatusOK, &api.R{
-				Message:    c.Alert("success", "Registration Successful"),
-				RedirectTo: "/login",
-				Payload:    api.M{"message": "Registration Successful"},
-			})
-		} else {
-			return errors.New("Registration Failed")
-		}
-	}
-}
-
-func (p *AuthPlugin) storeLoginHandler() api.Handler {
-	return func(c *api.Context) error {
-		if aUser, creds, err := p.Opts.ResolveUser(c, p.Opts); err != nil {
-			return c.Respond(http.StatusBadRequest, &api.R{
-				Message:    c.Alert("error", "Login failed."),
-				RedirectTo: "/login",
-				Payload:    api.M{"message": "Login failed."},
-			})
-		} else {
-			token, err := p.Login(c.Request().Context(), aUser, creds.Username, creds.Password)
-
-			if err != nil {
-				log.Println(err)
-				payload := api.M{"message": "Login failed."}
-				if errors.Is(err, ErrInvalidCreds) {
-					payload["message"] = "Invalid credentials"
-				}
-
-				if errors.Is(err, ErrUserNotFound) {
-					payload["message"] = "User not found"
-				}
-
-				return c.Respond(http.StatusBadRequest, &api.R{
-					Message:    c.Alert("error", payload["message"].(string)),
-					RedirectTo: "/login",
-					Payload:    payload,
-				})
-			}
-
-			payload := api.M{"message": "Login successful."}
-
-			if token != "" {
-				c.SetCookie("jwt", token, 60*60*24*7, "/", "", false, true)
-				payload["token"] = token
-			}
-
-			return c.Respond(http.StatusOK, &api.R{
-				Message:    c.Alert("success", "Login successful."),
-				Payload:    payload,
-				RedirectTo: p.Opts.HomeRoute,
-			})
-		}
-	}
-}
-
-func (p *AuthPlugin) Routes() []*api.Route {
-	routes := []*api.Route{
+func (p *AuthPlugin) Routes() []*app.Route {
+	routes := []*app.Route{
 		{
 			Method: http.MethodGet,
 			Path:   "/login",
-			Handlers: []api.Handler{func(c *api.Context) error {
+			Handlers: []app.Handler{func(c *app.Context) error {
 				props := map[string]any{}
 				message := c.PopSessionString("message")
 				if message != "" {
@@ -420,7 +360,7 @@ func (p *AuthPlugin) Routes() []*api.Route {
 		{
 			Method: http.MethodGet,
 			Path:   "/register",
-			Handlers: []api.Handler{func(c *api.Context) error {
+			Handlers: []app.Handler{func(c *app.Context) error {
 				return c.Inertia(200, "Forms/Register", nil)
 			}},
 		},

@@ -1,4 +1,4 @@
-package api
+package app
 
 type ServiceProvider interface {
 	Register(app *App)

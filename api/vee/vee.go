@@ -18,23 +18,19 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
-	"github.com/lemmego/lemmego/api/db"
+	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/lemmego/api/shared"
 )
 
-type Errors map[string][]string
-
-func (e Errors) Error() string {
-	val, _ := json.Marshal(e)
-	return string(val)
-}
-
 type Vee struct {
-	Errors
+	app.AppManager
+	Errors shared.ValidationErrors
 }
 
-func New() *Vee {
+func New(app app.AppManager) *Vee {
 	return &Vee{
-		Errors: make(map[string][]string),
+		AppManager: app,
+		Errors:     make(map[string][]string),
 	}
 }
 
@@ -505,9 +501,9 @@ func (f *Field) HexColor() *Field {
 	return f
 }
 
-func (f *Field) Unique(db *db.DB, table string, column string) *Field {
+func (f *Field) Unique(table string, column string) *Field {
 	var count int64
-	db.Table(table).Where(fmt.Sprintf("%s = ?", column), f.value).Count(&count)
+	f.vee.DB().Table(table).Where(fmt.Sprintf("%s = ?", column), f.value).Count(&count)
 
 	if count > 0 {
 		f.vee.AddError(f.name, "This field must be unique")

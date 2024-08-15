@@ -2,12 +2,12 @@ package inputs
 
 import (
 	"github.com/ggicci/httpin"
-	"github.com/lemmego/lemmego/api"
+	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/vee"
 )
 
 type RegistrationInput struct {
-	api.AppManager
+	app.AppManager
 	Email                string       `json:"email" in:"form=email"`
 	Password             string       `json:"password" in:"form=password"`
 	PasswordConfirmation string       `json:"password_confirmation" in:"form=password_confirmation"`
@@ -24,8 +24,8 @@ type RegistrationInput struct {
 }
 
 func (i *RegistrationInput) Validate() error {
-	v := vee.New()
-	v.Field("email", i.Email).Required().Unique(i.DB(), "users", "email")
+	v := vee.New(i.AppManager)
+	v.Field("email", i.Email).Required().Unique("users", "email")
 	v.Field("password", i.Password).Required()
 	v.Field("password_confirmation", i.PasswordConfirmation).Required()
 	v.Field("first_name", i.FirstName).Required()

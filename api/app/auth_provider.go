@@ -1,4 +1,4 @@
-package api
+package app
 
 type AuthServiceProvider struct {
 	*BaseServiceProvider

@@ -1,11 +1,11 @@
 package handlers
 
-import "github.com/lemmego/lemmego/api"
+import "github.com/lemmego/lemmego/api/app"
 
-func LoginStoreHandler(ctx *api.Context) error {
+func LoginStoreHandler(ctx *app.Context) error {
 	return nil
 }
 
-func LoginDeleteHandler(ctx *api.Context) error {
+func LoginDeleteHandler(ctx *app.Context) error {
 	return nil
 }

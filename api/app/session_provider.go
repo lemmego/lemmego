@@ -1,4 +1,4 @@
-package api
+package app
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func (provider *SessionServiceProvider) Register(app *App) {
 	}
 	//sm := session.NewSession(session.NewFileStore(""))
 	sm := session.NewSession(redisstore.New(pool))
-	app.session = sm
+	app.SetSession(sm)
 }
 
 func (provider *SessionServiceProvider) Boot() {
