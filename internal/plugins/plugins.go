@@ -1,57 +1,9 @@
 package plugins
 
 import (
-	"github.com/invopop/validation"
 	"github.com/lemmego/lemmego/api/app"
-	"github.com/lemmego/lemmego/api/validator"
 	"github.com/lemmego/lemmego/internal/plugins/auth"
-	// "pressebo/internal/plugins/auth"
 )
-
-type RegistrationInput struct {
-	OrgName              string `json:"org_name" in:"form=org_name"`
-	Subdomain            string `json:"subdomain" in:"form=subdomain"`
-	FirstName            string `json:"first_name" in:"form=first_name"`
-	LastName             string `json:"last_name" in:"form=last_name"`
-	Username             string `json:"username" in:"form=username"`
-	Password             string `json:"password" in:"form=password"`
-	PasswordConfirmation string `json:"password_confirmation" in:"form=password_confirmation"`
-}
-
-// Validate the input
-func (r *RegistrationInput) Validate() error {
-	return validation.Errors{
-		"org_name": validation.Validate(
-			r.OrgName,
-			validation.Required,
-		),
-		"subdomain": validation.Validate(
-			r.Subdomain,
-			validation.Required,
-		),
-		"first_name": validation.Validate(
-			r.FirstName,
-			validation.Required,
-		),
-		"last_name": validation.Validate(
-			r.LastName,
-			validation.Required,
-		),
-		"username": validation.Validate(
-			r.Username,
-			validation.Required,
-		),
-		"password": validation.Validate(
-			r.Password,
-			validation.Required,
-		),
-		"password_confirmation": validation.Validate(
-			r.PasswordConfirmation,
-			validation.Required,
-			validation.By(validator.StringEquals(r.Password, "Passwords do not match")),
-		),
-	}.Filter()
-}
 
 // Load plugins
 func Load() app.PluginRegistry {

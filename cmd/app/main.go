@@ -20,7 +20,7 @@ func main() {
 	pluginCollection := plugins.Load()
 
 	// Create application
-	app := app.NewApp(
+	app := app.New(
 		app.WithProviders(providerCollection),
 		app.WithPlugins(pluginCollection),
 		app.WithInertia(nil),

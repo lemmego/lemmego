@@ -227,7 +227,7 @@ func WithSession(sm *session.Session) OptFunc {
 	}
 }
 
-func NewApp(optFuncs ...OptFunc) *App {
+func New(optFuncs ...OptFunc) *App {
 	opts := defaultOptions()
 
 	for _, optFunc := range optFuncs {
