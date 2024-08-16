@@ -3,18 +3,14 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path"
 	"slices"
-	"sync"
 
 	"github.com/lemmego/lemmego/api/config"
-	"github.com/lemmego/lemmego/api/logger"
-	"github.com/lemmego/lemmego/api/shared"
 
 	"github.com/ggicci/httpin"
 	"github.com/ggicci/httpin/core"
@@ -232,33 +228,6 @@ func (r *Router) Use(middlewares ...HTTPMiddleware) {
 	r.httpMiddlewares = append(r.httpMiddlewares, middlewares...)
 }
 
-func (r *Router) registerMiddlewares(app *App) {
-	for _, plugin := range app.plugins {
-		for _, mw := range plugin.Middlewares() {
-			r.Use(mw)
-		}
-	}
-}
-
-func (r *Router) registerRoutes(app *App) {
-	for _, plugin := range app.plugins {
-		for _, route := range plugin.Routes() {
-			if !r.HasRoute(route.Method, route.Path) {
-				log.Println("Adding route for the", plugin.Namespace(), "plugin:", route.Method, route.Path)
-				r.addRoute(route.Method, route.Path, route.Handlers...)
-				//r.routes = append(r.routes, route)
-			}
-		}
-	}
-
-	for _, route := range r.routes {
-		log.Printf("Registering route: %s %s, router: %p", route.Method, route.Path, route.router)
-		r.mux.HandleFunc(route.Method+" "+route.Path, func(w http.ResponseWriter, req *http.Request) {
-			makeHandlerFunc(app, route, r)(w, req)
-		})
-	}
-}
-
 type Route struct {
 	Method           string
 	Path             string
@@ -276,51 +245,6 @@ func (r *Route) UseBefore(handlers ...Handler) *Route {
 func (r *Route) UseAfter(handlers ...Handler) *Route {
 	r.AfterMiddleware = append(handlers, r.AfterMiddleware...)
 	return r
-}
-
-func makeHandlerFunc(app *App, route *Route, router *Router) http.HandlerFunc {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Handling request for route: %s %s, router: %p", route.Method, route.Path, router)
-		if route.router == nil {
-			log.Printf("WARNING: route.router is nil for %s %s", route.Method, route.Path)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		token := app.Session().Token(r.Context())
-		if token != "" {
-			r = r.WithContext(context.WithValue(r.Context(), "sessionID", token))
-			log.Println("Current SessionID: ", token)
-		}
-
-		allHandlers := append(append([]Handler{}, route.BeforeMiddleware...), route.Handlers...)
-		allHandlers = append(allHandlers, route.AfterMiddleware...)
-
-		ctx := &Context{
-			Mutex:          sync.Mutex{},
-			app:            app,
-			request:        r,
-			responseWriter: w,
-			handlers:       allHandlers,
-			index:          -1,
-		}
-
-		if err := ctx.Next(); err != nil {
-			logger.V().Error(err.Error())
-			if errors.As(err, &shared.ValidationErrors{}) {
-				ctx.ValidationError(err)
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	if app.i != nil {
-		return app.Inertia().Middleware(http.HandlerFunc(fn)).ServeHTTP
-	}
-
-	return fn
 }
 
 func initInertia() *inertia.Inertia {
