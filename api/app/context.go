@@ -365,13 +365,13 @@ func (c *Context) WithInput() *Context {
 	return c
 }
 
-func (c *Context) Back(status int) {
+func (c *Context) Back(status int) error {
 	if c.app.Inertia() != nil {
 		c.App().Inertia().Back(c.ResponseWriter(), c.Request(), status)
-		return
+		return nil
 	}
 
-	c.Redirect(status, c.Referer())
+	return c.Redirect(status, c.Referer())
 }
 
 func (c *Context) Referer() string {
