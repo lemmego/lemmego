@@ -2,13 +2,19 @@ package {{.PackageName}}
 
 import (
     "github.com/lemmego/lemmego/api/app"
+    {{- range .Fields}}
+      {{- if eq .Type "file"}}
+    "github.com/ggicci/httpin"
+      {{- break}}
+      {{- end}}
+    {{- end}}
 )
 
 type {{.InputName | toCamel}}Input struct {
     *app.BaseInput
 {{- range .Fields}}
     {{- if eq .Type "file"}}
-    {{.Name | toCamel}} *app.FileInput `json:"{{.Name | toSnake}}" in:"form={{.Name | toSnake}}"`
+    {{.Name | toCamel}} *httpin.File `json:"{{.Name | toSnake}}" in:"form={{.Name | toSnake}}"`
     {{- else}}
     {{.Name | toCamel}} {{.Type}} `json:"{{.Name | toSnake}}" in:"form={{.Name | toSnake}}"`
     {{- end}}

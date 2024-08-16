@@ -16,7 +16,7 @@ import (
 	"github.com/lemmego/lemmego/api/db"
 	"github.com/lemmego/lemmego/api/fsys"
 	"github.com/lemmego/lemmego/api/logger"
-	"github.com/lemmego/lemmego/api/render"
+	"github.com/lemmego/lemmego/api/res"
 	"github.com/lemmego/lemmego/api/shared"
 
 	inertia "github.com/romsar/gonertia"
@@ -27,9 +27,9 @@ import (
 )
 
 func init() {
-	gob.Register(&render.AlertMessage{})
+	gob.Register(&res.AlertMessage{})
 	gob.Register(shared.ValidationErrors{})
-	gob.Register([]*render.AlertMessage{})
+	gob.Register([]*res.AlertMessage{})
 	gob.Register(shared.ValidationErrors{})
 	gob.Register(map[string][]string{})
 }
@@ -47,7 +47,7 @@ type Context struct {
 type R struct {
 	Status       int
 	TemplateName string
-	Message      *render.AlertMessage
+	Message      *res.AlertMessage
 	Payload      M
 	RedirectTo   string
 }
@@ -75,12 +75,12 @@ func (c *Context) SetCookie(name string, value string, maxAge int, path string, 
 	http.SetCookie(c.responseWriter, cookie)
 }
 
-func (c *Context) Alert(typ string, message string) *render.AlertMessage {
+func (c *Context) Alert(typ string, message string) *res.AlertMessage {
 	if typ != "success" && typ != "error" && typ != "warning" && typ != "info" && typ != "debug" {
-		return &render.AlertMessage{Type: "", Body: ""}
+		return &res.AlertMessage{Type: "", Body: ""}
 	}
 
-	return &render.AlertMessage{Type: typ, Body: message}
+	return &res.AlertMessage{Type: typ, Body: message}
 }
 
 func (c *Context) Validate(body req.Validator) error {
@@ -147,7 +147,7 @@ func (c *Context) Respond(status int, r *R) error {
 		}
 	}
 
-	templateData := &render.TemplateData{}
+	templateData := &res.TemplateData{}
 
 	// if r.Message != nil && r.Message.Body != "" {
 	// 	c.PutFlash(r.Message.Type, r.Message)
@@ -182,7 +182,7 @@ func (c *Context) Respond(status int, r *R) error {
 	}
 
 	if r.TemplateName != "" {
-		return c.Render(r.Status, r.TemplateName, &render.TemplateData{Data: r.Payload})
+		return c.Render(r.Status, r.TemplateName, &res.TemplateData{Data: r.Payload})
 	}
 
 	return nil
@@ -256,9 +256,9 @@ func (c *Context) AuthUser() interface{} {
 	return c.PopSession("authUser")
 }
 
-func (c *Context) resolveTemplateData(data *render.TemplateData) *render.TemplateData {
+func (c *Context) resolveTemplateData(data *res.TemplateData) *res.TemplateData {
 	if data == nil {
-		data = &render.TemplateData{}
+		data = &res.TemplateData{}
 	}
 
 	vErrs := shared.ValidationErrors{}
@@ -271,10 +271,10 @@ func (c *Context) resolveTemplateData(data *render.TemplateData) *render.Templat
 		data.ValidationErrors = vErrs
 	}
 
-	data.Messages = append(data.Messages, &render.AlertMessage{"success", c.PopSessionString("success")})
-	data.Messages = append(data.Messages, &render.AlertMessage{"info", c.PopSessionString("info")})
-	data.Messages = append(data.Messages, &render.AlertMessage{"warning", c.PopSessionString("warning")})
-	data.Messages = append(data.Messages, &render.AlertMessage{"error", c.PopSessionString("error")})
+	data.Messages = append(data.Messages, &res.AlertMessage{"success", c.PopSessionString("success")})
+	data.Messages = append(data.Messages, &res.AlertMessage{"info", c.PopSessionString("info")})
+	data.Messages = append(data.Messages, &res.AlertMessage{"warning", c.PopSessionString("warning")})
+	data.Messages = append(data.Messages, &res.AlertMessage{"error", c.PopSessionString("error")})
 
 	return data
 }
@@ -286,11 +286,11 @@ func (c *Context) HTML(status int, body string) error {
 	return err
 }
 
-func (c *Context) Render(status int, tmplPath string, data *render.TemplateData) error {
+func (c *Context) Render(status int, tmplPath string, data *res.TemplateData) error {
 	data = c.resolveTemplateData(data)
 	c.responseWriter.Header().Set("content-type", "text/html")
 	c.responseWriter.WriteHeader(status)
-	return render.RenderTemplate(c.responseWriter, tmplPath, data)
+	return res.RenderTemplate(c.responseWriter, tmplPath, data)
 }
 
 func (c *Context) Inertia(status int, filePath string, props map[string]any) error {

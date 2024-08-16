@@ -1,24 +1,25 @@
 package inputs
 
 import (
+	"github.com/ggicci/httpin"
 	"github.com/lemmego/lemmego/api/app"
 )
 
 type RegistrationInput struct {
 	*app.BaseInput
-	Email                string         `json:"email" in:"form=email"`
-	Password             string         `json:"password" in:"form=password"`
-	PasswordConfirmation string         `json:"password_confirmation" in:"form=password_confirmation"`
-	FirstName            string         `json:"first_name" in:"form=first_name"`
-	LastName             string         `json:"last_name" in:"form=last_name"`
-	Username             string         `json:"username" in:"form=username"`
-	Bio                  string         `json:"bio" in:"form=bio"`
-	Phone                string         `json:"phone" in:"form=phone"`
-	Avatar               *app.FileInput `json:"avatar" in:"form=avatar"`
-	OrgName              string         `json:"org_name" in:"form=org_name"`
-	OrgEmail             string         `json:"org_email" in:"form=org_email"`
-	OrgLogo              *app.FileInput `json:"org_logo" in:"form=org_logo"`
-	OrgUsername          string         `json:"org_username" in:"form=org_username"`
+	Email                string       `json:"email" in:"form=email"`
+	Password             string       `json:"password" in:"form=password"`
+	PasswordConfirmation string       `json:"password_confirmation" in:"form=password_confirmation"`
+	FirstName            string       `json:"first_name" in:"form=first_name"`
+	LastName             string       `json:"last_name" in:"form=last_name"`
+	Username             string       `json:"username" in:"form=username"`
+	Bio                  string       `json:"bio" in:"form=bio"`
+	Phone                string       `json:"phone" in:"form=phone"`
+	Avatar               *httpin.File `json:"avatar" in:"form=avatar"`
+	OrgName              string       `json:"org_name" in:"form=org_name"`
+	OrgEmail             string       `json:"org_email" in:"form=org_email"`
+	OrgLogo              *httpin.File `json:"org_logo" in:"form=org_logo"`
+	OrgUsername          string       `json:"org_username" in:"form=org_username"`
 }
 
 func (i *RegistrationInput) Validate() error {

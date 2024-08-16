@@ -1,4 +1,4 @@
-package render
+package res
 
 import (
 	"html/template"
