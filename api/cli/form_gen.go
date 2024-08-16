@@ -17,7 +17,7 @@ var templFormStub string
 //go:embed react_form.txt
 var reactFormStub string
 
-var formFieldTypes = []string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "datetime", "image"}
+var formFieldTypes = []string{"text", "textarea", "integer", "decimal", "boolean", "radio", "checkbox", "dropdown", "date", "time", "datetime", "file"}
 
 type FormField struct {
 	Name    string
