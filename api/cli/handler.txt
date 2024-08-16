@@ -1,31 +1,32 @@
 package {{.PackageName}}
 
-import "github.com/lemmego/lemmego/api"
+import "github.com/lemmego/lemmego/api/app"
 
-func {{.Name | toCamel}}IndexHandler(ctx *api.Context) error {
+func {{.Name | toCamel}}IndexHandler(ctx *app.Context) error {
   return nil
 }
 
-func {{.Name | toCamel}}CreateHandler(ctx *api.Context) error {
+func {{.Name | toCamel}}CreateHandler(ctx *app.Context) error {
   return nil
 }
 
-func {{.Name | toCamel}}ShowHandler(ctx *api.Context) error {
+func {{.Name | toCamel}}ShowHandler(ctx *app.Context) error {
   return nil
 }
 
-func {{.Name | toCamel}}StoreHandler(ctx *api.Context) error {
+func {{.Name | toCamel}}StoreHandler(ctx *app.Context) error {
   return nil
 }
 
-func {{.Name | toCamel}}EditHandler(ctx *api.Context) error {
+func {{.Name | toCamel}}EditHandler(ctx *app.Context) error {
   return nil
 }
 
-func {{.Name | toCamel}}UpdateHandler(ctx *api.Context) error {
+func {{.Name | toCamel}}UpdateHandler(ctx *app.Context) error {
   return nil
 }
 
-func {{.Name | toCamel}}DeleteHandler(ctx *api.Context) error {
+func {{.Name | toCamel}}DeleteHandler(ctx *app.Context) error {
   return nil
 }
+

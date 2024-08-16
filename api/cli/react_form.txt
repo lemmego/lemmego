@@ -14,9 +14,7 @@ const {{.Name}}: React.FC = () => {
   });
 
   function handleInput(
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
     if ("files" in e.target && e.target.files && e.target.files.length > 0) {
       setData(e.target.name, e.target.files[0]);
@@ -120,3 +118,4 @@ const {{.Name}}: React.FC = () => {
 };
 
 export default {{.Name}};
+
