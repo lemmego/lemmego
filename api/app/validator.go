@@ -1,4 +1,4 @@
-package vee
+package app
 
 import (
 	"encoding/json"
@@ -18,43 +18,42 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
-	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/shared"
 )
 
-type Vee struct {
-	app.AppManager
+type Validator struct {
+	AppManager
 	Errors shared.ValidationErrors
 }
 
-func New(app app.AppManager) *Vee {
-	return &Vee{
+func NewValidator(app AppManager) *Validator {
+	return &Validator{
 		AppManager: app,
 		Errors:     make(map[string][]string),
 	}
 }
 
-func (v *Vee) AddError(field, message string) {
+func (v *Validator) AddError(field, message string) {
 	v.Errors[field] = append(v.Errors[field], message)
 }
 
-func (v *Vee) IsValid() bool {
+func (v *Validator) IsValid() bool {
 	return len(v.Errors) == 0
 }
 
-func (v *Vee) Validate() error {
+func (v *Validator) Validate() error {
 	if v.IsValid() {
 		return nil
 	}
 	return v.Errors
 }
 
-func (v *Vee) ErrorsJSON() map[string][]string {
+func (v *Validator) ErrorsJSON() map[string][]string {
 	return v.Errors
 }
 
 // Field creates a new Field instance for chaining validation rules
-func (v *Vee) Field(name string, value interface{}) *Field {
+func (v *Validator) Field(name string, value interface{}) *Field {
 	return &Field{
 		vee:   v,
 		name:  name,
@@ -63,7 +62,7 @@ func (v *Vee) Field(name string, value interface{}) *Field {
 }
 
 type Field struct {
-	vee   *Vee
+	vee   *Validator
 	name  string
 	value interface{}
 }

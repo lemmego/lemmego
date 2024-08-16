@@ -2,18 +2,16 @@ package inputs
 
 import (
 	"github.com/lemmego/lemmego/api/app"
-	"github.com/lemmego/lemmego/api/vee"
 )
 
 type OauthClientInput struct {
-	app.AppManager
+	*app.BaseInput
 	Name        string `json:"name" in:"form=name"`
 	RedirectUri string `json:"redirect_uri" in:"form=redirect_uri"`
 }
 
 func (i *OauthClientInput) Validate() error {
-	v := vee.New(i.AppManager)
-	v.Field("name", i.Name).Required()
-	v.Field("redirect_uri", i.RedirectUri).Required().URL()
-	return v.Validate()
+	i.Validator.Field("name", i.Name).Required()
+	i.Validator.Field("redirect_uri", i.RedirectUri).Required().URL()
+	return i.Validator.Validate()
 }

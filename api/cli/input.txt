@@ -1,27 +1,29 @@
 package {{.PackageName}}
 
 import (
-    "github.com/lemmego/lemmego/api"
-    "github.com/lemmego/lemmego/api/vee"
+    "github.com/lemmego/lemmego/api/app"
 )
 
 type {{.InputName | toCamel}}Input struct {
-    api.AppManager
+    *app.BaseInput
 {{- range .Fields}}
+    {{- if eq .Type "file"}}
+    {{.Name | toCamel}} *app.FileInput `json:"{{.Name | toSnake}}" in:"form={{.Name | toSnake}}"`
+    {{- else}}
     {{.Name | toCamel}} {{.Type}} `json:"{{.Name | toSnake}}" in:"form={{.Name | toSnake}}"`
+    {{- end}}
 {{- end}}
 }
 
 func (i *{{.InputName | toCamel}}Input) Validate() error {
-	v := vee.New()
     {{- range .Fields}}
         {{- if and .Required .Unique}}
-    v.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Required().Unique(i.DB(), "{{.Table}}", "{{.Name | toSnake}}")
+    i.Validator.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Required().Unique("{{.Table}}", "{{.Name | toSnake}}")
         {{- else if .Required}}
-    v.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Required()
+    i.Validator.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Required()
         {{- else if .Unique}}
-    v.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Unique(i.DB(), "{{.Table}}", "{{.Name | toSnake}}")
+    i.Validator.Field("{{.Name | toSnake}}", i.{{.Name | toCamel}}).Unique("{{.Table}}", "{{.Name | toSnake}}")
         {{- end}}
     {{- end}}
-	return v.Validate()
+	return i.Validator.Validate()
 }

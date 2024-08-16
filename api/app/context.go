@@ -108,9 +108,10 @@ func (c *Context) ParseInput(inputStruct any) error {
 
 	v := reflect.ValueOf(inputStruct).Elem()
 
-	nameField := v.FieldByName("AppManager")
+	nameField := v.FieldByName("BaseInput")
 	if nameField.IsValid() && nameField.CanSet() {
-		nameField.Set(reflect.ValueOf(c.App()))
+		i := &BaseInput{App: c.app, Validator: NewValidator(c.app)}
+		nameField.Set(reflect.ValueOf(i))
 	}
 	return nil
 }

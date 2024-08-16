@@ -16,7 +16,7 @@ import (
 var inputStub string
 
 var inputFieldTypes = []string{
-	"int", "uint", "int64", "uint64", "float64", "string", "bool", "time.Time", "custom",
+	"int", "uint", "int64", "uint64", "float64", "string", "bool", "time.Time", "file", "custom",
 }
 
 type InputField struct {
