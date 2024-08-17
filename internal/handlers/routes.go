@@ -4,17 +4,20 @@ import (
 	"fmt"
 
 	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/lemmego/internal/plugins/auth"
 )
 
 func Routes(r *app.Router) {
-	//r.Get("/", func(c *api.Context) error {
-	//	return c.Send(200, []byte(c.Query("code")))
-	//})
+	r.Get("/", r.Mw("lemmego.auth.guard"), func(c *app.Context) error {
+		user := c.GetSession("user").(*auth.AuthUser)
+		return c.Inertia(200, "Home/Index", app.M{"user": user})
+	})
 
 	r.Get("/oauth/clients/create", OauthClientCreateHandler)
 	r.Post("/oauth/clients", OauthClientStoreHandler)
 	r.Get("/oauth/authorize", AuthorizeIndexHandler)
 	r.Post("/register", RegistrationStoreHandler)
+	r.Post("/login", r.Mw("lemmego.auth.guest"), LoginStoreHandler)
 	//r.Get("/api/v1Group/test1", func(c *api.Context) error {
 	//	fmt.Println("inside test1")
 	//	return c.Send(200, []byte("test1"))

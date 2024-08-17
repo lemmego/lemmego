@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"net/http"
@@ -22,7 +22,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const Namespace = "fluent.auth"
+const Namespace = "lemmego.auth"
 
 var (
 	ErrInvalidCreds   = errors.New("invalid credentials")
@@ -35,6 +35,10 @@ var (
 	ErrInvalidJwtSign = errors.New("invalid jwt signature")
 )
 
+func init() {
+	gob.Register(&AuthUser{})
+}
+
 type Actor interface {
 	Id() string
 	GetUsername() string
@@ -42,6 +46,11 @@ type Actor interface {
 }
 
 type AuthUser struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}
+
+type CredUser struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -117,7 +126,7 @@ func New(opts ...OptFunc) *AuthPlugin {
 	return &AuthPlugin{o, nil}
 }
 
-func (authn *AuthPlugin) Login(ctx context.Context, a *AuthUser, username string, password string) (token string, err error) {
+func (authn *AuthPlugin) Login(ctx context.Context, a *CredUser, username string, password string) (token string, err error) {
 	// If the username and password are empty, return an error
 	if a.Username == "" && a.Password == "" {
 		return "", ErrInvalidCreds
@@ -135,8 +144,8 @@ func (authn *AuthPlugin) Login(ctx context.Context, a *AuthUser, username string
 
 	// If the session manager is provided, store the user in the session
 	if authn.Opts.Session != nil {
-		userJson, _ := json.Marshal(a)
-		authn.Opts.Session.Put(ctx, "user", string(userJson))
+		user := &AuthUser{ID: a.ID, Username: a.Username}
+		authn.Opts.Session.Put(ctx, "user", user)
 		authn.Opts.Session.Put(ctx, "userId", a.ID)
 	} else {
 		return "", ErrNoSession
@@ -184,7 +193,7 @@ func (authn *AuthPlugin) Check(r *http.Request) error {
 	user := &AuthUser{}
 	if authn.Opts.Session != nil {
 		if exists := authn.Opts.Session.Exists(r.Context(), "userId"); exists {
-			json.Unmarshal([]byte(authn.Opts.Session.Get(r.Context(), "user").(string)), user)
+			authn.Opts.Session.Get(r.Context(), "user")
 			authn.AuthUser = user
 			return nil
 		} else {
@@ -228,31 +237,29 @@ func (authn *AuthPlugin) Check(r *http.Request) error {
 }
 
 // Guard the route with the auth middleware
-func (authn *AuthPlugin) Guard(next app.Handler) app.Handler {
-	return func(c *app.Context) error {
-		if err := authn.Check(c.Request()); err != nil {
-			return c.Respond(http.StatusUnauthorized, &app.R{
-				Payload:    app.M{"message": "Unauthorized"},
-				RedirectTo: "/login",
-			})
-		} else {
-			c.Set("user", authn.AuthUser)
-			return next(c)
-		}
+func (authn *AuthPlugin) Guard(c *app.Context) error {
+	if err := authn.Check(c.Request()); err != nil {
+		return c.Redirect(302, "/login")
+		return c.Respond(http.StatusUnauthorized, &app.R{
+			Payload:    app.M{"message": "Unauthorized"},
+			RedirectTo: "/login",
+		})
+	} else {
+		c.Set("user", authn.AuthUser)
+		return c.Next()
 	}
 }
 
 // Disallow authenticated users from accessing a route
-func (authn *AuthPlugin) Guest(next app.Handler) app.Handler {
-	return func(c *app.Context) error {
-		if err := authn.Check(c.Request()); err == nil {
-			return c.Respond(http.StatusUnauthorized, &app.R{
-				Payload:    app.M{"message": "Unauthorized"},
-				RedirectTo: "/",
-			})
-		} else {
-			return next(c)
-		}
+func (authn *AuthPlugin) Guest(c *app.Context) error {
+	if err := authn.Check(c.Request()); err == nil {
+		return c.Redirect(302, "/")
+		return c.Respond(http.StatusUnauthorized, &app.R{
+			Payload:    app.M{"message": "Unauthorized"},
+			RedirectTo: "/",
+		})
+	} else {
+		return c.Next()
 	}
 }
 
@@ -299,9 +306,10 @@ func (p *AuthPlugin) Middlewares() []app.HTTPMiddleware {
 	return nil
 }
 
-func (p *AuthPlugin) RouteMiddlewares() map[string]app.Middleware {
-	return map[string]app.Middleware{
-		"auth": p.Guard,
+func (p *AuthPlugin) NamedMiddlewares() map[string]app.Handler {
+	return map[string]app.Handler{
+		"guard": p.Guard,
+		"guest": p.Guest,
 	}
 }
 
@@ -348,7 +356,7 @@ func (p *AuthPlugin) Routes() []*app.Route {
 		{
 			Method: http.MethodGet,
 			Path:   "/login",
-			Handlers: []app.Handler{func(c *app.Context) error {
+			Handlers: []app.Handler{p.Guest, func(c *app.Context) error {
 				props := map[string]any{}
 				message := c.PopSessionString("message")
 				if message != "" {

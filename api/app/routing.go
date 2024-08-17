@@ -116,6 +116,8 @@ type Router struct {
 	mux              *http.ServeMux
 	beforeMiddleware []Handler
 	afterMiddleware  []Handler
+
+	namedMiddleware map[string]Handler
 }
 
 // NewRouter creates a new HTTPRouter-based router
@@ -126,6 +128,8 @@ func NewRouter() *Router {
 		mux:              http.NewServeMux(),
 		beforeMiddleware: []Handler{},
 		afterMiddleware:  []Handler{},
+
+		namedMiddleware: make(map[string]Handler),
 	}
 }
 
@@ -152,9 +156,19 @@ func (r *Router) HasRoute(method string, pattern string) bool {
 	})
 }
 
-//func (r *Router) setRouteMiddleware(middlewares map[string]Middleware) {
-//	r.routeMiddlewares = middlewares
-//}
+func (r *Router) setNamedMiddleware(middlewares map[string]Handler) {
+	r.namedMiddleware = middlewares
+}
+
+func (r *Router) Mw(name string) Handler {
+	if val, ok := r.namedMiddleware[name]; ok {
+		return val
+	}
+
+	return func(c *Context) error {
+		return c.Next()
+	}
+}
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var handler http.Handler = r.mux

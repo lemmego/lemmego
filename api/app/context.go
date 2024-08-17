@@ -52,6 +52,10 @@ type R struct {
 	RedirectTo   string
 }
 
+func (c *Context) Plugin(namespace string) Plugin {
+	return c.App().Plugin(namespace)
+}
+
 func (c *Context) Next() error {
 	c.index++
 	if c.index < len(c.handlers) {

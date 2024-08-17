@@ -52,7 +52,7 @@ type Plugin interface {
 	PublishModels() map[string][]byte
 	PublishTemplates() map[string][]byte
 	Middlewares() []HTTPMiddleware
-	RouteMiddlewares() map[string]Middleware
+	NamedMiddlewares() map[string]Handler
 	Routes() []*Route
 	Webhooks() []string
 }
@@ -252,7 +252,7 @@ func New(optFuncs ...OptFunc) *App {
 		namespaces = append(namespaces, plugin.Namespace())
 	}
 
-	var routeMiddlewares map[string]Middleware
+	var routeMiddlewares map[string]Handler
 
 	for _, plugin := range opts.Plugins {
 		// Copy template files listed in the Views() method to the app's template directory
@@ -267,22 +267,23 @@ func New(optFuncs ...OptFunc) *App {
 			}
 		}
 
-		for middlewareName, middleware := range plugin.RouteMiddlewares() {
+		for middlewareName, middleware := range plugin.NamedMiddlewares() {
 			if routeMiddlewares == nil {
-				routeMiddlewares = make(map[string]Middleware)
+				routeMiddlewares = make(map[string]Handler)
 			}
 			key := plugin.Namespace() + "." + middlewareName
 			if _, ok := routeMiddlewares[key]; ok {
 				panic(fmt.Sprintf("Middleware %s already registered", plugin.Namespace()+"."+middlewareName))
 			}
+			logger.V().Info(fmt.Sprintf("Registering route middleware: %s", plugin.Namespace()+"."+middlewareName))
 			routeMiddlewares[key] = middleware
 		}
 	}
 
-	//router.setRouteMiddleware(routeMiddlewares)
+	router := NewRouter()
+	router.setNamedMiddleware(routeMiddlewares)
 
 	inertia := opts.inertia
-	router := NewRouter()
 	app := &App{
 		//Container:        opts.Container,
 		isContextReady:   false,

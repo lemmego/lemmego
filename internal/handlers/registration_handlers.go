@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/lemmego/api/utils"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
 )
@@ -40,11 +41,17 @@ func RegistrationStoreHandler(ctx *app.Context) error {
 		return err
 	}
 
+	password, err := utils.Bcrypt(body.Password)
+
+	if err != nil {
+		return err
+	}
+
 	user := &models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
 		Email:     body.Email,
-		Password:  body.Password,
+		Password:  password,
 		OrgId:     org.ID,
 		Bio:       body.Bio,
 		Phone:     body.Phone,
@@ -58,8 +65,6 @@ func RegistrationStoreHandler(ctx *app.Context) error {
 	if err := ctx.DB().Create(user).Error; err != nil {
 		return err
 	}
-
-	// return ctx.Inertia(200, "Forms/Login", map[string]any{"success": "Registration Successful"})
 
 	return ctx.With("message", "Registration Successful. Please Log In.").Redirect(302, "/login")
 }

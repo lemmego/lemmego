@@ -51,6 +51,7 @@ type Config struct {
 	User     string
 	Password string
 	Database string
+	Params   string
 }
 
 type Connection struct {
@@ -124,6 +125,7 @@ func (c *Connection) connectToMySQL() (*DB, error) {
 		Username: dbConfig.User,
 		Password: dbConfig.Password,
 		Name:     dbConfig.Database,
+		Params:   dbConfig.Params,
 	}
 	dsnStr, err := dsn.String()
 	db, err := gorm.Open(mysql.Open(dsnStr), &gorm.Config{})
@@ -145,6 +147,7 @@ func (c *Connection) connectToPostgres() (*DB, error) {
 		Username: dbConfig.User,
 		Password: dbConfig.Password,
 		Name:     dbConfig.Database,
+		Params:   dbConfig.Params,
 	}
 	dsnStr, err := dsn.String()
 	db, err := gorm.Open(postgres.Open(dsnStr), &gorm.Config{})

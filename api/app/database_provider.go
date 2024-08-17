@@ -19,6 +19,7 @@ func (provider *DatabaseServiceProvider) Register(app *App) {
 		Database: config.Config("db.database").(string),
 		User:     config.Config("db.username").(string),
 		Password: config.Config("db.password").(string),
+		Params:   config.Config("db.params").(string),
 	}
 
 	dbc, err := db.NewConnection(dbConfig).

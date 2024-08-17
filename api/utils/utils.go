@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func init() {
@@ -87,4 +88,10 @@ func PrettyPrint(data map[string]interface{}) (string, error) {
 
 	// Convert the JSON byte slice to a string
 	return string(jsonData), nil
+}
+
+// Bcrypt hashes a string
+func Bcrypt(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
 }

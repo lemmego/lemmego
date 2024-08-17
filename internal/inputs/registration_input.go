@@ -25,7 +25,7 @@ type RegistrationInput struct {
 func (i *RegistrationInput) Validate() error {
 	i.Validator.Field("email", i.Email).Required().Unique("users", "email")
 	i.Validator.Field("password", i.Password).Required()
-	i.Validator.Field("password_confirmation", i.PasswordConfirmation).Required()
+	i.Validator.Field("password_confirmation", i.PasswordConfirmation).Required().Equals(i.Password)
 	i.Validator.Field("first_name", i.FirstName).Required()
 	i.Validator.Field("last_name", i.LastName).Required()
 	i.Validator.Field("username", i.Username).Required()
