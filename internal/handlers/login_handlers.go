@@ -9,6 +9,7 @@ import (
 	"github.com/lemmego/lemmego/api/shared"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
+	"github.com/lemmego/lemmego/internal/plugins"
 	"github.com/lemmego/lemmego/internal/plugins/auth"
 )
 
@@ -31,7 +32,7 @@ func LoginStoreHandler(c *app.Context) error {
 
 	logger.D().Info("User logged in", "user", user)
 
-	authPlugin := c.Plugin("lemmego.auth").(*auth.AuthPlugin)
+	authPlugin := plugins.Get(&auth.AuthPlugin{})
 
 	if _, err := authPlugin.Login(
 		c.Request().Context(),

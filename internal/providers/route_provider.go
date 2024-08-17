@@ -3,7 +3,6 @@ package providers
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
 
 	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/internal/handlers"
@@ -37,16 +36,11 @@ func (provider *RouteServiceProvider) Register(a *app.App) {
 	})
 
 	// net/http compatible global middleware
-	a.Router().Use(httplog.RequestLogger(logger), middleware.Recoverer, func(handler http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			handler.ServeHTTP(w, r)
-			return
-		})
-	})
+	a.Router().Use(httplog.RequestLogger(logger), middleware.Recoverer)
 
 	// Global middleware
 	a.Router().UseBefore(func(c *app.Context) error {
-		fmt.Println("I execute before every route")
+		fmt.Println("Test Middleware. I execute before every route")
 		return c.Next()
 	})
 

@@ -30,14 +30,21 @@ type PluginID string
 
 type PluginRegistry map[PluginID]Plugin
 
-// Find a plugin
-func (r PluginRegistry) Find(namespace string) Plugin {
-	return r[PluginID(namespace)]
+// Get a plugin
+func (r PluginRegistry) Get(plugin Plugin) Plugin {
+	nameSpace := fmt.Sprintf("%T", plugin)
+
+	if val, ok := r[PluginID(nameSpace)]; ok {
+		return val
+	}
+
+	return nil
 }
 
 // Add a plugin
 func (r PluginRegistry) Add(plugin Plugin) {
-	r[PluginID(plugin.Namespace())] = plugin
+	nameSpace := fmt.Sprintf("%T", plugin)
+	r[PluginID(nameSpace)] = plugin
 }
 
 type M map[string]any
@@ -46,19 +53,17 @@ type Plugin interface {
 	Boot(a AppManager) error
 	InstallCommand() *cobra.Command
 	Commands() []*cobra.Command
-	Namespace() string
 	EventListeners() map[string]func()
-	PublishMigrations() map[string][]byte
-	PublishModels() map[string][]byte
-	PublishTemplates() map[string][]byte
+	PublishableMigrations() map[string][]byte
+	PublishableModels() map[string][]byte
+	PublishableTemplates() map[string][]byte
 	Middlewares() []HTTPMiddleware
-	NamedMiddlewares() map[string]Handler
 	Routes() []*Route
 	Webhooks() []string
 }
 
 type AppManager interface {
-	Plugin(namespace string) Plugin
+	Plugin(Plugin) Plugin
 	Plugins() PluginRegistry
 	Router() *Router
 	Session() *session.Session
@@ -110,8 +115,8 @@ type OptFunc func(opts *Options)
 //	}
 //}
 
-func (app *App) Plugin(namespace string) Plugin {
-	return app.plugins.Find(namespace)
+func (app *App) Plugin(plugin Plugin) Plugin {
+	return app.plugins.Get(plugin)
 }
 
 func (app *App) Plugins() PluginRegistry {
@@ -237,26 +242,9 @@ func New(optFuncs ...OptFunc) *App {
 		optFunc(opts)
 	}
 
-	// Check if plugins have duplicate namespaces
-	var namespaces []string
-
-	for _, plugin := range opts.Plugins {
-		if plugin.Namespace() == "" {
-			panic("Plugin namespace cannot be empty. Please set a namespace for plugin: " + reflect.TypeOf(plugin).String())
-		}
-		for _, namespace := range namespaces {
-			if namespace == plugin.Namespace() {
-				panic("Duplicate plugin namespace: " + namespace)
-			}
-		}
-		namespaces = append(namespaces, plugin.Namespace())
-	}
-
-	var routeMiddlewares map[string]Handler
-
 	for _, plugin := range opts.Plugins {
 		// Copy template files listed in the Views() method to the app's template directory
-		for name, content := range plugin.PublishTemplates() {
+		for name, content := range plugin.PublishableTemplates() {
 			filePath := filepath.Join(config.Config("app.templateDir").(string), name)
 			if _, err := os.Stat(filePath); err != nil {
 				err := os.WriteFile(filePath, []byte(content), 0644)
@@ -266,22 +254,9 @@ func New(optFuncs ...OptFunc) *App {
 				slog.Info("Copied template %s to %s\n", name, filePath)
 			}
 		}
-
-		for middlewareName, middleware := range plugin.NamedMiddlewares() {
-			if routeMiddlewares == nil {
-				routeMiddlewares = make(map[string]Handler)
-			}
-			key := plugin.Namespace() + "." + middlewareName
-			if _, ok := routeMiddlewares[key]; ok {
-				panic(fmt.Sprintf("Middleware %s already registered", plugin.Namespace()+"."+middlewareName))
-			}
-			logger.V().Info(fmt.Sprintf("Registering route middleware: %s", plugin.Namespace()+"."+middlewareName))
-			routeMiddlewares[key] = middleware
-		}
 	}
 
 	router := NewRouter()
-	router.setNamedMiddleware(routeMiddlewares)
 
 	inertia := opts.inertia
 	app := &App{
@@ -352,10 +327,10 @@ func (app *App) registerMiddlewares() {
 }
 
 func (app *App) registerRoutes() {
-	for _, plugin := range app.plugins {
+	for namespace, plugin := range app.plugins {
 		for _, route := range plugin.Routes() {
 			if !app.router.HasRoute(route.Method, route.Path) {
-				log.Println("Adding route for the", plugin.Namespace(), "plugin:", route.Method, route.Path)
+				log.Println("Adding route for the", namespace, "plugin:", route.Method, route.Path)
 				app.router.addRoute(route.Method, route.Path, route.Handlers...)
 				//r.routes = append(r.routes, route)
 			}

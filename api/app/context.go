@@ -52,8 +52,8 @@ type R struct {
 	RedirectTo   string
 }
 
-func (c *Context) Plugin(namespace string) Plugin {
-	return c.App().Plugin(namespace)
+func (c *Context) Plugin(plugin Plugin) Plugin {
+	return c.App().Plugin(plugin)
 }
 
 func (c *Context) Next() error {

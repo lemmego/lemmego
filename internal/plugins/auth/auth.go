@@ -22,8 +22,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const Namespace = "lemmego.auth"
-
 var (
 	ErrInvalidCreds   = errors.New("invalid credentials")
 	ErrUserNotFound   = errors.New("user not found")
@@ -263,10 +261,6 @@ func (authn *AuthPlugin) Guest(c *app.Context) error {
 	}
 }
 
-func (p *AuthPlugin) Namespace() string {
-	return Namespace
-}
-
 func (p *AuthPlugin) Commands() []*cobra.Command {
 	return []*cobra.Command{}
 }
@@ -286,15 +280,15 @@ func (p *AuthPlugin) EventListeners() map[string]func() {
 	return nil
 }
 
-func (p *AuthPlugin) PublishMigrations() map[string][]byte {
+func (p *AuthPlugin) PublishableMigrations() map[string][]byte {
 	return nil
 }
 
-func (p *AuthPlugin) PublishModels() map[string][]byte {
+func (p *AuthPlugin) PublishableModels() map[string][]byte {
 	return nil
 }
 
-func (p *AuthPlugin) PublishTemplates() map[string][]byte {
+func (p *AuthPlugin) PublishableTemplates() map[string][]byte {
 	return nil
 	return map[string][]byte{
 		// "login.page.tmpl":    loginTmpl,
@@ -304,13 +298,6 @@ func (p *AuthPlugin) PublishTemplates() map[string][]byte {
 
 func (p *AuthPlugin) Middlewares() []app.HTTPMiddleware {
 	return nil
-}
-
-func (p *AuthPlugin) NamedMiddlewares() map[string]app.Handler {
-	return map[string]app.Handler{
-		"guard": p.Guard,
-		"guest": p.Guest,
-	}
 }
 
 func (p *AuthPlugin) storeLoginHandler() app.Handler {
