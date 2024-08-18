@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"strconv"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -28,7 +29,10 @@ type DB struct {
 }
 
 type Model struct {
-	gorm.Model
+	ID        uint           `json:"id" gorm:"primarykey"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
 func (db *DB) Close() error {
