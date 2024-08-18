@@ -52,30 +52,30 @@ func (v *Validator) ErrorsJSON() map[string][]string {
 }
 
 // Field creates a new Field instance for chaining validation rules
-func (v *Validator) Field(name string, value interface{}) *Field {
-	return &Field{
+func (v *Validator) Field(name string, value interface{}) *VField {
+	return &VField{
 		vee:   v,
 		name:  name,
 		value: value,
 	}
 }
 
-type Field struct {
+type VField struct {
 	vee   *Validator
 	name  string
 	value interface{}
 }
 
-func (f *Field) Value() interface{} {
+func (f *VField) Value() interface{} {
 	return f.value
 }
 
-func (f *Field) Name() string {
+func (f *VField) Name() string {
 	return f.name
 }
 
 // Required checks if the value is not empty
-func (f *Field) Required() *Field {
+func (f *VField) Required() *VField {
 	isZero := false
 
 	switch v := f.value.(type) {
@@ -107,7 +107,7 @@ func (f *Field) Required() *Field {
 }
 
 // Equals checks if the value is equal to the provided value
-func (f *Field) Equals(value interface{}) *Field {
+func (f *VField) Equals(value interface{}) *VField {
 	if f.value != value {
 		f.vee.AddError(f.name, "This field must match with the provided value")
 	}
@@ -115,7 +115,7 @@ func (f *Field) Equals(value interface{}) *Field {
 }
 
 // Min checks if the value is greater than or equal to the minimum
-func (f *Field) Min(min int) *Field {
+func (f *VField) Min(min int) *VField {
 	if v, ok := f.value.(int); ok {
 		if v < min {
 			f.vee.AddError(f.name, "This field must be at least "+strconv.Itoa(min))
@@ -125,7 +125,7 @@ func (f *Field) Min(min int) *Field {
 }
 
 // Max checks if the value is less than or equal to the maximum
-func (f *Field) Max(max int) *Field {
+func (f *VField) Max(max int) *VField {
 	if v, ok := f.value.(int); ok {
 		if v > max {
 			f.vee.AddError(f.name, "This field must not exceed "+strconv.Itoa(max))
@@ -135,7 +135,7 @@ func (f *Field) Max(max int) *Field {
 }
 
 // Between checks if the value is between min and max (inclusive)
-func (f *Field) Between(min, max int) *Field {
+func (f *VField) Between(min, max int) *VField {
 	if v, ok := f.value.(int); ok {
 		if v < min || v > max {
 			f.vee.AddError(f.name, fmt.Sprintf("This field must be between %d and %d", min, max))
@@ -145,7 +145,7 @@ func (f *Field) Between(min, max int) *Field {
 }
 
 // Email checks if the value is a valid email address
-func (f *Field) Email() *Field {
+func (f *VField) Email() *VField {
 	if v, ok := f.value.(string); ok {
 		emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 		if !emailRegex.MatchString(v) {
@@ -156,7 +156,7 @@ func (f *Field) Email() *Field {
 }
 
 // Alpha checks if the value contains only alphabetic characters
-func (f *Field) Alpha() *Field {
+func (f *VField) Alpha() *VField {
 	if v, ok := f.value.(string); ok {
 		for _, char := range v {
 			if !unicode.IsLetter(char) {
@@ -169,7 +169,7 @@ func (f *Field) Alpha() *Field {
 }
 
 // Numeric checks if the value contains only numeric characters
-func (f *Field) Numeric() *Field {
+func (f *VField) Numeric() *VField {
 	if v, ok := f.value.(string); ok {
 		for _, char := range v {
 			if !unicode.IsDigit(char) {
@@ -182,7 +182,7 @@ func (f *Field) Numeric() *Field {
 }
 
 // AlphaNumeric checks if the value contains only alphanumeric characters
-func (f *Field) AlphaNumeric() *Field {
+func (f *VField) AlphaNumeric() *VField {
 	if v, ok := f.value.(string); ok {
 		for _, char := range v {
 			if !unicode.IsLetter(char) && !unicode.IsDigit(char) {
@@ -195,7 +195,7 @@ func (f *Field) AlphaNumeric() *Field {
 }
 
 // Date checks if the value is a valid date in the specified format
-func (f *Field) Date(layout string) *Field {
+func (f *VField) Date(layout string) *VField {
 	if v, ok := f.value.(string); ok {
 		_, err := time.Parse(layout, v)
 		if err != nil {
@@ -206,7 +206,7 @@ func (f *Field) Date(layout string) *Field {
 }
 
 // In checks if the value is in the given slice of valid values
-func (f *Field) In(validValues []string) *Field {
+func (f *VField) In(validValues []string) *VField {
 	if v, ok := f.value.(string); ok {
 		for _, validValue := range validValues {
 			if v == validValue {
@@ -219,7 +219,7 @@ func (f *Field) In(validValues []string) *Field {
 }
 
 // Regex checks if the value matches the given regular expression
-func (f *Field) Regex(pattern string) *Field {
+func (f *VField) Regex(pattern string) *VField {
 	if v, ok := f.value.(string); ok {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
@@ -232,7 +232,7 @@ func (f *Field) Regex(pattern string) *Field {
 }
 
 // URL checks if the value is a valid URL
-func (f *Field) URL() *Field {
+func (f *VField) URL() *VField {
 	if v, ok := f.value.(string); ok {
 		_, err := url.ParseRequestURI(v)
 		if err != nil {
@@ -243,7 +243,7 @@ func (f *Field) URL() *Field {
 }
 
 // IP checks if the value is a valid IP address (v4 or v6)
-func (f *Field) IP() *Field {
+func (f *VField) IP() *VField {
 	if v, ok := f.value.(string); ok {
 		ip := net.ParseIP(v)
 		if ip == nil {
@@ -254,7 +254,7 @@ func (f *Field) IP() *Field {
 }
 
 // UUID checks if the value is a valid UUID
-func (f *Field) UUID() *Field {
+func (f *VField) UUID() *VField {
 	if v, ok := f.value.(string); ok {
 		_, err := uuid.Parse(v)
 		if err != nil {
@@ -265,7 +265,7 @@ func (f *Field) UUID() *Field {
 }
 
 // Boolean checks if the value is a valid boolean
-func (f *Field) Boolean() *Field {
+func (f *VField) Boolean() *VField {
 	switch f.value.(type) {
 	case bool:
 		return f
@@ -286,7 +286,7 @@ func (f *Field) Boolean() *Field {
 }
 
 // JSON checks if the value is a valid JSON string
-func (f *Field) JSON() *Field {
+func (f *VField) JSON() *VField {
 	if v, ok := f.value.(string); ok {
 		var js json.RawMessage
 		if json.Unmarshal([]byte(v), &js) != nil {
@@ -297,7 +297,7 @@ func (f *Field) JSON() *Field {
 }
 
 // AfterDate checks if the date is after the specified date
-func (f *Field) AfterDate(afterDate time.Time) *Field {
+func (f *VField) AfterDate(afterDate time.Time) *VField {
 	if v, ok := f.value.(time.Time); ok {
 		if !v.After(afterDate) {
 			f.vee.AddError(f.name, "This field must be a date after "+afterDate.String())
@@ -307,7 +307,7 @@ func (f *Field) AfterDate(afterDate time.Time) *Field {
 }
 
 // BeforeDate checks if the date is before the specified date
-func (f *Field) BeforeDate(beforeDate time.Time) *Field {
+func (f *VField) BeforeDate(beforeDate time.Time) *VField {
 	if v, ok := f.value.(time.Time); ok {
 		if !v.Before(beforeDate) {
 			f.vee.AddError(f.name, "This field must be a date before "+beforeDate.String())
@@ -317,7 +317,7 @@ func (f *Field) BeforeDate(beforeDate time.Time) *Field {
 }
 
 // StartsWith checks if the string starts with the specified substring
-func (f *Field) StartsWith(prefix string) *Field {
+func (f *VField) StartsWith(prefix string) *VField {
 	if v, ok := f.value.(string); ok {
 		if !strings.HasPrefix(v, prefix) {
 			f.vee.AddError(f.name, "This field must start with "+prefix)
@@ -327,7 +327,7 @@ func (f *Field) StartsWith(prefix string) *Field {
 }
 
 // EndsWith checks if the string ends with the specified substring
-func (f *Field) EndsWith(suffix string) *Field {
+func (f *VField) EndsWith(suffix string) *VField {
 	if v, ok := f.value.(string); ok {
 		if !strings.HasSuffix(v, suffix) {
 			f.vee.AddError(f.name, "This field must end with "+suffix)
@@ -337,7 +337,7 @@ func (f *Field) EndsWith(suffix string) *Field {
 }
 
 // Contains checks if the string contains the specified substring
-func (f *Field) Contains(substring string) *Field {
+func (f *VField) Contains(substring string) *VField {
 	if v, ok := f.value.(string); ok {
 		if !strings.Contains(v, substring) {
 			f.vee.AddError(f.name, "This field must contain "+substring)
@@ -347,7 +347,7 @@ func (f *Field) Contains(substring string) *Field {
 }
 
 // Dimensions checks if the image file has the specified dimensions
-func (f *Field) Dimensions(width, height int) *Field {
+func (f *VField) Dimensions(width, height int) *VField {
 	if v, ok := f.value.(string); ok {
 		file, err := os.Open(v)
 		if err != nil {
@@ -370,7 +370,7 @@ func (f *Field) Dimensions(width, height int) *Field {
 }
 
 // MimeTypes checks if the file has one of the specified MIME types
-func (f *Field) MimeTypes(allowedTypes []string) *Field {
+func (f *VField) MimeTypes(allowedTypes []string) *VField {
 	if v, ok := f.value.(string); ok {
 		file, err := os.Open(v)
 		if err != nil {
@@ -400,7 +400,7 @@ func (f *Field) MimeTypes(allowedTypes []string) *Field {
 }
 
 // Timezone checks if the value is a valid timezone
-func (f *Field) Timezone() *Field {
+func (f *VField) Timezone() *VField {
 	if v, ok := f.value.(string); ok {
 		_, err := time.LoadLocation(v)
 		if err != nil {
@@ -411,7 +411,7 @@ func (f *Field) Timezone() *Field {
 }
 
 // ActiveURL checks if the URL is active and reachable
-func (f *Field) ActiveURL() *Field {
+func (f *VField) ActiveURL() *VField {
 	if v, ok := f.value.(string); ok {
 		resp, err := http.Get(v)
 		if err != nil {
@@ -428,7 +428,7 @@ func (f *Field) ActiveURL() *Field {
 }
 
 // AlphaDash checks if the string contains only alpha-numeric characters, dashes, or underscores
-func (f *Field) AlphaDash() *Field {
+func (f *VField) AlphaDash() *VField {
 	if v, ok := f.value.(string); ok {
 		re := regexp.MustCompile("^[a-zA-Z0-9-_]+$")
 		if !re.MatchString(v) {
@@ -439,7 +439,7 @@ func (f *Field) AlphaDash() *Field {
 }
 
 // Ascii checks if the string contains only ASCII characters
-func (f *Field) Ascii() *Field {
+func (f *VField) Ascii() *VField {
 	if v, ok := f.value.(string); ok {
 		for _, char := range v {
 			if char > unicode.MaxASCII {
@@ -452,7 +452,7 @@ func (f *Field) Ascii() *Field {
 }
 
 // MacAddress checks if the string is a valid MAC address
-func (f *Field) MacAddress() *Field {
+func (f *VField) MacAddress() *VField {
 	if v, ok := f.value.(string); ok {
 		_, err := net.ParseMAC(v)
 		if err != nil {
@@ -463,7 +463,7 @@ func (f *Field) MacAddress() *Field {
 }
 
 // ULID checks if the string is a valid ULID
-func (f *Field) ULID() *Field {
+func (f *VField) ULID() *VField {
 	if v, ok := f.value.(string); ok {
 		re := regexp.MustCompile("^[0-9A-HJKMNP-TV-Z]{26}$")
 		if !re.MatchString(v) {
@@ -474,7 +474,7 @@ func (f *Field) ULID() *Field {
 }
 
 // Distinct checks if all elements in a slice are unique
-func (f *Field) Distinct() *Field {
+func (f *VField) Distinct() *VField {
 	if slice, ok := f.value.([]interface{}); ok {
 		seen := make(map[interface{}]bool)
 		for _, value := range slice {
@@ -489,7 +489,7 @@ func (f *Field) Distinct() *Field {
 }
 
 // Filled checks if the value is not empty (for strings, slices, maps, and pointers)
-func (f *Field) Filled() *Field {
+func (f *VField) Filled() *VField {
 	switch val := f.value.(type) {
 	case string:
 		if val == "" {
@@ -510,7 +510,7 @@ func (f *Field) Filled() *Field {
 }
 
 // HexColor checks if the string is a valid hexadecimal color code
-func (f *Field) HexColor() *Field {
+func (f *VField) HexColor() *VField {
 	if v, ok := f.value.(string); ok {
 		re := regexp.MustCompile("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
 		if !re.MatchString(v) {
@@ -520,7 +520,7 @@ func (f *Field) HexColor() *Field {
 	return f
 }
 
-func (f *Field) Unique(table string, column string) *Field {
+func (f *VField) Unique(table string, column string) *VField {
 	var count int64
 	f.vee.DB().Table(table).Where(fmt.Sprintf("%s = ?", column), f.value).Count(&count)
 
@@ -532,7 +532,7 @@ func (f *Field) Unique(table string, column string) *Field {
 }
 
 // ForEach applies validation rules to each item in an array
-func (f *Field) ForEach(rules ...func(*Field) *Field) *Field {
+func (f *VField) ForEach(rules ...func(*VField) *VField) *VField {
 	slice := reflect.ValueOf(f.value)
 
 	if slice.Kind() == reflect.Ptr {
@@ -562,7 +562,7 @@ func (f *Field) ForEach(rules ...func(*Field) *Field) *Field {
 }
 
 // Custom allows defining a custom validation rule
-func (f *Field) Custom(validateFunc func(v interface{}) (bool, string)) *Field {
+func (f *VField) Custom(validateFunc func(v interface{}) (bool, string)) *VField {
 	if isValid, errorMessage := validateFunc(f.value); !isValid {
 		f.vee.AddError(f.name, errorMessage)
 	}
