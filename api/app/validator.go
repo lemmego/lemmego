@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -77,10 +76,31 @@ func (f *Field) Name() string {
 
 // Required checks if the value is not empty
 func (f *Field) Required() *Field {
-	if f.value == nil || f.value == "" || (reflect.ValueOf(f.value).Kind() == reflect.Ptr && reflect.ValueOf(f.value).IsNil()) {
-		if f.name == "avatar" || f.name == "org_logo" {
-			log.Println("Adding error for file")
+	isZero := false
+
+	switch v := f.value.(type) {
+	case nil:
+		isZero = true
+	case string:
+		isZero = v == ""
+	case int, int8, int16, int32, int64:
+		isZero = reflect.ValueOf(v).Int() == 0
+	case uint, uint8, uint16, uint32, uint64:
+		isZero = reflect.ValueOf(v).Uint() == 0
+	case float32, float64:
+		isZero = reflect.ValueOf(v).Float() == 0
+	case bool:
+		isZero = !v
+	default:
+		rv := reflect.ValueOf(v)
+		if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+			isZero = rv.IsNil()
+		} else {
+			isZero = rv.IsZero()
 		}
+	}
+
+	if isZero {
 		f.vee.AddError(f.name, "This field is required")
 	}
 	return f
