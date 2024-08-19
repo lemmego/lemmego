@@ -17,6 +17,7 @@ import (
 	"github.com/lemmego/lemmego/api/config"
 	"github.com/lemmego/lemmego/api/fsys"
 	"github.com/lemmego/lemmego/api/logger"
+	"github.com/lemmego/lemmego/api/req"
 	"github.com/lemmego/lemmego/api/session"
 	"github.com/lemmego/lemmego/api/shared"
 
@@ -378,6 +379,13 @@ func makeHandlerFunc(app *App, route *Route, router *Router) http.HandlerFunc {
 				ctx.ValidationError(err)
 				return
 			}
+
+			var mfr *req.MalformedRequest
+			if errors.As(err, &mfr) {
+				ctx.Error(mfr.Status, mfr)
+				return
+			}
+
 			ctx.Error(http.StatusInternalServerError, err)
 			return
 		}
