@@ -49,7 +49,7 @@ func (provider *RouteServiceProvider) Register(a *app.App) {
 
 		r.Get("/error", func(c *app.Context) error {
 			err := c.PopSession("error").(string)
-			return c.HTML(500, "<html><body><code>"+err+"</code></body></html>")
+			return c.HTML(500, []byte("<html><body><code>"+err+"</code></body></html>"))
 		})
 	})
 }

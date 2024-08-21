@@ -249,13 +249,6 @@ func (c *Context) JSON(status int, body M) error {
 	return err
 }
 
-func (c *Context) Send(status int, body []byte) error {
-	c.responseWriter.Header().Set("content-type", "text/html")
-	c.responseWriter.WriteHeader(status)
-	_, err := c.responseWriter.Write(body)
-	return err
-}
-
 func (c *Context) AuthUser() interface{} {
 	return c.PopSession("authUser")
 }
@@ -283,10 +276,17 @@ func (c *Context) resolveTemplateData(data *res.TemplateData) *res.TemplateData 
 	return data
 }
 
-func (c *Context) HTML(status int, body string) error {
+func (c *Context) Text(status int, body []byte) error {
+	c.responseWriter.Header().Set("content-type", "text/plain")
+	c.responseWriter.WriteHeader(status)
+	_, err := c.responseWriter.Write(body)
+	return err
+}
+
+func (c *Context) HTML(status int, body []byte) error {
 	c.responseWriter.Header().Set("content-type", "text/html")
 	c.responseWriter.WriteHeader(status)
-	_, err := c.responseWriter.Write([]byte(body))
+	_, err := c.responseWriter.Write(body)
 	return err
 }
 
