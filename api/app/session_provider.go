@@ -18,7 +18,7 @@ func (provider *SessionServiceProvider) Register(app *App) {
 	pool := &redis.Pool{
 		MaxIdle: 10,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", fmt.Sprintf("%s:%d", config.Config("db.redisHost"), config.Config("db.redisPort")))
+			return redis.Dial("tcp", fmt.Sprintf("%s:%d", config.Get[string]("db.redisHost"), config.Get[int]("db.redisPort")))
 		},
 	}
 	//sm := session.NewSession(session.NewFileStore(""))

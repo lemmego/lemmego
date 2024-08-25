@@ -259,7 +259,7 @@ func initInertia() *inertia.Inertia {
 	}
 
 	i.ShareTemplateFunc("vite", vite(manifestPath, "/public/build/"))
-	i.ShareTemplateData("env", config.Config("app.env").(string))
+	i.ShareTemplateData("env", config.Get[string]("app.env"))
 
 	return i
 }

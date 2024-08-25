@@ -165,7 +165,7 @@ func (app *App) FS() fsys.FS {
 }
 
 func getDefaultConfig() config.ConfigMap {
-	return config.ConfMap()
+	return config.GetAll()
 }
 
 func defaultOptions() *Options {
@@ -246,7 +246,7 @@ func New(optFuncs ...OptFunc) *App {
 	for _, plugin := range opts.Plugins {
 		// Copy template files listed in the Views() method to the app's template directory
 		for name, content := range plugin.PublishableTemplates() {
-			filePath := filepath.Join(config.Config("app.templateDir").(string), name)
+			filePath := filepath.Join(config.Get[string]("app.templateDir"), name)
 			if _, err := os.Stat(filePath); err != nil {
 				err := os.WriteFile(filePath, []byte(content), 0644)
 				if err != nil {
@@ -365,12 +365,12 @@ func makeHandlerFunc(app *App, route *Route, router *Router) http.HandlerFunc {
 		allHandlers = append(allHandlers, route.AfterMiddleware...)
 
 		ctx := &Context{
-			Mutex:          sync.Mutex{},
-			app:            app,
-			request:        r,
-			responseWriter: w,
-			handlers:       allHandlers,
-			index:          -1,
+			Mutex:    sync.Mutex{},
+			app:      app,
+			request:  r,
+			writer:   w,
+			handlers: allHandlers,
+			index:    -1,
 		}
 
 		if err := ctx.Next(); err != nil {
@@ -424,8 +424,8 @@ func (app *App) Run() {
 		}
 	}
 
-	slog.Info(fmt.Sprintf("%s is running on port %d...", config.Config("app.name"), config.Config("app.port")))
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Config("app.port")), app.session.LoadAndSave(app.router)); err != nil {
+	slog.Info(fmt.Sprintf("%s is running on port %d...", config.Get[string]("app.name"), config.Get[int]("app.port")))
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", config.Get[int]("app.port")), app.session.LoadAndSave(app.router)); err != nil {
 		panic(err)
 	}
 }

@@ -36,9 +36,9 @@ func init() {
 
 type Context struct {
 	sync.Mutex
-	app            AppManager
-	request        *http.Request
-	responseWriter http.ResponseWriter
+	app     AppManager
+	request *http.Request
+	writer  http.ResponseWriter
 
 	handlers []Handler
 	index    int
@@ -76,7 +76,7 @@ func (c *Context) SetCookie(name string, value string, maxAge int, path string, 
 		Secure:   secure,
 		HttpOnly: httpOnly,
 	}
-	http.SetCookie(c.responseWriter, cookie)
+	http.SetCookie(c.writer, cookie)
 }
 
 func (c *Context) Alert(typ string, message string) *res.AlertMessage {
@@ -201,7 +201,11 @@ func (c *Context) Request() *http.Request {
 }
 
 func (c *Context) ResponseWriter() http.ResponseWriter {
-	return c.responseWriter
+	return c.writer
+}
+
+func (c *Context) RequestContext() context.Context {
+	return c.request.Context()
 }
 
 func (c *Context) FS() fsys.FS {
@@ -225,7 +229,7 @@ func (c *Context) I() *inertia.Inertia {
 }
 
 func (c *Context) Templ(component templ.Component) error {
-	return component.Render(c.Request().Context(), c.responseWriter)
+	return component.Render(c.Request().Context(), c.writer)
 }
 
 func (c *Context) GetHeader(key string) string {
@@ -233,7 +237,7 @@ func (c *Context) GetHeader(key string) string {
 }
 
 func (c *Context) SetHeader(key string, value string) {
-	c.responseWriter.Header().Add(key, value)
+	c.writer.Header().Add(key, value)
 }
 
 func (c *Context) WantsJSON() bool {
@@ -243,9 +247,9 @@ func (c *Context) WantsJSON() bool {
 func (c *Context) JSON(status int, body M) error {
 	// TODO: Check if header is already sent
 	response, _ := json.Marshal(body)
-	c.responseWriter.Header().Set("content-Type", "application/json")
-	c.responseWriter.WriteHeader(status)
-	_, err := c.responseWriter.Write(response)
+	c.writer.Header().Set("content-Type", "application/json")
+	c.writer.WriteHeader(status)
+	_, err := c.writer.Write(response)
 	return err
 }
 
@@ -277,24 +281,24 @@ func (c *Context) resolveTemplateData(data *res.TemplateData) *res.TemplateData 
 }
 
 func (c *Context) Text(status int, body []byte) error {
-	c.responseWriter.Header().Set("content-type", "text/plain")
-	c.responseWriter.WriteHeader(status)
-	_, err := c.responseWriter.Write(body)
+	c.writer.Header().Set("content-type", "text/plain")
+	c.writer.WriteHeader(status)
+	_, err := c.writer.Write(body)
 	return err
 }
 
 func (c *Context) HTML(status int, body []byte) error {
-	c.responseWriter.Header().Set("content-type", "text/html")
-	c.responseWriter.WriteHeader(status)
-	_, err := c.responseWriter.Write(body)
+	c.writer.Header().Set("content-type", "text/html")
+	c.writer.WriteHeader(status)
+	_, err := c.writer.Write(body)
 	return err
 }
 
 func (c *Context) Render(status int, tmplPath string, data *res.TemplateData) error {
 	data = c.resolveTemplateData(data)
-	c.responseWriter.Header().Set("content-type", "text/html")
-	c.responseWriter.WriteHeader(status)
-	return res.RenderTemplate(c.responseWriter, tmplPath, data)
+	c.writer.Header().Set("content-type", "text/html")
+	c.writer.WriteHeader(status)
+	return res.RenderTemplate(c.writer, tmplPath, data)
 }
 
 func (c *Context) Inertia(status int, filePath string, props map[string]any) error {
@@ -318,7 +322,7 @@ func (c *Context) Inertia(status int, filePath string, props map[string]any) err
 		props["input"] = input
 	}
 
-	c.responseWriter.WriteHeader(status)
+	c.writer.WriteHeader(status)
 	return c.App().Inertia().Render(c.ResponseWriter(), c.Request(), filePath, props)
 }
 
@@ -328,8 +332,8 @@ func (c *Context) Redirect(status int, url string) error {
 		return nil
 	}
 
-	c.responseWriter.Header().Set("Location", url)
-	c.responseWriter.WriteHeader(status)
+	c.writer.Header().Set("Location", url)
+	c.writer.WriteHeader(status)
 	return nil
 }
 
@@ -512,8 +516,8 @@ func (c *Context) Error(status int, err error) error {
 	if c.WantsJSON() {
 		return c.JSON(status, M{"message": err.Error()})
 	}
-	c.responseWriter.WriteHeader(status)
-	if _, e := c.responseWriter.Write([]byte(err.Error())); e != nil {
+	c.writer.WriteHeader(status)
+	if _, e := c.writer.Write([]byte(err.Error())); e != nil {
 		return err
 	}
 	return err
@@ -555,5 +559,5 @@ func (c *Context) Forbidden(err error) error {
 }
 
 func (c *Context) DecodeJSON(v interface{}) error {
-	return req.DecodeJSONBody(c.responseWriter, c.request, v)
+	return req.DecodeJSONBody(c.writer, c.request, v)
 }

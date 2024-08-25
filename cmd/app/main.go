@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Print config
-	slog.Info("App will start using the following config:\n", "config", config.ConfMap())
+	slog.Info("App will start using the following config:\n", "config", config.GetAll())
 
 	// Load service providers
 	providerCollection := providers.Load()

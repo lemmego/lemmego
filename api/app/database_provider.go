@@ -13,13 +13,14 @@ type DatabaseServiceProvider struct {
 
 func (provider *DatabaseServiceProvider) Register(app *App) {
 	dbConfig := &db.Config{
-		Driver:   config.Config("db.driver").(string),
-		Host:     config.Config("db.host").(string),
-		Port:     config.Config("db.port").(int),
-		Database: config.Config("db.database").(string),
-		User:     config.Config("db.username").(string),
-		Password: config.Config("db.password").(string),
-		Params:   config.Config("db.params").(string),
+		ConnName: "default",
+		Driver:   config.Get[string]("database.connections.default.driver"),
+		Host:     config.Get[string]("database.connections.default.host"),
+		Port:     config.Get[int]("database.connections.default.port"),
+		Database: config.Get[string]("database.connections.default.database"),
+		User:     config.Get[string]("database.connections.default.user"),
+		Password: config.Get[string]("database.connections.default.password"),
+		Params:   config.Get[string]("database.connections.default.params"),
 	}
 
 	dbc, err := db.NewConnection(dbConfig).

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -22,10 +23,23 @@ var (
 	ErrUnknownDriver            = errors.New("unknown driver")
 	ErrNoSuchDatabase           = errors.New("no such database exists")
 	ErrCannotConnectToDefaultDB = errors.New("cannot connect to default db")
+
+	dbInstances = make(map[string]*DB)
 )
+
+type Resolver struct {
+	Ctx context.Context
+	New func(context.Context) (*DB, error)
+}
+
+type ResolverFunc func(context.Context) (*DB, error)
 
 type DB struct {
 	*gorm.DB
+}
+
+func (db *DB) BindWhere(c context.Context, columnName string) *gorm.DB {
+	return db.Where(fmt.Sprintf("%s = ?", columnName), c.Value(columnName))
 }
 
 type Model struct {
@@ -33,6 +47,45 @@ type Model struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+}
+
+func Resolve(ctx context.Context, resolver ResolverFunc) (*DB, error) {
+	db, err := resolver(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+// Determine if the map has an entry with the key
+func Has(connectionId string) bool {
+	_, ok := dbInstances[connectionId]
+	return ok
+}
+
+func Get(arg ...interface{}) *DB {
+	if len(arg) == 0 {
+		if val, ok := dbInstances["default"]; ok {
+			return val
+		}
+		return nil
+	}
+
+	// Check if arg[0] is of type string
+	if val, ok := arg[0].(string); ok {
+		if val == "default" {
+			if val, ok := dbInstances["default"]; ok {
+				return val
+			}
+			return nil
+		}
+		if val, ok := dbInstances[val]; ok {
+			return val
+		}
+		return nil
+	}
+
+	return nil
 }
 
 func (db *DB) Close() error {
@@ -49,6 +102,7 @@ func (db *DB) Close() error {
 }
 
 type Config struct {
+	ConnName string
 	Driver   string
 	Host     string
 	Port     int
@@ -65,6 +119,10 @@ type Connection struct {
 }
 
 func NewConnection(dbc *Config) *Connection {
+	if dbc.ConnName == "" {
+		dbc.ConnName = "default"
+	}
+
 	if dbc.Driver != "mysql" && dbc.Driver != "postgres" && dbc.Driver != "sqlite" {
 		panic("unsupported driver")
 	}
@@ -139,7 +197,9 @@ func (c *Connection) connectToMySQL() (*DB, error) {
 
 	slog.Info(fmt.Sprintf("created db session %s", dsn.Name))
 
-	return &DB{db}, nil
+	dbInstance := &DB{db}
+	c.db = dbInstance
+	return dbInstance, nil
 }
 
 func (c *Connection) connectToPostgres() (*DB, error) {
@@ -161,7 +221,9 @@ func (c *Connection) connectToPostgres() (*DB, error) {
 
 	slog.Info(fmt.Sprintf("created db session %s", dsn.Name))
 
-	return &DB{db}, nil
+	dbInstance := &DB{db}
+	c.db = dbInstance
+	return dbInstance, nil
 }
 
 func (c *Connection) Close() error {
@@ -234,9 +296,19 @@ func (c *Connection) Open() (*DB, error) {
 
 	switch c.config.Driver {
 	case "mysql":
-		return c.connectToMySQL()
+		db, err := c.connectToMySQL()
+		if err != nil {
+			return nil, err
+		}
+		dbInstances[c.config.ConnName] = db
+		return db, nil
 	case "postgres":
-		return c.connectToPostgres()
+		db, err := c.connectToPostgres()
+		if err != nil {
+			return nil, err
+		}
+		dbInstances[c.config.ConnName] = db
+		return db, nil
 	default:
 		return nil, ErrUnknownDriver
 	}

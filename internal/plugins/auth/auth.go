@@ -261,6 +261,40 @@ func (authn *AuthPlugin) Guest(c *app.Context) error {
 	}
 }
 
+// Resolve the tenant id from header or subdomain
+// and bind it to the current context
+func (authn *AuthPlugin) Tenant(c *app.Context) error {
+	// Check if "tenant" header is set
+	tenant := c.GetHeader("tenant")
+
+	if tenant == "" {
+		// See if subdomain is set and split the host by . and
+		// treat the first part as the tenant if it's not "www"
+		parts := strings.Split(c.Request().Host, ".")
+		if len(parts) > 1 && parts[0] != "www" {
+			tenant = parts[0]
+		}
+	}
+
+	type Org struct {
+		ID          uint
+		OrgUsername string
+	}
+
+	model := &Org{}
+
+	var count int64
+	authn.Opts.DB.First(model, "org_username = ?", tenant).Count(&count)
+
+	if count > 0 {
+		fmt.Println("Tenant ID", model.ID)
+		c.Set("org_id", model.ID)
+	} else {
+		return c.JSON(http.StatusNotFound, app.M{"message": "Tenant not found"})
+	}
+	return c.Next()
+}
+
 func (p *AuthPlugin) Commands() []*cobra.Command {
 	return []*cobra.Command{}
 }

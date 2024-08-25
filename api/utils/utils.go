@@ -2,13 +2,9 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"log/slog"
 	"math/rand"
-	"os"
-	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -22,47 +18,6 @@ func init() {
 		log.Fatal("Error loading .env file")
 	}
 	slog.Info(".env file loaded...")
-}
-
-// MustEnv returns the value of the environment variable or panics if the variable is not set or if the type is unsupported.
-func MustEnv[T any](key string, fallback T) T {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		slog.Info(fmt.Sprintf("Using fallback value for key: %s", key), key, fallback)
-		return fallback
-	}
-
-	fallbackType := reflect.TypeOf(fallback)
-
-	// Check if the fallback type is supported
-	switch fallbackType.Kind() {
-	case reflect.Int, reflect.Int64:
-		result, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			panic(err)
-		}
-		return reflect.ValueOf(result).Convert(fallbackType).Interface().(T)
-
-	case reflect.Float64:
-		result, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			panic(err)
-		}
-		return reflect.ValueOf(result).Convert(fallbackType).Interface().(T)
-
-	case reflect.Bool:
-		result, err := strconv.ParseBool(value)
-		if err != nil {
-			panic(err)
-		}
-		return reflect.ValueOf(result).Convert(fallbackType).Interface().(T)
-
-	case reflect.String:
-		return reflect.ValueOf(value).Convert(fallbackType).Interface().(T)
-
-	default:
-		panic(fmt.Sprintf("unsupported type: %v", fallbackType))
-	}
 }
 
 // GenerateRandomString generates a random string of a given length using the characters provided.
