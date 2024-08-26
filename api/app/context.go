@@ -47,7 +47,7 @@ type Context struct {
 type R struct {
 	Status       int
 	TemplateName string
-	Message      *res.AlertMessage
+	InertiaView  string
 	Payload      M
 	RedirectTo   string
 }
@@ -140,53 +140,33 @@ func (c *Context) GetInput() any {
 	return c.Get(HTTPInKey)
 }
 
-func (c *Context) Respond(status int, r *R) error {
+func (c *Context) Respond(r *R) error {
+	if r.Status == 0 {
+		r.Status = http.StatusOK
+	}
+
 	if c.WantsJSON() {
 		if r.Payload != nil {
 			return c.JSON(r.Status, r.Payload)
 		}
+	}
 
-		if r.Message.Body != "" {
-			return c.JSON(r.Status, M{r.Message.Type: r.Message.Body})
-		}
+	if r.InertiaView != "" {
+		return c.Inertia(r.Status, r.InertiaView, r.Payload)
+	}
+
+	if r.RedirectTo != "" {
+		return c.Redirect(http.StatusFound, r.RedirectTo)
 	}
 
 	templateData := &res.TemplateData{}
-
-	// if r.Message != nil && r.Message.Body != "" {
-	// 	c.PutFlash(r.Message.Type, r.Message)
-	// }
-
-	if r.RedirectTo != "" {
-		var messageType string
-		if r.Message != nil {
-			messageType = r.Message.Type
-		}
-		switch messageType {
-		case "success":
-			c.WithSuccess(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
-			return nil
-		case "info":
-			c.WithInfo(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
-			return nil
-		case "warning":
-			c.WithWarning(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
-			return nil
-		case "error":
-			c.WithError(r.Message.Body).Redirect(http.StatusFound, r.RedirectTo)
-			return nil
-		default:
-			c.Redirect(http.StatusFound, r.RedirectTo)
-			return nil
-		}
-	}
 
 	if r.Payload != nil {
 		templateData.Data = r.Payload
 	}
 
 	if r.TemplateName != "" {
-		return c.Render(r.Status, r.TemplateName, &res.TemplateData{Data: r.Payload})
+		return c.Render(r.Status, r.TemplateName, templateData)
 	}
 
 	return nil
@@ -394,6 +374,10 @@ func (c *Context) HasMultiPartRequest() bool {
 func (c *Context) HasFormURLEncodedRequest() bool {
 	contentType := strings.ToLower(c.GetHeader("Content-Type"))
 	return contentType == "application/x-www-form-urlencoded"
+}
+
+func (c *Context) IsInertiaRequest() bool {
+	return inertia.IsInertiaRequest(c.request)
 }
 
 func (c *Context) Param(key string) string {

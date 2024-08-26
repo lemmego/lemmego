@@ -1,6 +1,7 @@
 package req
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -51,13 +52,17 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 			return &MalformedRequest{Status: http.StatusUnsupportedMediaType, Message: msg}
 		}
 	}
-
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return &MalformedRequest{Status: http.StatusBadRequest, Message: err.Error()}
+	}
 
-	dec := json.NewDecoder(r.Body)
+	dec := json.NewDecoder(bytes.NewReader(bodyBytes))
 	dec.DisallowUnknownFields()
 
-	err := dec.Decode(&dst)
+	err = dec.Decode(&dst)
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError

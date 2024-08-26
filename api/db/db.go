@@ -68,7 +68,7 @@ func Get(arg ...interface{}) *DB {
 		if val, ok := dbInstances["default"]; ok {
 			return val
 		}
-		return nil
+		panic("default db connection not found")
 	}
 
 	// Check if arg[0] is of type string

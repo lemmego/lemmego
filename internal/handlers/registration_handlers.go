@@ -4,40 +4,15 @@ import (
 	"fmt"
 
 	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/lemmego/api/db"
 	"github.com/lemmego/lemmego/api/utils"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
 )
 
-func RegistrationStoreHandler(ctx *app.Context) error {
+func RegistrationStoreHandler(c *app.Context) error {
 	body := &inputs.RegistrationInput{}
-	if err := ctx.Validate(body); err != nil {
-		return err
-	}
-
-	_, err := ctx.Upload("org_logo", "images/orgs")
-
-	if err != nil {
-		return fmt.Errorf("could not upload org_logo: %w", err)
-	}
-
-	_, err = ctx.Upload("avatar", "images/orgs")
-
-	if err != nil {
-		return fmt.Errorf("could not upload avatar: %w", err)
-	}
-
-	org := &models.Org{
-		OrgUsername: body.OrgUsername,
-		OrgName:     body.OrgName,
-		OrgEmail:    body.OrgEmail,
-	}
-
-	if ctx.HasFile("org_logo") {
-		org.OrgLogo = "images/orgs/" + body.OrgLogo.Filename()
-	}
-
-	if err := ctx.DB().Create(org).Error; err != nil {
+	if err := c.Validate(body); err != nil {
 		return err
 	}
 
@@ -45,6 +20,12 @@ func RegistrationStoreHandler(ctx *app.Context) error {
 
 	if err != nil {
 		return err
+	}
+
+	org := &models.Org{
+		OrgUsername: body.OrgUsername,
+		OrgName:     body.OrgName,
+		OrgEmail:    body.OrgEmail,
 	}
 
 	user := &models.User{
@@ -58,13 +39,31 @@ func RegistrationStoreHandler(ctx *app.Context) error {
 		Username:  body.Username,
 	}
 
-	if ctx.HasFile("avatar") {
-		user.Avatar = "images/orgs/" + body.Avatar.Filename()
+	if c.HasFile("org_logo") {
+		_, err := c.Upload("org_logo", "images/orgs")
+
+		if err != nil {
+			return fmt.Errorf("could not upload org_logo: %w", err)
+		}
+		org.OrgLogo = "images/orgs/" + body.OrgLogo.Filename()
 	}
 
-	if err := ctx.DB().Create(user).Error; err != nil {
+	if c.HasFile("avatar") {
+		_, err := c.Upload("avatar", "images/avatars")
+
+		if err != nil {
+			return fmt.Errorf("could not upload avatar: %w", err)
+		}
+		user.Avatar = "images/avatars/" + body.Avatar.Filename()
+	}
+
+	if err := db.Get().Create(org).Error; err != nil {
 		return err
 	}
 
-	return ctx.With("message", "Registration Successful. Please Log In.").Redirect(302, "/login")
+	if err := db.Get().Create(user).Error; err != nil {
+		return err
+	}
+
+	return c.With("message", "Registration Successful. Please Log In.").Redirect(302, "/login")
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -49,6 +50,14 @@ func (r PluginRegistry) Add(plugin Plugin) {
 }
 
 type M map[string]any
+
+func (m M) Error() string {
+	jsonEncoded, err := json.Marshal(m)
+	if err != nil {
+		return err.Error()
+	}
+	return string(jsonEncoded)
+}
 
 type Plugin interface {
 	Boot(a AppManager) error

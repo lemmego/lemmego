@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/db"
 	"github.com/lemmego/lemmego/internal/models"
@@ -11,7 +12,7 @@ import (
 )
 
 func Routes(r *app.Router) {
-	r.Get("/", plugins.Get(&auth.AuthPlugin{}).Guard, func(c *app.Context) error {
+	r.Get("/", plugins.Get(&auth.Auth{}).Guard, func(c *app.Context) error {
 		if user, ok := c.GetSession("user").(*auth.AuthUser); ok {
 			return c.Inertia(200, "Home/Index", app.M{"user": user})
 		}
@@ -21,15 +22,25 @@ func Routes(r *app.Router) {
 	r.Get("/oauth/clients/create", OauthClientCreateHandler)
 	r.Post("/oauth/clients", OauthClientStoreHandler)
 	r.Get("/oauth/authorize", AuthorizeIndexHandler)
-	r.Post("/register", RegistrationStoreHandler)
-	r.Post("/login", plugins.Get(&auth.AuthPlugin{}).Guest, LoginStoreHandler)
-	r.Post("/foo", plugins.Get(&auth.AuthPlugin{}).Tenant, func(c *app.Context) error {
+	r.Post("/register", plugins.Get(&auth.Auth{}).Guest, RegistrationStoreHandler)
+	r.Post("/login", plugins.Get(&auth.Auth{}).Guest, plugins.Get(&auth.Auth{}).Tenant, LoginStoreHandler)
+	r.Post("/foo", plugins.Get(&auth.Auth{}).Tenant, func(c *app.Context) error {
+		var body map[string]interface{}
+		if err := c.DecodeJSON(&body); err != nil {
+			return err
+		}
+		spew.Dump(body)
 		db := db.Get().Where("org_id = ?", c.Get("org_id"))
 		user := &models.User{}
 		if err := db.First(user, "email = ?", "vojav@mailinator.com").Error; err != nil {
 			return err
 		}
 		return c.JSON(200, app.M{"user": user})
+	})
+	r.Get("/foo", func(c *app.Context) error {
+		return app.M{
+			"message": "foo",
+		}
 	})
 	//r.Get("/api/v1Group/test1", func(c *api.Context) error {
 	//	fmt.Println("inside test1")

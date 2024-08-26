@@ -7,12 +7,16 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/db"
+	"github.com/lemmego/lemmego/api/req"
 	"github.com/lemmego/lemmego/api/session"
+	"github.com/lemmego/lemmego/api/shared"
 	pluginCmd "github.com/lemmego/lemmego/internal/plugins/auth/cmd"
+	"github.com/romsar/gonertia"
 
 	"dario.cat/mergo"
 
@@ -44,14 +48,14 @@ type Actor interface {
 }
 
 type AuthUser struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
+	ID       interface{} `json:"id"`
+	Username string      `json:"username"`
 }
 
 type CredUser struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	ID       interface{} `json:"id"`
+	Username string      `json:"username"`
+	Password string      `json:"password"`
 }
 
 type Credentials struct {
@@ -77,7 +81,7 @@ type Options struct {
 	HomeRoute         string
 }
 
-type AuthPlugin struct {
+type Auth struct {
 	Opts     *Options
 	AuthUser *AuthUser
 }
@@ -106,7 +110,7 @@ func WithTokenConfig(tokenConfig *TokenConfig) OptFunc {
 	}
 }
 
-func New(opts ...OptFunc) *AuthPlugin {
+func New(opts ...OptFunc) *Auth {
 	o := DefaultOptions()
 
 	for _, opt := range opts {
@@ -121,10 +125,10 @@ func New(opts ...OptFunc) *AuthPlugin {
 		panic(ErrNoSecret)
 	}
 
-	return &AuthPlugin{o, nil}
+	return &Auth{o, nil}
 }
 
-func (authn *AuthPlugin) Login(ctx context.Context, a *CredUser, username string, password string) (token string, err error) {
+func (authn *Auth) Login(ctx context.Context, a *CredUser, username string, password string) (token string, err error) {
 	// If the username and password are empty, return an error
 	if a.Username == "" && a.Password == "" {
 		return "", ErrInvalidCreds
@@ -151,9 +155,24 @@ func (authn *AuthPlugin) Login(ctx context.Context, a *CredUser, username string
 
 	// If the token config is provided, generate a token
 	if authn.Opts.TokenConfig != nil {
+		var id string
+
+		if val, ok := a.ID.(string); ok {
+			id = val
+		}
+
+		if val, ok := a.ID.(int); ok {
+			id = strconv.Itoa(val)
+		}
+
+		if val, ok := a.ID.(uint); ok {
+			id = strconv.Itoa(int(val))
+		}
+
 		mergo.Merge(&authn.Opts.TokenConfig.Claims, jwt.RegisteredClaims{
-			Subject: a.ID,
+			Subject: id,
 		})
+
 		claims := jwt.NewWithClaims(jwt.SigningMethodHS256, authn.Opts.TokenConfig.Claims)
 
 		token, err = claims.SignedString([]byte(os.Getenv("JWT_SECRET")))
@@ -167,7 +186,7 @@ func (authn *AuthPlugin) Login(ctx context.Context, a *CredUser, username string
 	return token, err
 }
 
-func (authn *AuthPlugin) ForceLogin(ctx context.Context, a Actor) (token string, err error) {
+func (authn *Auth) ForceLogin(ctx context.Context, a Actor) (token string, err error) {
 	if a.GetUsername() != "" && a.GetPassword() != "" {
 		if authn.Opts.Session != nil {
 			authn.Opts.Session.Put(ctx, "userId", a.Id())
@@ -187,7 +206,7 @@ func (authn *AuthPlugin) ForceLogin(ctx context.Context, a Actor) (token string,
 	return token, err
 }
 
-func (authn *AuthPlugin) Check(r *http.Request) error {
+func (authn *Auth) Check(r *http.Request) error {
 	user := &AuthUser{}
 	if authn.Opts.Session != nil {
 		if exists := authn.Opts.Session.Exists(r.Context(), "userId"); exists {
@@ -235,13 +254,9 @@ func (authn *AuthPlugin) Check(r *http.Request) error {
 }
 
 // Guard the route with the auth middleware
-func (authn *AuthPlugin) Guard(c *app.Context) error {
+func (authn *Auth) Guard(c *app.Context) error {
 	if err := authn.Check(c.Request()); err != nil {
 		return c.Redirect(302, "/login")
-		return c.Respond(http.StatusUnauthorized, &app.R{
-			Payload:    app.M{"message": "Unauthorized"},
-			RedirectTo: "/login",
-		})
 	} else {
 		c.Set("user", authn.AuthUser)
 		return c.Next()
@@ -249,13 +264,9 @@ func (authn *AuthPlugin) Guard(c *app.Context) error {
 }
 
 // Disallow authenticated users from accessing a route
-func (authn *AuthPlugin) Guest(c *app.Context) error {
+func (authn *Auth) Guest(c *app.Context) error {
 	if err := authn.Check(c.Request()); err == nil {
 		return c.Redirect(302, "/")
-		return c.Respond(http.StatusUnauthorized, &app.R{
-			Payload:    app.M{"message": "Unauthorized"},
-			RedirectTo: "/",
-		})
 	} else {
 		return c.Next()
 	}
@@ -263,7 +274,7 @@ func (authn *AuthPlugin) Guest(c *app.Context) error {
 
 // Resolve the tenant id from header or subdomain
 // and bind it to the current context
-func (authn *AuthPlugin) Tenant(c *app.Context) error {
+func (authn *Auth) Tenant(c *app.Context) error {
 	// Check if "tenant" header is set
 	tenant := c.GetHeader("tenant")
 
@@ -273,6 +284,20 @@ func (authn *AuthPlugin) Tenant(c *app.Context) error {
 		parts := strings.Split(c.Request().Host, ".")
 		if len(parts) > 1 && parts[0] != "www" {
 			tenant = parts[0]
+		} else {
+			// Check if there is an input field called "org_username"
+			if c.WantsJSON() || gonertia.IsInertiaRequest(c.Request()) {
+				var data map[string]any
+				err := req.DecodeJSONBody(c.ResponseWriter(), c.Request(), &data)
+
+				if err != nil {
+					return err
+				}
+
+				if val, ok := data["org_username"].(string); ok {
+					tenant = val
+				}
+			}
 		}
 	}
 
@@ -290,39 +315,43 @@ func (authn *AuthPlugin) Tenant(c *app.Context) error {
 		fmt.Println("Tenant ID", model.ID)
 		c.Set("org_id", model.ID)
 	} else {
-		return c.JSON(http.StatusNotFound, app.M{"message": "Tenant not found"})
+		if c.WantsJSON() && !gonertia.IsInertiaRequest(c.Request()) {
+			return c.JSON(http.StatusNotFound, app.M{"message": "Org not found"})
+		}
+
+		return shared.ValidationErrors{"org_username": []string{"Org not found"}}
 	}
 	return c.Next()
 }
 
-func (p *AuthPlugin) Commands() []*cobra.Command {
+func (p *Auth) Commands() []*cobra.Command {
 	return []*cobra.Command{}
 }
 
-func (p *AuthPlugin) InstallCommand() *cobra.Command {
+func (p *Auth) InstallCommand() *cobra.Command {
 	return pluginCmd.GetInstallCommand(p)
 }
 
-func (p *AuthPlugin) Boot(app app.AppManager) error {
+func (p *Auth) Boot(app app.AppManager) error {
 	p.Opts.Session = app.Session()
 	p.Opts.DB = app.DB()
 	p.Opts.Router = app.Router()
 	return nil
 }
 
-func (p *AuthPlugin) EventListeners() map[string]func() {
+func (p *Auth) EventListeners() map[string]func() {
 	return nil
 }
 
-func (p *AuthPlugin) PublishableMigrations() map[string][]byte {
+func (p *Auth) PublishableMigrations() map[string][]byte {
 	return nil
 }
 
-func (p *AuthPlugin) PublishableModels() map[string][]byte {
+func (p *Auth) PublishableModels() map[string][]byte {
 	return nil
 }
 
-func (p *AuthPlugin) PublishableTemplates() map[string][]byte {
+func (p *Auth) PublishableTemplates() map[string][]byte {
 	return nil
 	return map[string][]byte{
 		// "login.page.tmpl":    loginTmpl,
@@ -330,11 +359,11 @@ func (p *AuthPlugin) PublishableTemplates() map[string][]byte {
 	}
 }
 
-func (p *AuthPlugin) Middlewares() []app.HTTPMiddleware {
+func (p *Auth) Middlewares() []app.HTTPMiddleware {
 	return nil
 }
 
-func (p *AuthPlugin) storeLoginHandler() app.Handler {
+func (p *Auth) storeLoginHandler() app.Handler {
 	// return func(c *app.Context) error {
 	// 	token, err := p.Login(c.Request().Context(), aUser, creds.Username, creds.Password)
 
@@ -372,7 +401,7 @@ func (p *AuthPlugin) storeLoginHandler() app.Handler {
 	return nil
 }
 
-func (p *AuthPlugin) Routes() []*app.Route {
+func (p *Auth) Routes() []*app.Route {
 	routes := []*app.Route{
 		{
 			Method: http.MethodGet,
@@ -389,7 +418,7 @@ func (p *AuthPlugin) Routes() []*app.Route {
 		{
 			Method: http.MethodGet,
 			Path:   "/register",
-			Handlers: []app.Handler{func(c *app.Context) error {
+			Handlers: []app.Handler{p.Guest, func(c *app.Context) error {
 				return c.Inertia(200, "Forms/Register", nil)
 			}},
 		},
@@ -398,6 +427,6 @@ func (p *AuthPlugin) Routes() []*app.Route {
 	return routes
 }
 
-func (p *AuthPlugin) Webhooks() []string {
+func (p *Auth) Webhooks() []string {
 	return nil
 }

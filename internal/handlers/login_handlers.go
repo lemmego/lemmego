@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/lemmego/api/db"
 	"github.com/lemmego/lemmego/api/logger"
 	"github.com/lemmego/lemmego/api/shared"
 	"github.com/lemmego/lemmego/internal/inputs"
@@ -24,7 +24,11 @@ func LoginStoreHandler(c *app.Context) error {
 	}
 	user := &models.User{Email: body.Email}
 
-	c.DB().Where(user).First(user)
+	user.OrgId = c.Get("org_id").(uint)
+
+	if err := db.Get().Debug().Where(user).First(user).Error; err != nil {
+		return err
+	}
 
 	if user.ID == 0 {
 		return credErrors
@@ -32,14 +36,15 @@ func LoginStoreHandler(c *app.Context) error {
 
 	logger.D().Info("User logged in", "user", user)
 
-	authPlugin := plugins.Get(&auth.AuthPlugin{})
+	authPlugin := plugins.Get(&auth.Auth{})
 
 	if _, err := authPlugin.Login(
 		c.Request().Context(),
-		&auth.CredUser{ID: strconv.Itoa(int(user.ID)), Username: user.Email, Password: user.Password},
+		&auth.CredUser{ID: user.ID, Username: user.Email, Password: user.Password},
 		body.Email,
 		body.Password,
 	); err != nil {
+		println("error logging in", err)
 		if errors.Is(err, auth.ErrInvalidCreds) {
 			return credErrors
 		}
