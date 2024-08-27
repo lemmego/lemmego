@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/db"
 	"github.com/lemmego/lemmego/internal/models"
@@ -25,11 +24,6 @@ func Routes(r *app.Router) {
 	r.Post("/register", plugins.Get(&auth.Auth{}).Guest, RegistrationStoreHandler)
 	r.Post("/login", plugins.Get(&auth.Auth{}).Guest, plugins.Get(&auth.Auth{}).Tenant, LoginStoreHandler)
 	r.Post("/foo", plugins.Get(&auth.Auth{}).Tenant, func(c *app.Context) error {
-		var body map[string]interface{}
-		if err := c.DecodeJSON(&body); err != nil {
-			return err
-		}
-		spew.Dump(body)
 		db := db.Get().Where("org_id = ?", c.Get("org_id"))
 		user := &models.User{}
 		if err := db.First(user, "email = ?", "vojav@mailinator.com").Error; err != nil {

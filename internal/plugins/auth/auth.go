@@ -12,7 +12,6 @@ import (
 
 	"github.com/lemmego/lemmego/api/app"
 	"github.com/lemmego/lemmego/api/db"
-	"github.com/lemmego/lemmego/api/req"
 	"github.com/lemmego/lemmego/api/session"
 	"github.com/lemmego/lemmego/api/shared"
 	pluginCmd "github.com/lemmego/lemmego/internal/plugins/auth/cmd"
@@ -278,26 +277,29 @@ func (authn *Auth) Tenant(c *app.Context) error {
 	// Check if "tenant" header is set
 	tenant := c.GetHeader("tenant")
 
+	if tenant == "" && c.WantsJSON() {
+		var data map[string]any
+		err := c.DecodeJSON(&data)
+
+		if err != nil {
+			return err
+		}
+
+		if val, ok := data["org_username"].(string); ok {
+			tenant = val
+		}
+	}
+
+	if tenant == "" && c.HasFormURLEncodedRequest() || c.HasMultiPartRequest() {
+		tenant = c.Request().FormValue("org_username")
+	}
+
 	if tenant == "" {
 		// See if subdomain is set and split the host by . and
 		// treat the first part as the tenant if it's not "www"
 		parts := strings.Split(c.Request().Host, ".")
 		if len(parts) > 1 && parts[0] != "www" {
 			tenant = parts[0]
-		} else {
-			// Check if there is an input field called "org_username"
-			if c.WantsJSON() || gonertia.IsInertiaRequest(c.Request()) {
-				var data map[string]any
-				err := req.DecodeJSONBody(c.ResponseWriter(), c.Request(), &data)
-
-				if err != nil {
-					return err
-				}
-
-				if val, ok := data["org_username"].(string); ok {
-					tenant = val
-				}
-			}
 		}
 	}
 

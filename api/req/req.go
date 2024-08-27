@@ -73,10 +73,15 @@ func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) err
 			return &MalformedRequest{Status: http.StatusBadRequest, Message: msg}
 
 		case errors.Is(err, io.ErrUnexpectedEOF):
-			msg := fmt.Sprintf("Request body contains badly-formed JSON")
+			msg := "Request body contains badly-formed JSON"
 			return &MalformedRequest{Status: http.StatusBadRequest, Message: msg}
 
 		case errors.As(err, &unmarshalTypeError):
+			prefix := "json: cannot unmarshal string into Go value of type map[string]interface"
+			if strings.HasPrefix(err.Error(), prefix) {
+				msg := "Request body contains unprocessable JSON"
+				return &MalformedRequest{Status: http.StatusBadRequest, Message: msg}
+			}
 			msg := fmt.Sprintf("Request body contains an invalid value for the %#q field (at position %d)", unmarshalTypeError.Field, unmarshalTypeError.Offset)
 			return &MalformedRequest{Status: http.StatusBadRequest, Message: msg}
 
