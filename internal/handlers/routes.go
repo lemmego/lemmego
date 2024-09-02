@@ -3,8 +3,8 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/lemmego/lemmego/api/app"
-	"github.com/lemmego/lemmego/api/db"
+	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/db"
 	"github.com/lemmego/lemmego/internal/models"
 	"github.com/lemmego/lemmego/internal/plugins"
 	"github.com/lemmego/lemmego/internal/plugins/auth"

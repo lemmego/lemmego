@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/lemmego/lemmego/api/cli"
+	"github.com/lemmego/api/cli"
 	"github.com/lemmego/lemmego/internal/plugins/auth/cmd"
 )
 

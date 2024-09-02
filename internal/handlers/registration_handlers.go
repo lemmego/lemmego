@@ -3,9 +3,9 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/lemmego/lemmego/api/app"
-	"github.com/lemmego/lemmego/api/db"
-	"github.com/lemmego/lemmego/api/utils"
+	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/db"
+	"github.com/lemmego/api/utils"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
 )
@@ -33,7 +33,6 @@ func RegistrationStoreHandler(c *app.Context) error {
 		LastName:  body.LastName,
 		Email:     body.Email,
 		Password:  password,
-		OrgId:     org.ID,
 		Bio:       body.Bio,
 		Phone:     body.Phone,
 		Username:  body.Username,
@@ -59,6 +58,8 @@ func RegistrationStoreHandler(c *app.Context) error {
 
 	if err := db.Get().Create(org).Error; err != nil {
 		return err
+	} else {
+		user.OrgId = org.ID
 	}
 
 	if err := db.Get().Create(user).Error; err != nil {

@@ -3,10 +3,10 @@ package handlers
 import (
 	"errors"
 
-	"github.com/lemmego/lemmego/api/app"
-	"github.com/lemmego/lemmego/api/db"
-	"github.com/lemmego/lemmego/api/logger"
-	"github.com/lemmego/lemmego/api/shared"
+	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/db"
+	"github.com/lemmego/api/logger"
+	"github.com/lemmego/api/shared"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
 	"github.com/lemmego/lemmego/internal/plugins"

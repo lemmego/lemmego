@@ -3,8 +3,8 @@ package main
 import (
 	"log/slog"
 
-	"github.com/lemmego/lemmego/api/app"
-	"github.com/lemmego/lemmego/api/config"
+	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/config"
 	_ "github.com/lemmego/lemmego/internal/config"
 	"github.com/lemmego/lemmego/internal/plugins"
 	"github.com/lemmego/lemmego/internal/providers"

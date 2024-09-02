@@ -7,9 +7,9 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/lemmego/lemmego/api/app"
-	"github.com/lemmego/lemmego/api/cli"
-	"github.com/lemmego/lemmego/api/fsys"
+	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/cli"
+	"github.com/lemmego/api/fsys"
 
 	_ "embed"
 

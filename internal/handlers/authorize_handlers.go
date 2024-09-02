@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/api/app"
 	"github.com/lemmego/lemmego/internal/inputs"
 )
 

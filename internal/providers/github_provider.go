@@ -1,7 +1,7 @@
 package providers
 
 import (
-	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/api/app"
 )
 
 type GithubServiceProvider struct {

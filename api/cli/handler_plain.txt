@@ -1,5 +1,0 @@
-package {{.PackageName}}
-
-func {{.Name}}Handler(ctx *api.Context) error {
-  return {{.Content}}
-}

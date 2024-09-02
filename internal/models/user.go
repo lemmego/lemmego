@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/lemmego/lemmego/api/db"
+	"github.com/lemmego/api/db"
 )
 
 type User struct {

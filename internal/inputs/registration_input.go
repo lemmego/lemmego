@@ -2,7 +2,7 @@ package inputs
 
 import (
 	"github.com/ggicci/httpin"
-	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/api/app"
 )
 
 type RegistrationInput struct {

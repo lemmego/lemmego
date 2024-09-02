@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lemmego/lemmego/api/app"
-	"github.com/lemmego/lemmego/api/db"
-	"github.com/lemmego/lemmego/api/session"
-	"github.com/lemmego/lemmego/api/shared"
+	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/db"
+	"github.com/lemmego/api/session"
+	"github.com/lemmego/api/shared"
 	pluginCmd "github.com/lemmego/lemmego/internal/plugins/auth/cmd"
 	"github.com/romsar/gonertia"
 
@@ -277,7 +277,7 @@ func (authn *Auth) Tenant(c *app.Context) error {
 	// Check if "tenant" header is set
 	tenant := c.GetHeader("tenant")
 
-	if tenant == "" && c.WantsJSON() {
+	if tenant == "" && (c.WantsJSON() || gonertia.IsInertiaRequest(c.Request())) {
 		var data map[string]any
 		err := c.DecodeJSON(&data)
 

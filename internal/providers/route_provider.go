@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/lemmego/lemmego/api/app"
+	"github.com/lemmego/api/app"
 	"github.com/lemmego/lemmego/internal/handlers"
 
 	"github.com/go-chi/chi/v5/middleware"
