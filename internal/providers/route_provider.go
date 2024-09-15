@@ -4,9 +4,10 @@ import (
 	"log/slog"
 
 	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/middleware"
 	"github.com/lemmego/lemmego/internal/handlers"
 
-	"github.com/go-chi/chi/v5/middleware"
+	chiMw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog/v2"
 )
 
@@ -35,10 +36,10 @@ func (provider *RouteServiceProvider) Register(a *app.App) {
 	})
 
 	// net/http compatible global middleware
-	a.Router().Use(httplog.RequestLogger(logger), middleware.Recoverer)
+	a.Router().Use(httplog.RequestLogger(logger), chiMw.Recoverer)
 
 	// Global middleware
-	a.Router().UseBefore(app.VerifyCSRF)
+	a.Router().UseBefore(middleware.VerifyCSRF)
 
 	a.RegisterRoutes(func(r *app.Router) {
 		handlers.Routes(r)
