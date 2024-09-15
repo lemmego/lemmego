@@ -164,8 +164,6 @@ github.com/justinas/alice v1.2.0/go.mod h1:fN5HRH/reO/zrUflLfTN43t3vXvKzvZIENsNE
 github.com/kr/pretty v0.2.0/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/lemmego/api v0.0.0-20240902065520-89bc5da4d3fa h1:CHhl/2Y6FvFlPlrodzqOR+lRAHpdFkPfnpronvywIAg=
-github.com/lemmego/api v0.0.0-20240902065520-89bc5da4d3fa/go.mod h1:p9NWuwJ/P783CqkQUgmb5ABywDhO3apxqysIrKYIg8U=
 github.com/lemmego/migration v0.1.3 h1:9TrbQJkZvocMpcsKHDbhWv/DkVO8r5GBvynfgvO9BOM=
 github.com/lemmego/migration v0.1.3/go.mod h1:2tLHC7S2uHRPN3ixwCrQlspffXESPuOWXMd8GHx9W0E=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=

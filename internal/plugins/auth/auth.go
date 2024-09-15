@@ -321,7 +321,7 @@ func (authn *Auth) Tenant(c *app.Context) error {
 			return c.JSON(http.StatusNotFound, app.M{"message": "Org not found"})
 		}
 
-		return shared.ValidationErrors{"org_username": []string{"Org not found"}}
+		return c.WithErrors(shared.ValidationErrors{"org_username": []string{"Org not found"}}).Back(http.StatusFound)
 	}
 	return c.Next()
 }

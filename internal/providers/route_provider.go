@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/lemmego/api/app"
@@ -39,10 +38,7 @@ func (provider *RouteServiceProvider) Register(a *app.App) {
 	a.Router().Use(httplog.RequestLogger(logger), middleware.Recoverer)
 
 	// Global middleware
-	a.Router().UseBefore(func(c *app.Context) error {
-		fmt.Println("Test Middleware. I execute before every route")
-		return c.Next()
-	})
+	a.Router().UseBefore(app.VerifyCSRF)
 
 	a.RegisterRoutes(func(r *app.Router) {
 		handlers.Routes(r)

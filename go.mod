@@ -7,12 +7,14 @@ require (
 	github.com/charmbracelet/huh v0.5.3
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/httplog/v2 v2.0.11
-	github.com/lemmego/api v0.0.0-20240902065520-89bc5da4d3fa
+	github.com/lemmego/api v0.0.0-20240911190531-5368ee1ea1d4
 	github.com/lemmego/migration v0.1.3
 	github.com/lucsky/cuid v1.2.1
 	github.com/spf13/cobra v1.8.1
 	gorm.io/gorm v1.25.11
 )
+
+replace github.com/lemmego/api => ../api
 
 require (
 	cloud.google.com/go/auth v0.6.1 // indirect

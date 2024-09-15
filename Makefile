@@ -4,18 +4,30 @@ run:
 dev:
 	@npm run dev
 
+build:
+	@npm run build
+
 deps:
 	@go mod tidy
 	@go install github.com/a-h/templ/cmd/templ@latest
 
-migrate-up:
+migrate:
 	@go run ./cmd/migrations up
 
-migrate-down:
+rollback:
 	@go run ./cmd/migrations down
 
 migration:
-	@go run ./cmd/migrations create $(name)
+	@go run ./cmd/migrations create $(n)
 
-asset:
-	@npm run build
+handlers:
+	@go run ./cmd g handlers
+
+input:
+	@go run ./cmd g input
+
+model:
+	@go run ./cmd g model
+
+form:
+	@go run ./cmd g form
