@@ -9,6 +9,7 @@ import (
 )
 
 func Routes(r *app.Router) {
+
 	r.Get("/", plugins.Get(&auth.Auth{}).Guard, func(c *app.Context) error {
 		if user, ok := c.GetSession("user").(*auth.AuthUser); ok {
 			return c.Inertia(200, "Home/Index", app.M{"user": user})

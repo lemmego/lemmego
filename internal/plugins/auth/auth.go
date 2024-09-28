@@ -231,7 +231,7 @@ func (authn *Auth) Check(r *http.Request) error {
 		token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
 			// Don't forget to validate the alg is what you expect:
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 
 			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
@@ -262,7 +262,7 @@ func (authn *Auth) Guard(c *app.Context) error {
 	}
 }
 
-// Disallow authenticated users from accessing a route
+// Guest middleware disallows authenticated users from accessing a route
 func (authn *Auth) Guest(c *app.Context) error {
 	if err := authn.Check(c.Request()); err == nil {
 		return c.Redirect(302, "/")
@@ -271,8 +271,7 @@ func (authn *Auth) Guest(c *app.Context) error {
 	}
 }
 
-// Resolve the tenant id from header or subdomain
-// and bind it to the current context
+// Tenant middleware resolves the tenant model from the request
 func (authn *Auth) Tenant(c *app.Context) error {
 	// Check if "tenant" header is set
 	tenant := c.GetHeader("tenant")
@@ -326,46 +325,46 @@ func (authn *Auth) Tenant(c *app.Context) error {
 	return c.Next()
 }
 
-func (p *Auth) Commands() []*cobra.Command {
+func (authn *Auth) Commands() []*cobra.Command {
 	return []*cobra.Command{}
 }
 
-func (p *Auth) InstallCommand() *cobra.Command {
-	return pluginCmd.GetInstallCommand(p)
+func (authn *Auth) InstallCommand() *cobra.Command {
+	return pluginCmd.GetInstallCommand(authn)
 }
 
-func (p *Auth) Boot(app app.AppManager) error {
-	p.Opts.Session = app.Session()
-	p.Opts.DB = app.DB()
-	p.Opts.Router = app.Router()
+func (authn *Auth) Boot(app app.AppManager) error {
+	authn.Opts.Session = app.Session()
+	authn.Opts.DB = app.DB()
+	authn.Opts.Router = app.Router()
 	return nil
 }
 
-func (p *Auth) EventListeners() map[string]func() {
+func (authn *Auth) EventListeners() map[string]func() {
 	return nil
 }
 
-func (p *Auth) PublishableMigrations() map[string][]byte {
+func (authn *Auth) PublishableMigrations() map[string][]byte {
 	return nil
 }
 
-func (p *Auth) PublishableModels() map[string][]byte {
+func (authn *Auth) PublishableModels() map[string][]byte {
 	return nil
 }
 
-func (p *Auth) PublishableTemplates() map[string][]byte {
+func (authn *Auth) PublishableTemplates() map[string][]byte {
 	return nil
 	return map[string][]byte{
-		// "login.page.tmpl":    loginTmpl,
-		// "register.page.tmpl": registerTmpl,
+		// "login.page.gohtml":    loginTmpl,
+		// "register.page.gohtml": registerTmpl,
 	}
 }
 
-func (p *Auth) Middlewares() []app.HTTPMiddleware {
+func (authn *Auth) Middlewares() []app.HTTPMiddleware {
 	return nil
 }
 
-func (p *Auth) storeLoginHandler() app.Handler {
+func (authn *Auth) storeLoginHandler() app.Handler {
 	// return func(c *app.Context) error {
 	// 	token, err := p.Login(c.Request().Context(), aUser, creds.Username, creds.Password)
 
@@ -403,12 +402,12 @@ func (p *Auth) storeLoginHandler() app.Handler {
 	return nil
 }
 
-func (p *Auth) Routes() []*app.Route {
+func (authn *Auth) Routes() []*app.Route {
 	routes := []*app.Route{
 		{
 			Method: http.MethodGet,
 			Path:   "/login",
-			Handlers: []app.Handler{p.Guest, func(c *app.Context) error {
+			Handlers: []app.Handler{authn.Guest, func(c *app.Context) error {
 				props := map[string]any{}
 				message := c.PopSessionString("message")
 				if message != "" {
@@ -420,15 +419,11 @@ func (p *Auth) Routes() []*app.Route {
 		{
 			Method: http.MethodGet,
 			Path:   "/register",
-			Handlers: []app.Handler{p.Guest, func(c *app.Context) error {
+			Handlers: []app.Handler{authn.Guest, func(c *app.Context) error {
 				return c.Inertia(200, "Forms/Register", nil)
 			}},
 		},
 	}
 
 	return routes
-}
-
-func (p *Auth) Webhooks() []string {
-	return nil
 }
