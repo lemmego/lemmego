@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"github.com/lemmego/api/session"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/lemmego/api/app"
 	"github.com/lemmego/api/db"
-	"github.com/lemmego/api/session"
 	"github.com/lemmego/api/shared"
 	pluginCmd "github.com/lemmego/lemmego/internal/plugins/auth/cmd"
 	"github.com/romsar/gonertia"
@@ -70,7 +70,7 @@ type Credentials struct {
 // }
 
 type Options struct {
-	Router            *app.Router
+	Router            app.Router
 	DB                *db.DB
 	DBFunc            func() db.DB
 	Session           *session.Session
@@ -325,6 +325,10 @@ func (authn *Auth) Tenant(c *app.Context) error {
 	return c.Next()
 }
 
+func (authn *Auth) Publishables() []*app.Publishable {
+	return []*app.Publishable{}
+}
+
 func (authn *Auth) Commands() []*cobra.Command {
 	return []*cobra.Command{}
 }
@@ -342,22 +346,6 @@ func (authn *Auth) Boot(app app.AppManager) error {
 
 func (authn *Auth) EventListeners() map[string]func() {
 	return nil
-}
-
-func (authn *Auth) PublishableMigrations() map[string][]byte {
-	return nil
-}
-
-func (authn *Auth) PublishableModels() map[string][]byte {
-	return nil
-}
-
-func (authn *Auth) PublishableTemplates() map[string][]byte {
-	return nil
-	return map[string][]byte{
-		// "login.page.gohtml":    loginTmpl,
-		// "register.page.gohtml": registerTmpl,
-	}
 }
 
 func (authn *Auth) Middlewares() []app.HTTPMiddleware {

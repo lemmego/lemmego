@@ -1,35 +1,28 @@
 package main
 
 import (
-	"log/slog"
-
 	"github.com/lemmego/api/app"
-	"github.com/lemmego/api/config"
-	_ "github.com/lemmego/lemmego/internal/config"
+	"github.com/lemmego/lemmego/internal/configs"
 	"github.com/lemmego/lemmego/internal/plugins"
 	"github.com/lemmego/lemmego/internal/providers"
+	"github.com/lemmego/lemmego/internal/routes"
 )
 
 func main() {
 	// Print config
-	slog.Info("App will start using the following config:\n", "config", config.GetAll())
-
-	// Load service providers
-	providerCollection := providers.Load()
-	// Load plugins
-	pluginCollection := plugins.Load()
+	//slog.Info("app will start using the following config:\n", "config", config.GetAll())
 
 	// Create application
-	app := app.New(
-		app.WithProviders(providerCollection),
-		app.WithPlugins(pluginCollection),
-		app.WithInertia(nil),
-		app.WithFS(nil),
-	)
+	webApp := app.New()
+
+	webApp.WithConfig(configs.Load()).
+		WithProviders(providers.Load()).
+		WithPlugins(plugins.Load()).
+		WithRoutes(routes.Load())
 
 	// Handle signals
-	go app.HandleSignals()
+	go webApp.HandleSignals()
 
 	// Run application
-	app.Run()
+	webApp.Run()
 }

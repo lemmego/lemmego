@@ -17,9 +17,21 @@ func Get[T app.Plugin](plugin T) T {
 	return registry.Get(plugin).(T)
 }
 
+// AddByPkgName adds a plugin to the registry by the package name
+func AddByPkgName(id string, plugin app.Plugin) {
+	registry.Add(plugin)
+}
+
+// GetByPkgName gets a plugin to the registry by the package name
+func GetByPkgName(id string) app.Plugin {
+	return registry[app.PluginID(id)]
+}
+
+func init() {
+	Add(auth.New())
+}
+
 // Load plugins
 func Load() app.PluginRegistry {
-	authPlugin := auth.New()
-	registry.Add(authPlugin)
 	return registry
 }

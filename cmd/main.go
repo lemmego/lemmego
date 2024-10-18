@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	cli.RootCmd.AddCommand(cmd.AuthCmd)
+	cli.AddCmd(cmd.AuthCmd)
 	err := cli.Execute()
 	if err != nil {
 		panic(err)

@@ -11,6 +11,7 @@ require (
 	github.com/lemmego/migration v0.1.3
 	github.com/lucsky/cuid v1.2.1
 	github.com/spf13/cobra v1.8.1
+	golang.org/x/tools v0.24.0
 	gorm.io/gorm v1.25.11
 )
 
@@ -69,6 +70,7 @@ require (
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
+	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
