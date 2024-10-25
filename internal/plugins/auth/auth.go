@@ -71,8 +71,7 @@ type Credentials struct {
 
 type Options struct {
 	Router            app.Router
-	DB                *db.DB
-	DBFunc            func() db.DB
+	DB                *db.Connection
 	Session           *session.Session
 	TokenConfig       *TokenConfig
 	GoogleOAuthConfig *oauth2.Config
@@ -310,7 +309,7 @@ func (authn *Auth) Tenant(c *app.Context) error {
 	model := &Org{}
 
 	var count int64
-	authn.Opts.DB.First(model, "org_username = ?", tenant).Count(&count)
+	authn.Opts.DB.DB().First(model, "org_username = ?", tenant).Count(&count)
 
 	if count > 0 {
 		fmt.Println("Tenant ID", model.ID)
@@ -338,9 +337,27 @@ func (authn *Auth) InstallCommand() *cobra.Command {
 }
 
 func (authn *Auth) Boot(app app.AppManager) error {
-	authn.Opts.Session = app.Session()
-	authn.Opts.DB = app.DB()
+	var sess *session.Session
+	var dm *db.DatabaseManager
+
+	if err := app.Service(&sess); err != nil {
+		return err
+	}
+
+	if err := app.Service(&dm); err != nil {
+		return err
+	} else {
+		authn.Opts.Session = sess
+	}
+
+	if conn, err := dm.Get(); err != nil {
+		return err
+	} else {
+		authn.Opts.DB = conn
+	}
+
 	authn.Opts.Router = app.Router()
+
 	return nil
 }
 

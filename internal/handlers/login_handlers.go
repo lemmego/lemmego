@@ -14,6 +14,11 @@ import (
 )
 
 func LoginStoreHandler(c *app.Context) error {
+	var dm *db.DatabaseManager
+	if err := c.App().Service(&dm); err != nil {
+		return err
+	}
+
 	credErrors := shared.ValidationErrors{
 		"password": []string{"Invalid credentials"},
 		"email":    []string{"Invalid credentials"},
@@ -26,7 +31,12 @@ func LoginStoreHandler(c *app.Context) error {
 
 	user.OrgId = c.Get("org_id").(uint)
 
-	if err := db.Get().Debug().Where(user).First(user).Error; err != nil {
+	conn, err := dm.Get()
+	if err != nil {
+		return err
+	}
+
+	if err := conn.DB().Debug().Where(user).First(user).Error; err != nil {
 		return err
 	}
 

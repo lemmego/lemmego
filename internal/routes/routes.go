@@ -7,16 +7,12 @@ import (
 )
 
 func Load() func(r app.Router) {
+	// Define your routes here
 	return func(r app.Router) {
 		r.Use(middleware.Logger(), middleware.Recoverer())
 		r.UseBefore(baseMw.VerifyCSRF)
 
 		LoadWebRoutes(r)
 		LoadApiRoutes(r)
-
-		r.Get("/error", func(c *app.Context) error {
-			err := c.PopSession("error").(string)
-			return c.HTML(500, []byte("<html><body><code>"+err+"</code></body></html>"))
-		})
 	}
 }

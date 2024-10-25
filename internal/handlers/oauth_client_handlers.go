@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/db"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
 	"github.com/lucsky/cuid"
@@ -20,6 +21,11 @@ func OauthClientShowHandler(ctx *app.Context) error {
 }
 
 func OauthClientStoreHandler(ctx *app.Context) error {
+	var dm *db.DatabaseManager
+	if err := ctx.App().Service(&dm); err != nil {
+		return err
+	}
+
 	body := &inputs.OauthClientInput{}
 	if err := ctx.Validate(body); err != nil {
 		return err
@@ -32,7 +38,12 @@ func OauthClientStoreHandler(ctx *app.Context) error {
 		Name:        body.Name,
 	}
 
-	if err := ctx.DB().Create(&client).Error; err != nil {
+	conn, err := dm.Get()
+	if err != nil {
+		return err
+	}
+
+	if err := conn.DB().Create(&client).Error; err != nil {
 		return err
 	}
 

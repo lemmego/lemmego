@@ -8,8 +8,8 @@ import (
 	"text/template"
 
 	"github.com/lemmego/api/app"
-	"github.com/lemmego/api/cli"
-	"github.com/lemmego/api/fsys"
+	"github.com/lemmego/cli"
+	"github.com/lemmego/fsys"
 
 	_ "embed"
 

@@ -11,7 +11,6 @@ import (
 func main() {
 	// Print config
 	//slog.Info("app will start using the following config:\n", "config", config.GetAll())
-
 	// Create application
 	webApp := app.New()
 
@@ -19,6 +18,8 @@ func main() {
 		WithProviders(providers.Load()).
 		WithPlugins(plugins.Load()).
 		WithRoutes(routes.Load())
+
+	webApp.PublishPackages()
 
 	// Handle signals
 	go webApp.HandleSignals()

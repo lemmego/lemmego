@@ -11,6 +11,11 @@ import (
 )
 
 func RegistrationStoreHandler(c *app.Context) error {
+	var dm *db.DatabaseManager
+	if err := c.App().Service(&dm); err != nil {
+		return err
+	}
+
 	body := &inputs.RegistrationInput{}
 	if err := c.Validate(body); err != nil {
 		return err
@@ -56,13 +61,18 @@ func RegistrationStoreHandler(c *app.Context) error {
 		user.Avatar = "images/avatars/" + body.Avatar.Filename()
 	}
 
-	if err := db.Get().Create(org).Error; err != nil {
+	conn, err := dm.Get()
+	if err != nil {
+		return err
+	}
+
+	if err := conn.DB().Create(org).Error; err != nil {
 		return err
 	} else {
 		user.OrgId = org.ID
 	}
 
-	if err := db.Get().Create(user).Error; err != nil {
+	if err := conn.DB().Create(user).Error; err != nil {
 		return err
 	}
 
