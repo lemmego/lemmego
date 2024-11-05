@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"errors"
+	"log/slog"
 
 	"github.com/lemmego/api/app"
 	"github.com/lemmego/api/db"
-	"github.com/lemmego/api/logger"
 	"github.com/lemmego/api/shared"
 	"github.com/lemmego/lemmego/internal/inputs"
 	"github.com/lemmego/lemmego/internal/models"
@@ -44,7 +44,7 @@ func LoginStoreHandler(c *app.Context) error {
 		return credErrors
 	}
 
-	logger.D().Info("User logged in", "user", user)
+	slog.Info("User logged in", "user", user)
 
 	authPlugin := plugins.Get(&auth.Auth{})
 

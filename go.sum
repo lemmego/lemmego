@@ -188,8 +188,8 @@ github.com/lemmego/cli v0.0.0-20241023132824-5302d02bc844 h1:6vjTddGfvC9UavjBBFO
 github.com/lemmego/cli v0.0.0-20241023132824-5302d02bc844/go.mod h1:pOIrQ5Gj5rfgwzGJgIv7Lv0onXqxWmojz3q4GitRVoA=
 github.com/lemmego/fsys v0.0.0-20241023123145-f7699143d54c h1:VWcjssPFZ3FFsM+LqX1kSM+odaoj1O4EMkzNein6Rvc=
 github.com/lemmego/fsys v0.0.0-20241023123145-f7699143d54c/go.mod h1:0FnPMmhcUB48QaRQMNdee5HOQcbc+aqpQoG7UDd3X1M=
-github.com/lemmego/migration v0.1.3 h1:9TrbQJkZvocMpcsKHDbhWv/DkVO8r5GBvynfgvO9BOM=
-github.com/lemmego/migration v0.1.3/go.mod h1:2tLHC7S2uHRPN3ixwCrQlspffXESPuOWXMd8GHx9W0E=
+github.com/lemmego/migration v0.1.6 h1:rRYtKuAZFoOdeS4oc0AZjBGekSyi1URvFxXiBNdRDMk=
+github.com/lemmego/migration v0.1.6/go.mod h1:2tLHC7S2uHRPN3ixwCrQlspffXESPuOWXMd8GHx9W0E=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=

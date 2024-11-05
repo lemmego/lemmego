@@ -12,7 +12,7 @@ require (
 	github.com/lemmego/api v0.0.0-20240915080215-5a53ebd9e954
 	github.com/lemmego/cli v0.0.0-20241023132824-5302d02bc844
 	github.com/lemmego/fsys v0.0.0-20241023123145-f7699143d54c
-	github.com/lemmego/migration v0.1.3
+	github.com/lemmego/migration v0.1.6
 	github.com/lucsky/cuid v1.2.1
 	github.com/spf13/cobra v1.8.1
 	gorm.io/gorm v1.25.11
@@ -109,7 +109,7 @@ require (
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/joho/godotenv v1.5.1
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/romsar/gonertia v1.3.0
 	golang.org/x/crypto v0.28.0
