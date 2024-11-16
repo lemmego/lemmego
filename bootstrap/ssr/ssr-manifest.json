@@ -1,5 +1,5 @@
 {
-  "resources/js/Pages/Home/Index.tsx": [],
-  "resources/js/Pages/Home/Welcome.tsx": [],
+  "resources/css/app.css": [],
+  "resources/js/Pages/Index.tsx": [],
   "resources/js/ssr.tsx": []
 }
