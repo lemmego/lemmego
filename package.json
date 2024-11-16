@@ -2,10 +2,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build --ssr && node bootstrap/ssr/ssr.js",
+    "build": "vite build",
+    "build:ssr": "vite build --ssr && node bootstrap/ssr/ssr.js",
     "preview": "vite preview",
-    "build:static": "tailwindcss -i static/css/style.css -o static/css/dist.css",
-    "dev:static": "tailwindcss -i static/css/style.css -o static/css/dist.css --watch"
+    "build:static": "tailwindcss -i static/css/style.css -o static/css/dist.css --minify",
+    "dev:static": "tailwindcss -i static/css/style.css -o static/css/dist.css --minify --watch"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.7",
