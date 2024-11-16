@@ -1,17 +1,22 @@
 package providers
 
-import (
-	"github.com/lemmego/api/app"
-)
+import "github.com/lemmego/api/app"
 
-type AppProvider struct {
-	*app.ServiceProvider
-}
+func init() {
+	// Add your services here
+	app.RegisterService(func(a app.App) error {
+		// Register bindings
+		// e.g.:
+		// a.AddService(&SomeService)
+		return nil
+	})
 
-func (p *AppProvider) Register(a app.AppManager) {
-	//TODO implement me
-}
-
-func (p *AppProvider) Boot(a app.AppManager) {
-	//TODO implement me
+	app.BootService(func(app app.App) error {
+		// Perform any start-up related tasks with some other services
+		// e.g.:
+		// myService := &MyService{}
+		// a.Service(myService)
+		// myService.Execute()
+		return nil
+	})
 }

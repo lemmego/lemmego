@@ -10,6 +10,7 @@ var filesystems = config.M{
 		"local": config.M{
 			"driver": "local",
 			"root":   "storage",
+			"path":   "./storage",
 		},
 		"s3": config.M{
 			"driver":   "s3",

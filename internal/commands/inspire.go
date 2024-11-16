@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var InspireCommand = func(a app.AppManager) *cobra.Command {
+var InspireCommand = func(a app.App) *cobra.Command {
 	return &cobra.Command{
 		Use: "inspire",
 		Run: func(cmd *cobra.Command, args []string) {

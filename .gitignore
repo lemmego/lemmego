@@ -11,3 +11,4 @@ yarn.lock
 public/hot
 storage/*
 !storage/.gitkeep
+!internal/plugins/.gitkeep

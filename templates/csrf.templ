@@ -1,0 +1,7 @@
+package templates
+
+templ csrf() {
+    if val, ok := ctx.Value("_token").(string); ok {
+	    <input type="hidden" name="_token" value={ val } />
+    }
+}

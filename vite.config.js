@@ -2,8 +2,6 @@ import { defineConfig } from "vite";
 import laravel from "laravel-vite-plugin";
 import react from "@vitejs/plugin-react";
 
-console.log(process.env.NODE_ENV);
-
 export default defineConfig({
   plugins: [
     laravel({

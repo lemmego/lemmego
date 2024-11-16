@@ -1,30 +1,39 @@
 package configs
 
-import "github.com/lemmego/api/config"
+import (
+	"github.com/lemmego/api/config"
+	"time"
+)
 
 var database = config.M{
 	"database": config.M{
 		"default": config.MustEnv("DB_CONNECTION", "sqlite"),
 		"connections": config.M{
 			"mysql": config.M{
-				"driver":      "mysql",
-				"host":        config.MustEnv("DB_HOST", "localhost"),
-				"port":        config.MustEnv("DB_PORT", 3306),
-				"database":    config.MustEnv("DB_DATABASE", "lemmego"),
-				"user":        config.MustEnv("DB_USERNAME", "root"),
-				"password":    config.MustEnv("DB_PASSWORD", ""),
-				"params":      config.MustEnv("DB_PARAMS", ""),
-				"auto_create": config.MustEnv("DB_AUTOCREATE", false),
+				"driver":            "mysql",
+				"host":              config.MustEnv("DB_HOST", "localhost"),
+				"port":              config.MustEnv("DB_PORT", 3306),
+				"database":          config.MustEnv("DB_DATABASE", "lemmego"),
+				"user":              config.MustEnv("DB_USERNAME", "root"),
+				"password":          config.MustEnv("DB_PASSWORD", ""),
+				"params":            config.MustEnv("DB_PARAMS", ""),
+				"auto_create":       config.MustEnv("DB_AUTOCREATE", false),
+				"max_open_conns":    config.MustEnv("DB_MAX_OPEN_CONNS", 100),
+				"max_idle_conns":    config.MustEnv("DB_MAX_IDLE_CONNS", 10),
+				"conn_max_lifetime": config.MustEnv("DB_CONN_MAX_LIFETIME", time.Hour),
 			},
 			"pgsql": config.M{
-				"driver":      "pgsql",
-				"host":        config.MustEnv("DB_HOST", "localhost"),
-				"port":        config.MustEnv("DB_PORT", 5432),
-				"database":    config.MustEnv("DB_DATABASE", "lemmego"),
-				"user":        config.MustEnv("DB_USERNAME", ""),
-				"password":    config.MustEnv("DB_PASSWORD", ""),
-				"params":      config.MustEnv("DB_PARAMS", ""),
-				"auto_create": config.MustEnv("DB_AUTOCREATE", false),
+				"driver":            "pgsql",
+				"host":              config.MustEnv("DB_HOST", "localhost"),
+				"port":              config.MustEnv("DB_PORT", 5432),
+				"database":          config.MustEnv("DB_DATABASE", "lemmego"),
+				"user":              config.MustEnv("DB_USERNAME", ""),
+				"password":          config.MustEnv("DB_PASSWORD", ""),
+				"params":            config.MustEnv("DB_PARAMS", ""),
+				"auto_create":       config.MustEnv("DB_AUTOCREATE", false),
+				"max_open_conns":    config.MustEnv("DB_MAX_OPEN_CONNS", 100),
+				"max_idle_conns":    config.MustEnv("DB_MAX_IDLE_CONNS", 10),
+				"conn_max_lifetime": config.MustEnv("DB_CONN_MAX_LIFETIME", time.Hour),
 			},
 		},
 	},
