@@ -4,7 +4,6 @@ import (
 	"github.com/lemmego/api/app"
 	_ "github.com/lemmego/api/logger"
 	_ "github.com/lemmego/api/providers"
-	_ "github.com/lemmego/auth"
 	"github.com/lemmego/lemmego/internal/commands"
 	"github.com/lemmego/lemmego/internal/configs"
 	_ "github.com/lemmego/lemmego/internal/migrations"
