@@ -9,6 +9,13 @@ var database = config.M{
 	"database": config.M{
 		"default": config.MustEnv("DB_CONNECTION", "sqlite"),
 		"connections": config.M{
+			"sqlite": config.M{
+				"driver":                  "sqlite",
+				"url":                     config.MustEnv("DATABASE_URL", "file:./storage/database.sqlite?cache=shared&mode=memory"),
+				"database":                config.MustEnv("DB_DATABASE", "./storage/database.sqlite"),
+				"prefix":                  "",
+				"foreign_key_constraints": config.MustEnv("DB_FOREIGN_KEYS", true),
+			},
 			"mysql": config.M{
 				"driver":            "mysql",
 				"host":              config.MustEnv("DB_HOST", "localhost"),

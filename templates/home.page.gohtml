@@ -1,8 +1,0 @@
-{{template "base" .}}
-
-{{define "content"}}
-  <section>Welcome {{index .StringMap "user"}}</section>
-  <section hx-get="/repos" hx-trigger="load" hx-swap="innerHTML">
-    Loading Repos...
-  </section>
-{{end}}
