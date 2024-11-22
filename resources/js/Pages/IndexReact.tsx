@@ -1,7 +1,6 @@
 import React from "react";
 
-const Index: React.FC = (props: any) => {
-    console.log(props)
+const IndexReact: React.FC = (props: any) => {
     return (
         <div className="flex flex-col h-screen justify-center items-center">
             Lemmego [inertia-react]
@@ -9,4 +8,4 @@ const Index: React.FC = (props: any) => {
     );
 };
 
-export default Index;
+export default IndexReact;
