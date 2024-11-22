@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import React from "react";
 import "../css/app.css";
 
-
 type InertiaSetupArgs = {
   el: HTMLElement;
   App: React.ComponentType<any>;

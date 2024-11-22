@@ -6,7 +6,7 @@ toolchain go1.23.3
 
 require (
 	github.com/a-h/templ v0.2.771
-	github.com/lemmego/api v0.0.0-20241119171149-c5ab8bf10b81
+	github.com/lemmego/api v0.0.0-20241122171823-8374ca167269
 	github.com/lemmego/migration v0.1.7
 	github.com/spf13/cobra v1.8.1
 )
