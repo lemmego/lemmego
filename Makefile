@@ -9,25 +9,26 @@ build:
 
 deps:
 	@go mod tidy
+	@go install github.com/air-verse/air@latest
 	@go install github.com/a-h/templ/cmd/templ@latest
 
 migrate:
-	@go run ./cmd/migrations up
+	@lemmego run migrate up
 
 rollback:
-	@go run ./cmd/migrations down
+	@lemmego run migrate down
 
 migration:
-	@go run ./cmd/migrations create $(n)
+	@lemmego run migrate create $(n)
 
 handlers:
-	@go run ./cmd g handlers
+	@lemmego g handlers $(n)
 
 input:
-	@go run ./cmd g input
+	@lemmego g input $(n)
 
 model:
-	@go run ./cmd g model
+	@lemmego g model $(n)
 
 form:
-	@go run ./cmd g form
+	@lemmego g form $(n)
