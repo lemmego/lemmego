@@ -2,15 +2,14 @@ package routes
 
 import (
 	"github.com/lemmego/api/app"
-	mw "github.com/lemmego/api/middleware"
-	"github.com/lemmego/lemmego/internal/middleware"
+	"github.com/lemmego/api/middleware"
 )
 
 func Load() app.RouteCallback {
 	// Define your routes here
 	return func(r app.Router) {
-		r.Use(mw.Recoverer(), middleware.LogRequest(), mw.MethodOverride)
-		r.UseBefore(mw.VerifyCSRF)
+		r.Use(middleware.Recoverer(), middleware.RequestLogger(), middleware.MethodOverride)
+		r.UseBefore(middleware.VerifyCSRF)
 
 		webRoutes(r)
 		apiRoutes(r)
