@@ -1,6 +1,9 @@
 run:
 	@air
 
+templ-notify:
+	@templ generate --notify-proxy
+
 templ:
 	@templ generate --watch --proxy="http://localhost:8080" -v
 
@@ -8,7 +11,7 @@ tailwind:
 	npx --yes tailwindcss -i static/css/style.css -o static/css/dist.css --minify --watch
 
 watch:
-	make -j3 templ run tailwind
+	make -j4 templ run templ-notify tailwind
 
 dev:
 	@npm run dev

@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./tmp/main"
-  cmd = "go build -o ./tmp/main ./cmd/app && templ generate --notify-proxy"
+  cmd = "go build -o ./tmp/main ./cmd/app"
   delay = 100
   exclude_dir = ["assets", "tmp", "vendor", "node_modules", "testdata"]
   exclude_file = []
