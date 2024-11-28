@@ -165,8 +165,8 @@ github.com/lemmego/api v0.0.0-20241125161613-2178551fd853 h1:IjbVAv02LJCfhbFY1eH
 github.com/lemmego/api v0.0.0-20241125161613-2178551fd853/go.mod h1:VRiGpWSz315e+p7tpTyir85hFD2M0HpjBv8Q87eQc1s=
 github.com/lemmego/fsys v0.0.0-20241023132523-b7be6cd88ee9 h1:iW7vaQ1L2Pu3KqGE98L1WdaYOtTDZZJdSgivl69I8ww=
 github.com/lemmego/fsys v0.0.0-20241023132523-b7be6cd88ee9/go.mod h1:0FnPMmhcUB48QaRQMNdee5HOQcbc+aqpQoG7UDd3X1M=
-github.com/lemmego/migration v0.1.9 h1:e3L9NU4lqvbeiroOXZoyJge9KXFX/niVRh5GuwGQOhc=
-github.com/lemmego/migration v0.1.9/go.mod h1:7pZxni/Qn+ks2Ci+1waZTOGDu0YGQjRIa/Cpi/++JCo=
+github.com/lemmego/migration v0.1.10 h1:8iUa7d+k1sFKgqeO2THKGIgM39wrs/gBfWFgCjKzAQs=
+github.com/lemmego/migration v0.1.10/go.mod h1:7pZxni/Qn+ks2Ci+1waZTOGDu0YGQjRIa/Cpi/++JCo=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/magiconair/properties v1.7.4-0.20170902060319-8d7837e64d3c/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=

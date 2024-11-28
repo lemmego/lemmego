@@ -22,7 +22,7 @@ build:
 deps:
 	@go mod tidy
 	@go install github.com/a-h/templ/cmd/templ@latest
-	@go install github.com/bokwoon95/wgo@latest
+	@go install github.com/air-verse/air@latest
 
 migrate:
 	@lemmego run migrate up
