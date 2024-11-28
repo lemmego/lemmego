@@ -1,24 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{vite "resources/css/app.css"}}">
     {{ .inertiaHead }}
 </head>
 
 <body class="font-sans antialiased">
-{{ .inertia }}
-{{if eq .env "development"}}
-<script type="module">
-    import RefreshRuntime from 'http://localhost:5173/@react-refresh'
-    RefreshRuntime.injectIntoGlobalHook(window)
-    window.$RefreshReg$ = () => { }
-    window.$RefreshSig$ = () => (type) => type
-    window.__vite_plugin_react_preamble_installed__ = true
-</script>
-{{end}}
-<script type="module" src="{{ vite "resources/js/app.tsx" }}"></script>
-<!--<script type="module" src="{{ vite "resources/js/app.js" }}"></script>-->
+    {{ .inertia }}
+    {{if eq .env "development"}}
+    <script type="module">
+        import RefreshRuntime from 'http://localhost:5173/@react-refresh'
+        RefreshRuntime.injectIntoGlobalHook(window)
+        window.$RefreshReg$ = () => { }
+        window.$RefreshSig$ = () => (type) => type
+        window.__vite_plugin_react_preamble_installed__ = true
+    </script>
+    {{end}}
+    <script type="module" src="{{vite "resources/js/app.tsx" }}"></script>
+    <!--<script type="module" src="{{ vite "resources/js/app.js" }}"></script>-->
 </body>
+
 </html>
