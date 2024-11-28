@@ -19,11 +19,6 @@ const IndexReact = () => {
                 framework built with Go, designed to streamline the creation of
                 scalable and high-performance applications.
               </p>
-              <p>
-                With <strong>Lemmego</strong>, developers can easily build both
-                the backend and frontend of their applications using a unified,
-                well-documented ecosystem.
-              </p>
 
               <h2 className="font-semibold mt-6 text-red-500 hover:text-red-600">
                 Build Faster with Lemmego
@@ -46,6 +41,19 @@ const IndexReact = () => {
                 Scalable
               </h2>
               <p>Perfect for projects of any size, big or small.</p>
+
+              <hr className="my-5" />
+              <p>
+                Want more information on <strong>Lemmego</strong>
+              </p>
+              <a
+                href="https://lemmego.github.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-red-500 hover:text-red-600"
+              >
+                Read the docs →
+              </a>
             </div>
           </div>
         </div>
