@@ -52,7 +52,7 @@ const IndexReact = () => {
                 rel="noopener noreferrer"
                 className="font-semibold text-red-500 hover:text-red-600"
               >
-                Read the docs →
+                Read the docs → Hi
               </a>
             </div>
           </div>
