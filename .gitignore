@@ -8,7 +8,9 @@ node_modules/
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
-public/*
+public/build
+public/hot
+public/storage
 !public/.gitkeep
 bootstrap/*
 !bootstrap/.gitkeep
