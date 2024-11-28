@@ -21,39 +21,44 @@ const IndexReact = () => {
               </p>
 
               <h2 className="font-semibold mt-6 text-red-500 hover:text-red-600">
-                Build Faster with Lemmego
+                🔋Batteries Included
               </h2>
               <p>
-                A full-stack framework designed for developers to create
-                scalable web applications effortlessly.
+                Built in support for sessions, filesystems, request validation,
+                ORM integration, database migration and more.
               </p>
 
               <h2 className="font-semibold mt-6 text-red-500 hover:text-red-600">
-                Blazing Fast
+                📚 Full-Stack Support
               </h2>
-              <p>Optimized for high performance and speed.</p>
-
+              <p>
+                Integrated tools for both backend and multi-flavored frontend
+                (gohtml, templ, inertia with react and vue).
+              </p>
               <h2 className="font-semibold mt-6 text-red-500 hover:text-red-600">
-                Full-Stack Support
-              </h2>
-              <p>Integrated tools for both frontend and backend.</p>
-              <h2 className="font-semibold mt-6 text-red-500 hover:text-red-600">
-                Scalable
+                🚀 Scalable
               </h2>
               <p>Perfect for projects of any size, big or small.</p>
 
+              <h2 className="font-semibold mt-6 text-red-500 hover:text-red-600">
+                🧠 Productivity Focused
+              </h2>
+              <p>
+                Let's you focus on the business logic rather than configuration.
+              </p>
+
               <hr className="my-5" />
               <p>
-                Want more information on <strong>Lemmego</strong>
+                <a
+                  href="https://lemmego.github.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-red-500 hover:text-red-600"
+                >
+                  Read the docs
+                </a>{" "}
+                to learn more about Lemmego.
               </p>
-              <a
-                href="https://lemmego.github.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-red-500 hover:text-red-600"
-              >
-                Read the docs → Hi
-              </a>
             </div>
           </div>
         </div>
