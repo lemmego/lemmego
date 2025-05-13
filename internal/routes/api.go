@@ -12,3 +12,7 @@ func apiRoutes(r app.Router) {
 		})
 	}
 }
+
+func init() {
+	app.RegisterRoutes(apiRoutes)
+}

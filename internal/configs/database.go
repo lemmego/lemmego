@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-var database = config.M{
-	"database": config.M{
+func init() {
+	config.Set("database", config.M{
 		"default": config.MustEnv("DB_CONNECTION", "sqlite"),
 		"connections": config.M{
 			"sqlite": config.M{
@@ -27,7 +27,7 @@ var database = config.M{
 				"auto_create":       config.MustEnv("DB_AUTOCREATE", false),
 				"max_open_conns":    config.MustEnv("DB_MAX_OPEN_CONNS", 100),
 				"max_idle_conns":    config.MustEnv("DB_MAX_IDLE_CONNS", 10),
-				"conn_max_lifetime": config.MustEnv("DB_CONN_MAX_LIFETIME", time.Hour),
+				"conn_max_lifetime": config.MustEnv("DB_CONN_MAX_LIFETIME", time.Hour*2),
 			},
 			"pgsql": config.M{
 				"driver":            "pgsql",
@@ -40,11 +40,12 @@ var database = config.M{
 				"auto_create":       config.MustEnv("DB_AUTOCREATE", false),
 				"max_open_conns":    config.MustEnv("DB_MAX_OPEN_CONNS", 100),
 				"max_idle_conns":    config.MustEnv("DB_MAX_IDLE_CONNS", 10),
-				"conn_max_lifetime": config.MustEnv("DB_CONN_MAX_LIFETIME", time.Hour),
+				"conn_max_lifetime": config.MustEnv("DB_CONN_MAX_LIFETIME", time.Hour*2),
 			},
 		},
-	},
-	"redis": config.M{
+	})
+
+	config.Set("redis", config.M{
 		"connections": config.M{
 			"default": config.M{
 				"host":     config.MustEnv("REDIS_HOST", "localhost"),
@@ -52,5 +53,5 @@ var database = config.M{
 				"password": config.MustEnv("REDIS_PASSWORD", ""),
 			},
 		},
-	},
+	})
 }

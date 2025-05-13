@@ -1,14 +1,19 @@
 module github.com/lemmego/lemmego
 
-go 1.23
-
-toolchain go1.23.3
+go 1.23.3
 
 require (
 	github.com/a-h/templ v0.2.771
-	github.com/lemmego/api v0.0.0-20241125161613-2178551fd853
+	github.com/lemmego/db v0.1.1 // indirect
 	github.com/lemmego/migration v0.1.11
 	github.com/spf13/cobra v1.8.1
+)
+
+replace (
+	github.com/lemmego/api => ../api
+	github.com/lemmego/auth => ../auth
+	github.com/lemmego/cli => ../cli
+	github.com/lemmego/db => ../db
 )
 
 require (
@@ -42,10 +47,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/jackc/pgx/v5 v5.5.5 // indirect
-	github.com/jackc/puddle/v2 v2.2.1 // indirect
-	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/lemmego/fsys v0.0.0-20241023132523-b7be6cd88ee9 // indirect
 	github.com/mattn/go-sqlite3 v1.14.24 // indirect
@@ -70,9 +71,10 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/grpc v1.68.0 // indirect
 	google.golang.org/grpc/stats/opentelemetry v0.0.0-20241028142157-ada6787961b3 // indirect
-	google.golang.org/protobuf v1.35.2 // indirect
-	gorm.io/gorm v1.25.11 // indirect
+	google.golang.org/protobuf v1.36.1 // indirect
 )
+
+require github.com/lemmego/api v0.0.0-20241119171149-c5ab8bf10b81
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
@@ -83,16 +85,17 @@ require (
 	github.com/ggicci/httpin v0.19.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/huandu/go-sqlbuilder v1.33.1 // indirect
+	github.com/huandu/xstrings v1.4.0 // indirect
+	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/k0kubun/pp/v3 v3.4.1 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/romsar/gonertia v1.3.4 // indirect
 	golang.org/x/crypto v0.29.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gorm.io/driver/mysql v1.5.7 // indirect
-	gorm.io/driver/postgres v1.5.9 // indirect
-	gorm.io/driver/sqlite v1.5.6 // indirect
 )
