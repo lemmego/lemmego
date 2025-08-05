@@ -67,7 +67,7 @@ require (
 )
 
 require (
-	github.com/lemmego/api v0.1.1
+	github.com/lemmego/api v0.1.2
 	github.com/lemmego/gpa v0.1.1
 	github.com/lemmego/gparedis v0.1.1
 )

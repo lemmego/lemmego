@@ -156,6 +156,7 @@ github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/lemmego/api v0.1.1 h1:OFu8FyQ253m4ZGFxrCuEAalCW+LF3beJU0G0Kxc5bQ0=
 github.com/lemmego/api v0.1.1/go.mod h1:gnQGvF1N7wPvPWEdJFUyTIqxZyy6GXfMXHfaJDmQu38=
+github.com/lemmego/api v0.1.2/go.mod h1:gnQGvF1N7wPvPWEdJFUyTIqxZyy6GXfMXHfaJDmQu38=
 github.com/lemmego/fsys v0.0.0-20241023132523-b7be6cd88ee9 h1:iW7vaQ1L2Pu3KqGE98L1WdaYOtTDZZJdSgivl69I8ww=
 github.com/lemmego/fsys v0.0.0-20241023132523-b7be6cd88ee9/go.mod h1:0FnPMmhcUB48QaRQMNdee5HOQcbc+aqpQoG7UDd3X1M=
 github.com/lemmego/gpa v0.1.1 h1:ZBkcrkvdXoLjppg71wEQKWtvUuZBYqwD3w63Xn1K/48=
