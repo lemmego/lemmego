@@ -8,6 +8,7 @@ import (
 	_ "github.com/lemmego/lemmego/internal/configs"
 	_ "github.com/lemmego/lemmego/internal/middleware"
 	_ "github.com/lemmego/lemmego/internal/migrations"
+	_ "github.com/lemmego/lemmego/internal/providers"
 	_ "github.com/lemmego/lemmego/internal/routes"
 )
 

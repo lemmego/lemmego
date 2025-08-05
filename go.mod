@@ -1,19 +1,11 @@
 module github.com/lemmego/lemmego
 
-go 1.23.3
+go 1.24.3
 
 require (
 	github.com/a-h/templ v0.2.771
-	github.com/lemmego/db v0.1.1 // indirect
 	github.com/lemmego/migration v0.1.11
 	github.com/spf13/cobra v1.8.1
-)
-
-replace (
-	github.com/lemmego/api => ../api
-	github.com/lemmego/auth => ../auth
-	github.com/lemmego/cli => ../cli
-	github.com/lemmego/db => ../db
 )
 
 require (
@@ -49,7 +41,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/lemmego/fsys v0.0.0-20241023132523-b7be6cd88ee9 // indirect
-	github.com/mattn/go-sqlite3 v1.14.24 // indirect
+	github.com/mattn/go-sqlite3 v1.14.28 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
@@ -62,8 +54,8 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.32.0 // indirect
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/sync v0.9.0 // indirect
-	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/api v0.206.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
@@ -74,7 +66,11 @@ require (
 	google.golang.org/protobuf v1.36.1 // indirect
 )
 
-require github.com/lemmego/api v0.0.0-20241119171149-c5ab8bf10b81
+require (
+	github.com/lemmego/api v0.1.1
+	github.com/lemmego/gpa v0.1.1
+	github.com/lemmego/gparedis v0.1.1
+)
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
@@ -82,20 +78,15 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/alexedwards/scs/v2 v2.8.0 // indirect
 	github.com/aws/aws-sdk-go v1.55.5 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/ggicci/httpin v0.19.0 // indirect
-	github.com/go-sql-driver/mysql v1.8.1 // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
-	github.com/huandu/go-sqlbuilder v1.33.1 // indirect
-	github.com/huandu/xstrings v1.4.0 // indirect
-	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
-	github.com/k0kubun/pp/v3 v3.4.1 // indirect
 	github.com/lib/pq v1.10.9 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/romsar/gonertia v1.3.4 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 )
