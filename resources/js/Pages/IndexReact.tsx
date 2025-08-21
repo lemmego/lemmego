@@ -15,7 +15,7 @@ const IndexReact = () => {
           <div className="divide-y divide-gray-300 dark:divide-gray-700">
             <div className="py-8 text-base leading-7">
               <p>
-                <strong>Lemmego</strong> is a modern, full-stack web development
+                <strong>Lemmegos</strong> is a modern, full-stack web development
                 framework built with Go, designed to streamline the creation of
                 scalable and high-performance applications.
               </p>

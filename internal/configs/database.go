@@ -9,11 +9,9 @@ import (
 
 func init() {
 	config.Set("sql", config.M{
-		"provider": func(instance ...string) gpa.SQLProvider {
-			return nil
-			//Uncomment the line below to use GORM provider.
-			//return gpa.MustGet[*gpagorm.Provider](instance...)
-		},
+		//"provider": func(instance ...string) gpa.SQLProvider {
+		//	return gpa.MustGet[*gpagorm.Provider](instance...)
+		//},
 		"default": config.MustEnv("DB_CONNECTION", "sqlite"),
 		"connections": config.M{
 			"sqlite": config.M{

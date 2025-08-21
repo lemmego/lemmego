@@ -1,28 +1,40 @@
-package providers
+package gormconnector
 
 import (
 	"fmt"
 	"github.com/lemmego/api/app"
 	"github.com/lemmego/api/config"
 	"github.com/lemmego/gpa"
+	"github.com/lemmego/gpagorm"
+	"reflect"
 )
 
-func init() {
-	app.RegisterService(func(a app.App) error {
-		//Uncomment the lines below to use GORM provider.
-		//dbConfig := SQLConfig()
-		//provider, err := gpagorm.NewProvider(dbConfig)
-		//if err != nil {
-		//	return err
-		//}
-		//
-		//gpa.RegisterDefault(provider)
-
-		return nil
-	})
+type Provider struct {
+	config *gpa.Config
 }
 
-func SQLConfig(connName ...string) gpa.Config {
+func (g *Provider) WithConfig(config *gpa.Config) *Provider {
+	g.config = config
+	return g
+}
+
+func (g *Provider) Provide(a app.App) error {
+	dbConfig := sqlConfig()
+	if g.config != nil {
+		dbConfig = *g.config
+	}
+	provider, err := gpagorm.NewProvider(dbConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	gpa.RegisterDefault(provider)
+
+	a.AddService(provider)
+	return nil
+}
+
+func sqlConfig(connName ...string) gpa.Config {
 	name := "default"
 	if len(connName) > 0 && connName[0] != "" {
 		name = connName[0]
@@ -51,4 +63,8 @@ func SQLConfig(connName ...string) gpa.Config {
 	}
 
 	return dbConfig
+}
+
+func Get(a app.App) *gpagorm.Provider {
+	return a.Service(reflect.TypeOf(&gpagorm.Provider{})).(*gpagorm.Provider)
 }

@@ -12,10 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	app.RegisterCommands(AppKeyCommand)
-}
-
 var AppKeyCommand = func(a app.App) *cobra.Command {
 	return &cobra.Command{
 		Use: "appkey",
