@@ -12,8 +12,6 @@ public/build
 public/hot
 public/storage
 !public/.gitkeep
-bootstrap/*
-!bootstrap/.gitkeep
 storage/*
 !storage/.gitkeep
 !internal/plugins/.gitkeep
