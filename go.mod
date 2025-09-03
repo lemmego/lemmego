@@ -72,8 +72,7 @@ require (
 	github.com/lemmego/gpagorm v0.1.3
 	github.com/lemmego/gparedis v0.1.1
 	github.com/lemmego/inertia v0.1.0
-	github.com/lemmego/migration v0.1.12
-	github.com/lemmego/templ v0.1.0
+	github.com/lemmego/migration v0.1.13
 )
 
 require (

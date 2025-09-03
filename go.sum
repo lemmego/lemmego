@@ -243,10 +243,8 @@ github.com/lemmego/gparedis v0.1.1 h1:C64bUw1FBuQoZfix40DY0ItrRXuzA56krN3SZb/c1M
 github.com/lemmego/gparedis v0.1.1/go.mod h1:cCyyL+KoEaGc6uP6nM9LNxSHzDQ4l53yRDBxLJYe10g=
 github.com/lemmego/inertia v0.1.0 h1:zG3tZuypw/19tIJJwCmwr3rNFwgApNIB9yUtUtjgg6c=
 github.com/lemmego/inertia v0.1.0/go.mod h1:aC5786UJz1k7WQkcZMCY/fI9F+7oznz8Jf1tdEQlkh8=
-github.com/lemmego/migration v0.1.12 h1:B7but32zLsJ+GuSSoGe21MIWcI2n3VbUFcZTCz6IVTg=
-github.com/lemmego/migration v0.1.12/go.mod h1:xZa8AQdc8bGI483uWOljrn8saX8pHjI0UfVEnHj83ys=
-github.com/lemmego/templ v0.1.0 h1:LnGFZ4xvQBKa9iKCf6kaLGFEr5GBNrWMXIe4uJELam8=
-github.com/lemmego/templ v0.1.0/go.mod h1:wo2FRpiZ3U4Tf0NpO7BU7Ks2XToGdjYBeFHLj7JWa2s=
+github.com/lemmego/migration v0.1.13 h1:tlp2rtOAP3Ga300N/CLpVUrNGTGvpnmC8qdbpqc+ZQY=
+github.com/lemmego/migration v0.1.13/go.mod h1:xZa8AQdc8bGI483uWOljrn8saX8pHjI0UfVEnHj83ys=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/magiconair/properties v1.7.4-0.20170902060319-8d7837e64d3c/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
