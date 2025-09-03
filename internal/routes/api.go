@@ -4,7 +4,8 @@ import (
 	"github.com/lemmego/api/app"
 )
 
-func ApiRoutes(r app.Router) {
+func ApiRoutes(a app.App) {
+	r := a.Router()
 	apiGroup := r.Group("/api")
 	{
 		apiGroup.Get("/ping", func(c app.Context) error {

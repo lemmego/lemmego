@@ -2,10 +2,8 @@ module github.com/lemmego/lemmego
 
 go 1.24.3
 
-replace github.com/lemmego/api v0.1.2 => ../api
-
 require (
-	github.com/a-h/templ v0.2.771
+	github.com/a-h/templ v0.3.943
 	github.com/spf13/cobra v1.8.1
 )
 
@@ -29,7 +27,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gertd/go-pluralize v0.2.1 // indirect
 	github.com/ggicci/owl v0.8.2 // indirect
-	github.com/go-chi/chi/v5 v5.1.0 // indirect
+	github.com/go-chi/chi/v5 v5.2.2 // indirect
 	github.com/go-chi/httplog/v2 v2.1.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -67,18 +65,20 @@ require (
 )
 
 require (
-	github.com/lemmego/api v0.1.2
+	github.com/lemmego/api v0.1.3
+	github.com/lemmego/auth v0.1.0
+	github.com/lemmego/gormconnector v0.1.0
 	github.com/lemmego/gpa v0.1.1
 	github.com/lemmego/gpagorm v0.1.3
 	github.com/lemmego/gparedis v0.1.1
+	github.com/lemmego/inertia v0.1.0
 	github.com/lemmego/migration v0.1.12
-	github.com/romsar/gonertia v1.3.4
-	golang.org/x/crypto v0.41.0
+	github.com/lemmego/templ v0.1.0
 )
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
-	dario.cat/mergo v1.0.1 // indirect
+	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/alexedwards/scs/v2 v2.8.0 // indirect
 	github.com/aws/aws-sdk-go v1.55.5 // indirect
@@ -89,6 +89,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
@@ -103,7 +104,9 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/microsoft/go-mssqldb v1.9.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	golang.org/x/oauth2 v0.24.0 // indirect
+	github.com/romsar/gonertia v1.3.5 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	gorm.io/driver/mysql v1.6.0 // indirect
 	gorm.io/driver/postgres v1.6.0 // indirect
