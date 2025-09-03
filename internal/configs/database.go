@@ -3,16 +3,16 @@ package configs
 import (
 	"github.com/lemmego/api/config"
 	"github.com/lemmego/gpa"
+	"github.com/lemmego/gpagorm"
 	"github.com/lemmego/gparedis"
 	"time"
 )
 
 func init() {
 	config.Set("sql", config.M{
+		//Uncomment the field below to use gpagorm provider
 		"provider": func(instance ...string) gpa.SQLProvider {
-			return nil
-			//Uncomment the line below to use GORM provider.
-			//return gpa.MustGet[*gpagorm.Provider](instance...)
+			return gpa.MustGet[*gpagorm.Provider](instance...)
 		},
 		"default": config.MustEnv("DB_CONNECTION", "sqlite"),
 		"connections": config.M{
