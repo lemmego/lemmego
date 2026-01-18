@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	config.Set("sql.provider", func(instance ...string) gpa.SQLProvider {
+	config.Set("sql.gpaprovider", func(instance ...string) gpa.SQLProvider {
 		return gpa.MustGet[*gpagorm.Provider](instance...)
 	})
 }

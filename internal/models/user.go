@@ -1,9 +1,10 @@
 package models
 
 import (
+	"context"
 	"encoding/gob"
+	"github.com/lemmego/api/utils"
 	"strconv"
-	"time"
 )
 
 func init() {
@@ -11,12 +12,12 @@ func init() {
 }
 
 type User struct {
-	ID        uint64     `json:"id" db:"id,omitempty"`
-	Email     string     `json:"email" db:"email"`
-	Name      string     `json:"name" db:"name"`
-	Password  string     `json:"-" db:"password"`
-	CreatedAt *time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt *time.Time `json:"updated_at" db:"updated_at"`
+	ID        uint64 `json:"id" db:"id,omitempty"`
+	Email     string `json:"email" db:"email"`
+	Name      string `json:"name" db:"name"`
+	Password  string `json:"-" db:"password"`
+	CreatedAt string `json:"created_at" db:"created_at"`
+	UpdatedAt string `json:"updated_at" db:"updated_at"`
 }
 
 func (u *User) GetID() string {
@@ -29,4 +30,13 @@ func (u *User) GetUsername() string {
 
 func (u *User) GetPassword() string {
 	return u.Password
+}
+
+func (u *User) BeforeCreate(ctx context.Context) error {
+	if hashed, err := utils.Bcrypt(u.Password); err != nil {
+		return err
+	} else {
+		u.Password = hashed
+		return nil
+	}
 }

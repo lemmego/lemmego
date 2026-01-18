@@ -69,8 +69,8 @@ require (
 	github.com/lemmego/auth v0.1.0
 	github.com/lemmego/gormconnector v0.1.0
 	github.com/lemmego/gpa v0.1.1
-	github.com/lemmego/gpagorm v0.1.3
-	github.com/lemmego/gparedis v0.1.1
+	github.com/lemmego/gpagorm v0.1.4
+	github.com/lemmego/gparedis v0.1.2
 	github.com/lemmego/inertia v0.1.0
 	github.com/lemmego/migration v0.1.13
 )

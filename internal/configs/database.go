@@ -2,19 +2,13 @@ package configs
 
 import (
 	"github.com/lemmego/api/config"
-	"github.com/lemmego/gpa"
-	"github.com/lemmego/gpagorm"
-	"github.com/lemmego/gparedis"
 	"time"
 )
 
 func init() {
 	config.Set("sql", config.M{
-		//Uncomment the field below to use gpagorm provider
-		"provider": func(instance ...string) gpa.SQLProvider {
-			return gpa.MustGet[*gpagorm.Provider](instance...)
-		},
-		"default": config.MustEnv("DB_CONNECTION", "sqlite"),
+		"gpaprovider": nil, // For reference only, typically overridden by specific provider, in their specific config file, e.g. configs/gpagorm.go
+		"default":     config.MustEnv("DB_CONNECTION", "sqlite"),
 		"connections": config.M{
 			"sqlite": config.M{
 				"driver":                  "sqlite",
@@ -51,9 +45,7 @@ func init() {
 	})
 
 	config.Set("keyvalue", config.M{
-		"provider": func(instance ...string) gpa.KeyValueProvider {
-			return gpa.MustGet[*gparedis.Provider](instance...)
-		},
+		"gpaprovider": nil, // For reference only, typically overridden by specific provider, in their specific config file, e.g. configs/gparedis.go
 		"connections": config.M{
 			"redis": config.M{
 				"host":     config.MustEnv("REDIS_HOST", "localhost"),
