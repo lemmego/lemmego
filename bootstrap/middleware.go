@@ -7,6 +7,6 @@ import (
 
 func LoadMiddlewares() []app.Handler {
 	return []app.Handler{
-		middleware.VerifyCSRF,
+		middleware.VerifyCSRF(&middleware.CSRFOpts{ExcludePatterns: []string{"/api/.*"}}),
 	}
 }
