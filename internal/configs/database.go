@@ -1,13 +1,13 @@
 package configs
 
 import (
-	"github.com/lemmego/api/config"
 	"time"
+
+	"github.com/lemmego/api/config"
 )
 
 func init() {
 	config.Set("sql", config.M{
-		"gpaprovider": nil, // For reference only, typically overridden by specific provider, in their specific config file, e.g. configs/gpagorm.go
 		"default":     config.MustEnv("DB_CONNECTION", "sqlite"),
 		"connections": config.M{
 			"sqlite": config.M{
@@ -45,7 +45,6 @@ func init() {
 	})
 
 	config.Set("keyvalue", config.M{
-		"gpaprovider": nil, // For reference only, typically overridden by specific provider, in their specific config file, e.g. configs/gparedis.go
 		"connections": config.M{
 			"redis": config.M{
 				"host":     config.MustEnv("REDIS_HOST", "localhost"),

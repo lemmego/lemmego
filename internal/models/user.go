@@ -3,8 +3,10 @@ package models
 import (
 	"context"
 	"encoding/gob"
-	"github.com/lemmego/api/utils"
 	"strconv"
+	"time"
+
+	"github.com/lemmego/api/utils"
 )
 
 func init() {
@@ -37,6 +39,15 @@ func (u *User) BeforeCreate(ctx context.Context) error {
 		return err
 	} else {
 		u.Password = hashed
-		return nil
 	}
+
+	if u.CreatedAt == "" {
+		u.CreatedAt = time.Now().Format(time.RFC3339)
+	}
+
+	if u.UpdatedAt == "" {
+		u.UpdatedAt = time.Now().Format(time.RFC3339)
+	}
+
+	return nil
 }

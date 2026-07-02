@@ -14,10 +14,13 @@ func LoadProviders() []app.Provider {
 		&fs.Provider{},
 		&session.Provider{},
 		&inertia.Provider{},
-		&gormconnector.Provider{},
+		&gormconnector.Provider{
+			UseGPA: true,
+		},
 		&auth.Provider{
 			Opts: &auth.Opts{
-				// Configure...
+				DisableSession: true,
+				JwtSecret:      "a-long-long-secret",
 			},
 		},
 	}
