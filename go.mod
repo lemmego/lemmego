@@ -66,11 +66,11 @@ require (
 
 require (
 	github.com/lemmego/api v0.1.19
-	github.com/lemmego/auth v0.1.0
+	github.com/lemmego/auth v0.1.2
 	github.com/lemmego/gormconnector v0.1.0
 	github.com/lemmego/gpa v0.1.1
 	github.com/lemmego/gpagorm v0.1.4
-	github.com/lemmego/inertia v0.1.0
+	github.com/lemmego/inertia v0.1.2
 	github.com/lemmego/migration v0.1.14
 )
 
@@ -102,6 +102,7 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/romsar/gonertia v1.3.5 // indirect
+	github.com/romsar/gonertia/v3 v3.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
