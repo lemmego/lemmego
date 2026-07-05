@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@source "../../templates/";
+@source "../../resources/";
 
 @layer components {
   .input {

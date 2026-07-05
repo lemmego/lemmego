@@ -17,7 +17,8 @@ func main() {
 		WithHTTPMiddlewares(bootstrap.LoadHTTPMiddlewares()).
 		WithMiddlewares(bootstrap.LoadMiddlewares()).
 		WithCommands(bootstrap.LoadCommands()).
-		WithProviders(bootstrap.LoadProviders())
+		WithProviders(bootstrap.LoadProviders()).
+		WithErrMap(bootstrap.LoadErrMap())
 
 	// Run application
 	webApp.Run()
