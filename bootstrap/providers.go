@@ -2,11 +2,13 @@ package bootstrap
 
 import (
 	"github.com/lemmego/api/app"
+	"github.com/lemmego/api/config"
 	"github.com/lemmego/api/providers/fs"
 	"github.com/lemmego/api/providers/session"
 	"github.com/lemmego/auth"
 	"github.com/lemmego/gormconnector"
 	"github.com/lemmego/inertia"
+	"github.com/lemmego/queue"
 )
 
 func LoadProviders() []app.Provider {
@@ -20,8 +22,9 @@ func LoadProviders() []app.Provider {
 		&auth.Provider{
 			Opts: &auth.Opts{
 				DisableSession: true,
-				JwtSecret:      "a-long-long-secret",
+				JwtSecret:      config.MustEnv("JWT_SECRET", config.MustEnv("APP_KEY", "")),
 			},
 		},
+		&queue.Provider{},
 	}
 }

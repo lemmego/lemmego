@@ -9,5 +9,6 @@ func LoadCommands() []app.Command {
 	return []app.Command{
 		commands.AppKeyCommand,
 		commands.InspireCommand,
+		commands.DispatchCommand,
 	}
 }

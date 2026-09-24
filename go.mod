@@ -1,6 +1,6 @@
 module github.com/lemmego/lemmego
 
-go 1.25.0
+go 1.27
 
 require (
 	github.com/a-h/templ v0.3.943
@@ -65,13 +65,15 @@ require (
 )
 
 require (
-	github.com/lemmego/api v0.1.19
+	github.com/lemmego/api v0.1.26
 	github.com/lemmego/auth v0.1.2
 	github.com/lemmego/gormconnector v0.1.0
 	github.com/lemmego/gpa v0.1.1
 	github.com/lemmego/gpagorm v0.1.4
 	github.com/lemmego/inertia v0.1.2
 	github.com/lemmego/migration v0.1.14
+	github.com/lemmego/queue v0.1.0
+	github.com/lemmego/tasker v0.1.0
 )
 
 require (
@@ -80,10 +82,12 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/alexedwards/scs/v2 v2.8.0 // indirect
 	github.com/aws/aws-sdk-go v1.55.5 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ggicci/httpin v0.19.0 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/glebarez/sqlite v1.11.0 // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
@@ -101,7 +105,6 @@ require (
 	github.com/microsoft/go-mssqldb v1.9.2 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/romsar/gonertia v1.3.5 // indirect
 	github.com/romsar/gonertia/v3 v3.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
@@ -116,4 +119,9 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.46.1 // indirect
+)
+
+replace (
+	github.com/lemmego/queue => ../queue
+	github.com/lemmego/tasker => ../tasker
 )
