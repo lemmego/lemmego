@@ -96,7 +96,7 @@ require (
 	github.com/lemmego/gpa v0.1.2
 	github.com/lemmego/gpaorm v0.1.2
 	github.com/lemmego/inertia v0.1.6
-	github.com/lemmego/migration v0.1.18
+	github.com/lemmego/migration v0.1.19
 	github.com/lemmego/ormconnector v0.1.2
 	github.com/lemmego/queue v0.1.2
 	github.com/lemmego/tasker v0.1.3
