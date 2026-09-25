@@ -8,7 +8,7 @@ import (
 
 func init() {
 	config.Set("sql", config.M{
-		"default":     config.MustEnv("DB_CONNECTION", "sqlite"),
+		"default": config.MustEnv("DB_CONNECTION", "sqlite"),
 		"connections": config.M{
 			"sqlite": config.M{
 				"driver":                  "sqlite",

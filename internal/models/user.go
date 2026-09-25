@@ -13,13 +13,16 @@ func init() {
 	gob.Register(&User{})
 }
 
+// The orm tags name the primary key, which the ORM needs in order to address a
+// row for Find, Update and Delete. The db tags are kept so the struct still
+// works with anything reading those.
 type User struct {
-	ID        uint64 `json:"id" db:"id,omitempty"`
-	Email     string `json:"email" db:"email"`
-	Name      string `json:"name" db:"name"`
-	Password  string `json:"-" db:"password"`
-	CreatedAt string `json:"created_at" db:"created_at"`
-	UpdatedAt string `json:"updated_at" db:"updated_at"`
+	ID        uint64 `json:"id" db:"id,omitempty" orm:"column:id;primaryKey;autoIncrement"`
+	Email     string `json:"email" db:"email" orm:"column:email"`
+	Name      string `json:"name" db:"name" orm:"column:name"`
+	Password  string `json:"-" db:"password" orm:"column:password"`
+	CreatedAt string `json:"created_at" db:"created_at" orm:"column:created_at"`
+	UpdatedAt string `json:"updated_at" db:"updated_at" orm:"column:updated_at"`
 }
 
 func (u *User) GetID() string {

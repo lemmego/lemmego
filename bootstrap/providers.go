@@ -6,8 +6,8 @@ import (
 	"github.com/lemmego/api/providers/fs"
 	"github.com/lemmego/api/providers/session"
 	"github.com/lemmego/auth"
-	"github.com/lemmego/gormconnector"
 	"github.com/lemmego/inertia"
+	"github.com/lemmego/ormconnector"
 	"github.com/lemmego/queue"
 )
 
@@ -16,7 +16,7 @@ func LoadProviders() []app.Provider {
 		&fs.Provider{},
 		&session.Provider{},
 		&inertia.Provider{},
-		&gormconnector.Provider{
+		&ormconnector.Provider{
 			UseGPA: true,
 		},
 		&auth.Provider{
