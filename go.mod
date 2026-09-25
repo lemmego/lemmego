@@ -50,7 +50,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/lemmego/fsys v0.1.0 // indirect
-	github.com/lemmego/orm v0.1.0 // indirect
+	github.com/lemmego/orm v0.1.1 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
@@ -92,12 +92,12 @@ require (
 require (
 	github.com/a-h/templ v0.3.943
 	github.com/lemmego/api v0.1.29
-	github.com/lemmego/auth v0.1.5
+	github.com/lemmego/auth v0.1.7
 	github.com/lemmego/gpa v0.1.2
-	github.com/lemmego/gpaorm v0.1.0
+	github.com/lemmego/gpaorm v0.1.1
 	github.com/lemmego/inertia v0.1.6
-	github.com/lemmego/migration v0.1.17
-	github.com/lemmego/ormconnector v0.1.0
+	github.com/lemmego/migration v0.1.18
+	github.com/lemmego/ormconnector v0.1.1
 	github.com/lemmego/queue v0.1.0
 	github.com/lemmego/tasker v0.1.0
 	github.com/spf13/cobra v1.8.1
