@@ -2,16 +2,11 @@ package models
 
 import (
 	"context"
-	"encoding/gob"
 	"strconv"
 	"time"
 
 	"github.com/lemmego/api/utils"
 )
-
-func init() {
-	gob.Register(&User{})
-}
 
 // The orm tags name the primary key, which the ORM needs in order to address a
 // row for Find, Update and Delete. The db tags are kept so the struct still

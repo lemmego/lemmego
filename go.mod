@@ -91,8 +91,8 @@ require (
 
 require (
 	github.com/a-h/templ v0.3.943
-	github.com/lemmego/api v0.1.31
-	github.com/lemmego/auth v0.1.7
+	github.com/lemmego/api v0.1.40
+	github.com/lemmego/auth v0.2.0
 	github.com/lemmego/gpa v0.1.2
 	github.com/lemmego/gpaorm v0.1.2
 	github.com/lemmego/inertia v0.1.6
