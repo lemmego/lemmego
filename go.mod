@@ -91,14 +91,14 @@ require (
 
 require (
 	github.com/a-h/templ v0.3.943
-	github.com/lemmego/api v0.1.40
+	github.com/lemmego/api v0.1.41
 	github.com/lemmego/auth v0.2.0
 	github.com/lemmego/gpa v0.1.2
 	github.com/lemmego/gpaorm v0.1.2
 	github.com/lemmego/inertia v0.1.6
 	github.com/lemmego/migration v0.1.19
 	github.com/lemmego/ormconnector v0.1.2
-	github.com/lemmego/queue v0.1.2
-	github.com/lemmego/tasker v0.1.3
+	github.com/lemmego/queue v0.2.1
+	github.com/lemmego/tasker v0.1.4
 	github.com/spf13/cobra v1.8.1
 )

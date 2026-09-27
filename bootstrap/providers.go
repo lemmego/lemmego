@@ -1,12 +1,16 @@
 package bootstrap
 
 import (
+	"slices"
+	"strings"
+
 	"github.com/lemmego/api/app"
 	"github.com/lemmego/api/config"
 	"github.com/lemmego/api/providers/fs"
 	"github.com/lemmego/api/providers/session"
 	"github.com/lemmego/auth"
 	"github.com/lemmego/inertia"
+	"github.com/lemmego/lemmego/internal/models"
 	"github.com/lemmego/lemmego/internal/repos"
 	"github.com/lemmego/ormconnector"
 	"github.com/lemmego/queue"
@@ -46,6 +50,39 @@ func LoadProviders() []app.Provider {
 				JwtSecret:      config.MustEnv("JWT_SECRET", config.MustEnv("APP_KEY", "")),
 			},
 		},
-		&queue.Provider{},
+		&queue.Provider{
+			// The queue dashboard can retry, cancel and delete jobs, so it
+			// stays shut until this says otherwise. Add yourself to
+			// TASKER_ADMINS to get in.
+			DashboardAuth: func(c app.Context) bool {
+				// Check first. The dashboard is mounted as a raw handler, so
+				// none of the route middleware ran for this request and
+				// nothing has looked at the cookie yet; without this the
+				// user is always absent and the answer is always no.
+				if err := auth.Check(c); err != nil {
+					return false
+				}
+				user, ok := auth.UserAs[*models.User](c)
+				return ok && slices.Contains(taskerAdmins(), user.Email)
+			},
+		},
 	}
+}
+
+// taskerAdmins lists who may use the queue dashboard, read from
+// TASKER_ADMINS as a comma-separated list of email addresses.
+//
+// It is empty by default, which closes the dashboard rather than opening it
+// to every signed-in user: the dashboard retries, cancels and deletes jobs,
+// and a queue is not something an ordinary account should be able to clear.
+func taskerAdmins() []string {
+	raw := config.MustEnv("TASKER_ADMINS", "")
+	if raw == "" {
+		return nil
+	}
+	admins := strings.Split(raw, ",")
+	for i := range admins {
+		admins[i] = strings.TrimSpace(admins[i])
+	}
+	return admins
 }
