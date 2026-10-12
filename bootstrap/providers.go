@@ -6,6 +6,7 @@ import (
 
 	"github.com/lemmego/api/app"
 	"github.com/lemmego/api/config"
+	"github.com/lemmego/api/logger"
 	"github.com/lemmego/api/providers/fs"
 	"github.com/lemmego/api/providers/session"
 	"github.com/lemmego/auth"
@@ -18,6 +19,9 @@ import (
 
 func LoadProviders() []app.Provider {
 	return []app.Provider{
+		// First, so that every provider after it logs through the
+		// application's own configuration rather than slog's bare default.
+		&logger.Provider{},
 		&fs.Provider{},
 		&session.Provider{},
 		&inertia.Provider{},

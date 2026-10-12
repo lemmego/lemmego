@@ -50,6 +50,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/lemmego/fsys v0.1.0 // indirect
+	github.com/lemmego/log v0.1.0 // indirect
 	github.com/lemmego/orm v0.1.2 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -91,7 +92,7 @@ require (
 
 require (
 	github.com/a-h/templ v0.3.943
-	github.com/lemmego/api v0.1.41
+	github.com/lemmego/api v0.1.49
 	github.com/lemmego/auth v0.2.0
 	github.com/lemmego/gpa v0.1.2
 	github.com/lemmego/gpaorm v0.1.2
