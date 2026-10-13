@@ -35,7 +35,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/gomodule/redigo v1.9.2 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
@@ -91,8 +91,8 @@ require (
 require (
 	github.com/a-h/templ v0.3.943
 	github.com/lemmego/api v0.2.0
-	github.com/lemmego/auth v0.3.0
-	github.com/lemmego/gpa v0.1.2
+	github.com/lemmego/auth v0.3.1
+	github.com/lemmego/gpa v0.1.3
 	github.com/lemmego/gpaorm v0.1.2
 	github.com/lemmego/inertia v0.2.0
 	github.com/lemmego/migration v0.1.19
